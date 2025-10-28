@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "331001676857",
+    "project_id": "gitcat301",
+    "storage_bucket": "gitcat301.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:331001676857:android:dde1ce727c8c34958939e8",
+        "android_client_info": {
+          "package_name": "com.example.gitcat_events"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAuZDZqq-ARsy8t20nYDrX1YN7_OrodRic"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
