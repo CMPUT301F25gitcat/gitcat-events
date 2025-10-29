@@ -14,106 +14,96 @@
             android:layout_height="wrap_content"
             android:orientation="vertical" >
 
+            <Button
+                android:id="@+id/button3"
+                style="@style/Widget.Material3.Button.Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:icon="@android:drawable/ic_menu_close_clear_cancel" />
+
             <TextView
-                android:id="@+id/create_event_title_text"
+                android:id="@+id/textView3"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/create_event_title_text"
+                android:text="Create Event"
                 android:textAlignment="center"
                 android:textSize="24sp" />
 
             <ImageView
-                android:id="@+id/create_event_poster_preview"
+                android:id="@+id/imageView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:minWidth="24sp"
                 android:minHeight="240sp"
                 app:srcCompat="@android:drawable/ic_menu_gallery" />
 
-            <Button
-                android:id="@+id/create_event_edit_poster_button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Edit Poster" />
-
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/event_name_text_input_layout"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/event_name_text_input"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Event Name" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/description_text_input_layout"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/description_text_input"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Description" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/slots_available_text_input_layout"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/slots_available_text_input"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Slots Available" />
-
             </com.google.android.material.textfield.TextInputLayout>
 
-            <Button
-                android:id="@+id/select_event_time_button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Event Time: %s" />
-
-            <Button
-                android:id="@+id/select_raffle_time_button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Raffle Time: %s" />
-
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/limit_entrants_text_input_layout"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/limit_entrants_text_input"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Limit Entrants to: (optional)" />
+                    android:hint="Event Date" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Raffle Date" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <CheckBox
-                android:id="@+id/geo_location_check_box"
+                android:id="@+id/checkBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Require Geo Location (optional)" />
+                android:text="Require Geo Location" />
+
+            <CheckBox
+                android:id="@+id/checkBox2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Limit Entrants" />
 
             <Button
-                android:id="@+id/create_event_text_box"
+                android:id="@+id/button4"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Create Event" />
-
-            <Button
-                android:id="@+id/create_event_cancel_button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Cancel" />
         </LinearLayout>
     </ScrollView>
 
