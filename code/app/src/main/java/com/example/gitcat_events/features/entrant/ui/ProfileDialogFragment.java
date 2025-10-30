@@ -26,7 +26,7 @@ public class ProfileDialogFragment extends DialogFragment {
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
         // Inflate content view
-        View v = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_profile, null);
+        View v = getLayoutInflater().inflate(R.layout.dialog_profile, null);
         EditText etName  = v.findViewById(R.id.etName);
         EditText etEmail = v.findViewById(R.id.etEmail);
         EditText etPhone = v.findViewById(R.id.etPhone);

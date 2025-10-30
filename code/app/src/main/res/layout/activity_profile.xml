@@ -6,7 +6,7 @@
 
     <!-- Name -->
     <TextView
-        android:text="Name"
+        android:text= "@string/name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"/>
@@ -20,7 +20,7 @@
 
     <!-- Email -->
     <TextView
-        android:text="Email"
+        android:text="@string/email"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"/>
@@ -34,7 +34,7 @@
 
     <!-- Phone -->
     <TextView
-        android:text="Phone"
+        android:text="@string/phone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"/>
@@ -50,5 +50,11 @@
         android:id="@+id/btnEdit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Edit" />
+        android:text="@string/edit" />
+    <Button
+        android:id="@+id/btnDelete"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/delete_profile"
+        android:layout_marginTop="8dp"/>
 </LinearLayout>
