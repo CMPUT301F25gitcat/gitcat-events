@@ -7,6 +7,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -58,6 +59,8 @@ public class ProfileActivity extends AppCompatActivity
         btnEdit.setOnClickListener(v ->
                 ProfileDialogFragment.newInstance(currentProfile)
                         .show(getSupportFragmentManager(), "editProfile"));
+        Button btnDelete = findViewById(R.id.btnDelete);
+        btnDelete.setOnClickListener(v -> confirmAndDelete());
     }
 
     private Profile currentProfile;
@@ -165,7 +168,40 @@ public class ProfileActivity extends AppCompatActivity
         SharedPreferences sp = getSharedPreferences(PREFS, MODE_PRIVATE);
         return sp.getString(KEY_PROFILE_ID, null);
     }
+    private void confirmAndDelete() {
+        String id = getSavedDocId();
+        if (id == null) {
+            Toast.makeText(this, "No profile to delete.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Delete profile?")
+                .setMessage("This will remove your profile from the database on this app.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Delete", (d, w) -> deleteProfileById(id))
+                .show();
+    }
 
+    private void deleteProfileById(@NonNull String id) {
+        db.collection("profiles").document(id).delete()
+                .addOnSuccessListener(v -> {
+                    // clear local state
+                    saveDocId(null);        // clear prefs key
+                    currentProfile = null;
+                    // clear UI
+                    tvName.setText("—");
+                    tvEmail.setText("—");
+                    tvPhone.setText("—");
+                    Toast.makeText(this, "Profile deleted.", Toast.LENGTH_SHORT).show();
+
+                    // Prompt to create a new one (optional)
+                    ProfileDialogFragment.newInstance(null)
+                            .show(getSupportFragmentManager(), "createProfile");
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Delete failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                );
+    }
     private void saveDocId(String id) {
         getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(KEY_PROFILE_ID, id).apply();
     }

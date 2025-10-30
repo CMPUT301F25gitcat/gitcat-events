@@ -2,7 +2,5 @@
 <resources>
     <string name="phone_optional">Phone (optional)</string>
     <string name="profile">Profile</string>
-    <string name="name">Name *</string>
-    <string name="email">Email *</string>
     <string name="save">Save</string>
 </resources>
