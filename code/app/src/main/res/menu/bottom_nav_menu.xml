@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:title="Home"
+        android:icon="@drawable/home_icon"
+        android:id="@+id/home"/>
+    <item android:title="Notifs"
+        android:icon="@drawable/baseline_circle_notifications_24"
+        android:id="@+id/notifs"/>
+    <item android:title="Create"
+        android:icon="@drawable/outline_add_24"
+        android:id="@+id/create"/>
+    <item android:title="Profile"
+        android:icon="@drawable/outline_account_box_24"
+        android:id="@+id/profile"/>
+</menu>
