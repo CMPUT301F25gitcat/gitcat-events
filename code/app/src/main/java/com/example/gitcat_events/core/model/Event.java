@@ -46,7 +46,7 @@ public class Event {
     }
 
     public void removeFromWaitList(int uid) {
-        this.waitList.remove(uid);  //currently unsure if this removes the element at index uid or the uid itself
+        this.waitList.remove(Integer.valueOf(uid));
     }
 
     public Boolean addToAcceptedEntries(int uid) {
@@ -58,7 +58,7 @@ public class Event {
     }
 
     public void removeFromAcceptedEntries(int uid) {
-        this.acceptedEntries.remove(uid);   //currently unsure if this removes the element at index uid or the uid itself
+        this.acceptedEntries.remove(Integer.valueOf(uid));
     }
 
     //getters and setters:
