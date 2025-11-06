@@ -3,6 +3,7 @@ package com.example.gitcat_events.core.model;
 import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 public class Event {
     //TODO: javadocs, waitlist functions, accepted list functions, tests
@@ -10,8 +11,9 @@ public class Event {
     private String name;
     private String description;
     private int capacity;   //refers to the size of the final list
-    @Nullable
-    private Integer maxWaitListSize;
+    @Nullable private Integer maxWaitListSize;
+    private Date eventDate;
+    private Date raffleDate;
 
     //current plan is to store images as strings
     private String poster;
@@ -78,6 +80,21 @@ public class Event {
         this.poster = poster;
     }
 
+    public Date getEventDate() {
+        return eventDate;
+    }
+
+    public Date getRaffleDate() {
+        return raffleDate;
+    }
+
+    public void setEventDate(Date eventDate) {
+        this.eventDate = eventDate;
+    }
+
+    public void setRaffleDate(Date raffleDate) {
+        this.raffleDate = raffleDate;
+    }
     /*public void setQRCode(QRCode qrCode) {  -- QR code class is not ready yet
         this.qrCode = qrCode;
     }*/
