@@ -20,12 +20,14 @@ public class Event {
     //private QRCode qrCode; --QRCode class is not done yet
     private int organizer;
 
-    public Event(String name, String description, int capacity, @Nullable Integer maxWaitListSize, String poster) {
+    public Event(String name, String description, int capacity, @Nullable Integer maxWaitListSize, String poster,  Date raffleDate, Date eventDate) {
         this.name = name;
         this.description = description;
         this.capacity = capacity;
         this.maxWaitListSize = maxWaitListSize;
         this.poster = poster;
+        this.eventDate = eventDate;
+        this.raffleDate = raffleDate;
         //this.qrCode = new QRCode;  --QR code class not ready yet
     }
 
