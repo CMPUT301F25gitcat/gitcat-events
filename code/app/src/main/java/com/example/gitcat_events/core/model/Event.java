@@ -5,6 +5,7 @@ import androidx.annotation.Nullable;
 import java.util.ArrayList;
 
 public class Event {
+    //TODO: javadocs, waitlist functions, accepted list functions, tests
     //based off CRC card in wiki: https://github.com/CMPUT301F25gitcat/gitcat-events/wiki/Part-3:-CRC-Cards#event
     private String name;
     private String description;
@@ -14,11 +15,7 @@ public class Event {
 
     //current plan is to store images as strings
     private String poster;
-    private QRCode qrCode;
-
-    //is using UIDs here a bad idea?
-    private ArrayList<Integer> waitList;
-    private ArrayList<Integer> acceptedEntries;
+    //private QRCode qrCode; --QRCode class is not done yet
     private int organizer;
 
     public Event(String name, String description, int capacity, @Nullable Integer maxWaitListSize, String poster) {
@@ -27,39 +24,9 @@ public class Event {
         this.capacity = capacity;
         this.maxWaitListSize = maxWaitListSize;
         this.poster = poster;
-        this.qrCode = new QRCode;
+        //this.qrCode = new QRCode;  --QR code class not ready yet
     }
 
-    public int getWaitListCount() {
-        return this.waitList.size();
-    }
-
-    public Boolean addToWaitList(int uid) {
-        if ((this.maxWaitListSize != null) && (this.maxWaitListSize > this.getWaitListCount())) {
-            this.waitList.add(uid);
-            return Boolean.TRUE;
-        } else if (this.maxWaitListSize == null) {
-            this.waitList.add(uid);
-            return Boolean.TRUE;
-        }
-        return Boolean.FALSE;
-    }
-
-    public void removeFromWaitList(int uid) {
-        this.waitList.remove(Integer.valueOf(uid));
-    }
-
-    public Boolean addToAcceptedEntries(int uid) {
-        if (this.capacity > this.acceptedEntries.size()) {
-            this.acceptedEntries.add(uid);
-            return Boolean.TRUE;
-        }
-        return Boolean.FALSE;
-    }
-
-    public void removeFromAcceptedEntries(int uid) {
-        this.acceptedEntries.remove(Integer.valueOf(uid));
-    }
 
     //getters and setters:
     public String getName() {
@@ -74,16 +41,8 @@ public class Event {
         this.description = description;
     }
 
-    public ArrayList<Integer> getAcceptedEntries() {
-        return acceptedEntries;
-    }
-
     public int getCapacity() {
         return capacity;
-    }
-
-    public ArrayList<Integer> getWaitList() {
-        return waitList;
     }
 
     public int getOrganizer() {
@@ -93,10 +52,6 @@ public class Event {
     @Nullable
     public Integer getMaxWaitListSize() {
         return maxWaitListSize;
-    }
-
-    public QRCode getQrCode() {
-        return this.qrCode;
     }
 
     public String getPoster() {
@@ -123,7 +78,7 @@ public class Event {
         this.poster = poster;
     }
 
-    public void setQRCode(QRCode qrCode) {
+    /*public void setQRCode(QRCode qrCode) {  -- QR code class is not ready yet
         this.qrCode = qrCode;
-    }
+    }*/
 }
