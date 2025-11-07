@@ -39,11 +39,12 @@ public class EventDetailsActivity extends AppCompatActivity {
     private TextView tvEventDetailsName, tvEventDetailsDescription, tvEventDetailsDate;
     private TextView tvEventDetailsRaffleDate, tvEventDetailsCapacity, tvWaitingListCount;
     private TextView tvEventDetailsGeolocation, tvStatusMessage;
-    private Button btnJoinWaitingList;
+    private Button btnJoinWaitingList, btnBackToHome;
     
     private String eventId;
     private Event currentEvent;
     private ListenerRegistration waitlistListener;
+    private boolean isOnWaitlist = false;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -71,6 +72,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         tvEventDetailsGeolocation = findViewById(R.id.tvEventDetailsGeolocation);
         tvStatusMessage = findViewById(R.id.tvStatusMessage);
         btnJoinWaitingList = findViewById(R.id.btnJoinWaitingList);
+        btnBackToHome = findViewById(R.id.btnBackToHome);
 
         // Load event details
         loadEventDetails();
@@ -78,8 +80,19 @@ public class EventDetailsActivity extends AppCompatActivity {
         // Set up real-time waiting list count listener
         setupWaitlistListener();
 
-        // Set up join button
-        btnJoinWaitingList.setOnClickListener(v -> joinWaitingList());
+        // Set up join/leave button
+        btnJoinWaitingList.setOnClickListener(v -> handleWaitlistAction());
+        
+        // Set up back button
+        btnBackToHome.setOnClickListener(v -> {
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            finish();
+        });
+        
+        // Check if user is already on the waiting list
+        checkWaitlistStatus();
     }
 
     private void loadEventDetails() {
@@ -165,8 +178,88 @@ public class EventDetailsActivity extends AppCompatActivity {
             // User is the organizer, disable join button
             btnJoinWaitingList.setEnabled(false);
             btnJoinWaitingList.setText("You're the Organizer");
-            showError("You cannot join your own event.");
+            tvStatusMessage.setVisibility(android.view.View.VISIBLE);
+            tvStatusMessage.setText("You're the organizer of this event");
+            tvStatusMessage.setTextColor(getResources().getColor(android.R.color.darker_gray));
         }
+    }
+    
+    private void checkWaitlistStatus() {
+        String deviceId = getOrCreateDeviceId();
+        
+        db.collection("events").document(eventId)
+                .collection("waitlist")
+                .document(deviceId)
+                .addSnapshotListener((documentSnapshot, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Error checking waitlist status", error);
+                        return;
+                    }
+                    
+                    if (documentSnapshot != null && documentSnapshot.exists()) {
+                        // User is on the waiting list
+                        isOnWaitlist = true;
+                        updateButtonForWaitlistStatus();
+                    } else {
+                        // User is not on the waiting list
+                        isOnWaitlist = false;
+                        updateButtonForWaitlistStatus();
+                    }
+                });
+    }
+    
+    private void updateButtonForWaitlistStatus() {
+        // Don't update if user is the organizer
+        if (currentEvent != null && currentEvent.getOrganizerDeviceId() != null && 
+                currentEvent.getOrganizerDeviceId().equals(getOrCreateDeviceId())) {
+            return;
+        }
+        
+        if (isOnWaitlist) {
+            btnJoinWaitingList.setText("Leave Waiting List");
+            btnJoinWaitingList.setBackgroundColor(getResources().getColor(android.R.color.holo_orange_dark));
+            tvStatusMessage.setVisibility(android.view.View.VISIBLE);
+            tvStatusMessage.setText("You're on the waiting list");
+            tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+        } else {
+            btnJoinWaitingList.setText("Join Waiting List");
+            btnJoinWaitingList.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_dark));
+            tvStatusMessage.setVisibility(android.view.View.GONE);
+        }
+    }
+    
+    private void handleWaitlistAction() {
+        if (isOnWaitlist) {
+            confirmLeaveWaitlist();
+        } else {
+            joinWaitingList();
+        }
+    }
+    
+    private void confirmLeaveWaitlist() {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Leave Waiting List?")
+                .setMessage("Are you sure you want to leave the waiting list for this event?")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Leave", (dialog, which) -> leaveWaitingList())
+                .show();
+    }
+    
+    private void leaveWaitingList() {
+        String deviceId = getOrCreateDeviceId();
+        
+        db.collection("events").document(eventId)
+                .collection("waitlist")
+                .document(deviceId)
+                .delete()
+                .addOnSuccessListener(v -> {
+                    showSuccess("Successfully left the waiting list");
+                    isOnWaitlist = false;
+                    updateButtonForWaitlistStatus();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to leave: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
     }
 
     private void setupWaitlistListener() {
@@ -261,8 +354,8 @@ public class EventDetailsActivity extends AppCompatActivity {
                 .set(data)
                 .addOnSuccessListener(v -> {
                     showSuccess("Successfully joined the waiting list!");
-                    btnJoinWaitingList.setEnabled(false);
-                    btnJoinWaitingList.setText("Joined Waiting List");
+                    isOnWaitlist = true;
+                    updateButtonForWaitlistStatus();
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Failed to join: " + e.getMessage(), Toast.LENGTH_LONG).show();
@@ -324,6 +417,15 @@ public class EventDetailsActivity extends AppCompatActivity {
         if (waitlistListener != null) {
             waitlistListener.remove();
         }
+    }
+    
+    @Override
+    public void onBackPressed() {
+        // Navigate back to MainActivity (Home)
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+        finish();
     }
 }
 
