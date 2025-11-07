@@ -1,15 +1,9 @@
 package com.example.gitcat_events;
 
-import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import android.provider.Settings;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,34 +12,24 @@ import android.widget.ArrayAdapter;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.example.gitcat_events.core.model.Event;
 import com.example.gitcat_events.features.event.ui.EventArrayAdapter;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.UUID;
 
 public class HomeFragment extends Fragment {
-    private static final String TAG = "HomeFragment";
-    private static final String PREFS = "app_prefs";
-    
     private ArrayList<Event> upcomingEvents;
     private ArrayList<Event> enteredEvents;
+
 
     private EventArrayAdapter upcomingEventsAdapter;
     private EventArrayAdapter enteredEventsAdapter;
 
     private ListView enteredEventsList;
     private ListView upcomingEventsList;
-    private TextView enteredEventsEmpty;
-    private TextView upcomingEventsEmpty;
-    
-    private FirebaseFirestore db;
 
     public HomeFragment() {
         // Required empty public constructor
@@ -54,30 +38,28 @@ public class HomeFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        db = FirebaseFirestore.getInstance();
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_home, container, false);
-    }
-    
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        
-        // Initialize views
+        View view = inflater.inflate(R.layout.fragment_home, container, false);
         enteredEventsList = view.findViewById(R.id.enteredEventsList);
         upcomingEventsList = view.findViewById(R.id.upcomingEventsList);
-        enteredEventsEmpty = view.findViewById(R.id.EnteredEventsEmpty);
-        upcomingEventsEmpty = view.findViewById(R.id.upcomingEventsEmpty);
 
-        // Initialize lists
+        Event eventOne = new Event("Event 1", "This is a description", 1,10, "poster1", Calendar.getInstance(), Calendar.getInstance(), Boolean.FALSE);
+        Event eventTwo = new Event("Event 2", "This is a description", 1, 10, "poster2", Calendar.getInstance(), Calendar.getInstance(), Boolean.FALSE);
+
         enteredEvents = new ArrayList<>();
         upcomingEvents = new ArrayList<>();
+//        enteredEvents.add(eventTwo);
+//        enteredEvents.add(eventTwo);
+//        enteredEvents.add(eventTwo);
+        upcomingEvents.add(eventOne);
+        upcomingEvents.add(eventOne);
+        upcomingEvents.add(eventOne);
+        upcomingEvents.add(eventOne);
 
-        // Initialize adapters
         enteredEventsAdapter = new EventArrayAdapter(getContext(), enteredEvents);
         upcomingEventsAdapter = new EventArrayAdapter(getContext(), upcomingEvents);
 
@@ -94,19 +76,21 @@ public class HomeFragment extends Fragment {
         enteredEventsList.setAdapter(enteredEventsAdapter);
         upcomingEventsList.setAdapter(upcomingEventsAdapter);
 
-        // Set up click listeners
+        setListViewHeightBasedOnChildren(enteredEventsList);
+        setListViewHeightBasedOnChildren(upcomingEventsList);
+
         upcomingEventsList.setOnItemClickListener((parent, tmpView, position, id) -> {
             Event selectedEvent = upcomingEvents.get(position);
-            Intent intent = new Intent(getContext(), EventDetailsActivity.class);
-            intent.putExtra("eventId", selectedEvent.getDocumentId());
-            startActivity(intent);
-        });
-        
-        enteredEventsList.setOnItemClickListener((parent, tmpView, position, id) -> {
-            Event selectedEvent = enteredEvents.get(position);
-            Intent intent = new Intent(getContext(), EventDetailsActivity.class);
-            intent.putExtra("eventId", selectedEvent.getDocumentId());
-            startActivity(intent);
+            System.out.println(selectedEvent);
+            EventDetails detailFragment = EventDetails.newInstance(selectedEvent);
+
+            getParentFragmentManager()
+                    .beginTransaction()
+                    .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.fade_out,
+                            android.R.anim.fade_in, android.R.anim.fade_out)
+                    .add(R.id.frameLayout, detailFragment)
+                    .addToBackStack(null)
+                    .commit();
         });
 
         // Load events
@@ -151,9 +135,15 @@ public class HomeFragment extends Fragment {
                                 continue;
                             }
                             
-                            // Only show events where registration is still open
+                            // Only show events where registration is currently open
                             Calendar now = Calendar.getInstance();
-                            if (event.getRaffleDate() != null && now.before(event.getRaffleDate())) {
+                            boolean registrationStarted = event.getRegistrationStartDate() == null || 
+                                    !now.before(event.getRegistrationStartDate());
+                            boolean registrationOpen = event.getRaffleDate() == null || 
+                                    now.before(event.getRaffleDate()) || 
+                                    now.equals(event.getRaffleDate());
+                            
+                            if (registrationStarted && registrationOpen) {
                                 upcomingEvents.add(event);
                             }
                         } catch (Exception e) {
@@ -287,6 +277,13 @@ public class HomeFragment extends Fragment {
         event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
         
         // Convert Date to Calendar
+        Date registrationStartDate = document.getDate("registrationStartDate");
+        if (registrationStartDate != null) {
+            Calendar regStartCal = Calendar.getInstance();
+            regStartCal.setTime(registrationStartDate);
+            event.setRegistrationStartDate(regStartCal);
+        }
+        
         Date eventDate = document.getDate("eventDate");
         if (eventDate != null) {
             Calendar eventCal = Calendar.getInstance();
@@ -341,12 +338,7 @@ public class HomeFragment extends Fragment {
                 Log.w(TAG, "Failed to get Android ID", e);
             }
 
-            if (deviceId == null || deviceId.isEmpty()) {
-                deviceId = UUID.randomUUID().toString();
-            }
-            sp.edit().putString("device_id", deviceId).apply();
-        }
-        return deviceId;
+        return view;
     }
 
     public static void setListViewHeightBasedOnChildren(ListView listView) {

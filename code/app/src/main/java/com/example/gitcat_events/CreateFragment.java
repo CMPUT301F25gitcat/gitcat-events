@@ -95,11 +95,18 @@ public class CreateFragment extends Fragment {
     }
 
     private void loadUserEvents() {
-        // Get device ID (permanent organizer identifier)
-        String deviceId = getOrCreateDeviceId();
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, getContext().MODE_PRIVATE);
+        String profileIdStr = prefs.getString(KEY_PROFILE_ID, null);
+        
+        if (profileIdStr == null) {
+            Toast.makeText(getContext(), "Error: No user profile found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        int organizerId = Integer.parseInt(profileIdStr);
 
         db.collection("events")
-                .whereEqualTo("organizerDeviceId", deviceId)
+                .whereEqualTo("organizer", organizerId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     eventsList.clear();
@@ -107,7 +114,6 @@ public class CreateFragment extends Fragment {
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         try {
                             Event event = new Event();
-                            event.setDocumentId(document.getId()); // Store document ID
                             event.setName(document.getString("name"));
                             event.setDescription(document.getString("description"));
                             
@@ -119,13 +125,20 @@ public class CreateFragment extends Fragment {
                             
                             event.setPoster(document.getString("poster"));
                             
-                            String organizerDeviceId = document.getString("organizerDeviceId");
-                            event.setOrganizerDeviceId(organizerDeviceId);
+                            Long organizer = document.getLong("organizer");
+                            event.setOrganizer(organizer != null ? organizer.intValue() : 0);
                             
                             Boolean geoLocation = document.getBoolean("geoLocationRequired");
                             event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
                             
                             // Convert Date to Calendar
+                            Date registrationStartDate = document.getDate("registrationStartDate");
+                            if (registrationStartDate != null) {
+                                Calendar regStartCal = Calendar.getInstance();
+                                regStartCal.setTime(registrationStartDate);
+                                event.setRegistrationStartDate(regStartCal);
+                            }
+                            
                             Date eventDate = document.getDate("eventDate");
                             if (eventDate != null) {
                                 Calendar eventCal = Calendar.getInstance();
@@ -199,6 +212,7 @@ public class CreateFragment extends Fragment {
         class EventViewHolder extends RecyclerView.ViewHolder {
             ImageView ivEventThumbnail;
             TextView tvEventName, tvEventDescription, tvEventDate, tvEventCapacity;
+            android.widget.ImageButton btnEditEvent;
 
             EventViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -207,6 +221,7 @@ public class CreateFragment extends Fragment {
                 tvEventDescription = itemView.findViewById(R.id.tvEventDescription);
                 tvEventDate = itemView.findViewById(R.id.tvEventDate);
                 tvEventCapacity = itemView.findViewById(R.id.tvEventCapacity);
+                btnEditEvent = itemView.findViewById(R.id.btnEditEvent);
             }
 
             void bind(Event event) {
@@ -229,9 +244,15 @@ public class CreateFragment extends Fragment {
                     ivEventThumbnail.setImageResource(R.drawable.ic_launcher_foreground);
                 }
 
-                // Click listener for event item - navigate to event details
+                // Click listener for event item (future: navigate to event details)
                 itemView.setOnClickListener(v -> {
-                    Intent intent = new Intent(getContext(), EventDetailsActivity.class);
+                    Toast.makeText(getContext(), "Event: " + event.getName(), Toast.LENGTH_SHORT).show();
+                    // TODO: Navigate to event details page
+                });
+
+                // Click listener for edit button - navigate to edit event
+                btnEditEvent.setOnClickListener(v -> {
+                    Intent intent = new Intent(getContext(), EditEventActivity.class);
                     intent.putExtra("eventId", event.getDocumentId());
                     startActivity(intent);
                 });
@@ -252,24 +273,5 @@ public class CreateFragment extends Fragment {
             Log.e(TAG, "Failed to decode Base64 image", e);
             imageView.setImageResource(R.drawable.ic_launcher_foreground);
         }
-    }
-
-    private String getOrCreateDeviceId() {
-        SharedPreferences sp = requireContext().getSharedPreferences(PREFS, requireContext().MODE_PRIVATE);
-        String deviceId = sp.getString("device_id", null);
-
-        if (deviceId == null) {
-            try {
-                deviceId = android.provider.Settings.Secure.getString(requireContext().getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to get Android ID", e);
-            }
-
-            if (deviceId == null || deviceId.isEmpty()) {
-                deviceId = java.util.UUID.randomUUID().toString();
-            }
-            sp.edit().putString("device_id", deviceId).apply();
-        }
-        return deviceId;
     }
 }

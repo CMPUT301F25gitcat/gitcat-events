@@ -3,9 +3,11 @@ package com.example.gitcat_events.core.model;
 import androidx.annotation.Nullable;
 
 import java.io.Serializable;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 
 public class Event implements Serializable {
     //TODO: javadocs, waitlist functions, accepted list functions, tests
@@ -15,26 +17,26 @@ public class Event implements Serializable {
     private int capacity;   //refers to the size of the final list
     @Nullable private Integer maxWaitListSize;
     private Calendar eventDate;
-    private Calendar raffleDate;
+    private Calendar registrationStartDate; // When registration opens
+    private Calendar raffleDate; // When registration closes (renamed for clarity, but keeping field name for compatibility)
     private Boolean geoLocationRequired;
 
     //current plan is to store images as strings
     private String poster;
     //private QRCode qrCode; --QRCode class is not done yet
-    private String organizerDeviceId; // Device ID of the organizer (permanent identifier)
-    private String documentId; // Firestore document ID (not stored in DB, set when loaded)
-    @Nullable private String selectionCriteria; // Guidelines/criteria for lottery selection
+    private int organizer;
 
     // No-arg constructor for Firebase
     public Event() {
     }
 
-    public Event(String name, String description, int capacity, @Nullable Integer maxWaitListSize, String poster,  Calendar raffleDate, Calendar eventDate, Boolean geoLocationRequired) {
+    public Event(String name, String description, int capacity, @Nullable Integer maxWaitListSize, String poster, Calendar registrationStartDate, Calendar raffleDate, Calendar eventDate, Boolean geoLocationRequired) {
         this.name = name;
         this.description = description;
         this.capacity = capacity;
         this.maxWaitListSize = maxWaitListSize;
         this.poster = poster;
+        this.registrationStartDate = registrationStartDate;
         this.eventDate = eventDate;
         this.raffleDate = raffleDate;
         this.geoLocationRequired = geoLocationRequired;
@@ -90,6 +92,15 @@ public class Event implements Serializable {
         this.eventDate = eventDate;
     }
 
+    // Registration Start Date
+    public Calendar getRegistrationStartDate() {
+        return registrationStartDate;
+    }
+
+    public void setRegistrationStartDate(Calendar registrationStartDate) {
+        this.registrationStartDate = registrationStartDate;
+    }
+
     // Raffle Date (Final Registration Date)
     public Calendar getRaffleDate() {
         return raffleDate;
@@ -117,32 +128,23 @@ public class Event implements Serializable {
         this.poster = poster;
     }
 
-    // Organizer Device ID
-    public String getOrganizerDeviceId() {
-        return organizerDeviceId;
+    // Organizer
+    public int getOrganizer() {
+        return organizer;
     }
 
-    public void setOrganizerDeviceId(String organizerDeviceId) {
-        this.organizerDeviceId = organizerDeviceId;
+    public void setOrganizer(int organizer) {
+        this.organizer = organizer;
     }
 
-    // Document ID (Firestore)
-    public String getDocumentId() {
-        return documentId;
+    public String getRaffleDateString(){
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        return formatter.format(this.raffleDate);
     }
 
-    public void setDocumentId(String documentId) {
-        this.documentId = documentId;
-    }
-
-    // Selection Criteria
-    @Nullable
-    public String getSelectionCriteria() {
-        return selectionCriteria;
-    }
-
-    public void setSelectionCriteria(@Nullable String selectionCriteria) {
-        this.selectionCriteria = selectionCriteria;
+    public String getEventDateString(){
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        return formatter.format(this.eventDate);
     }
 
     /*public void setQRCode(QRCode qrCode) {  -- QR code class is not ready yet
