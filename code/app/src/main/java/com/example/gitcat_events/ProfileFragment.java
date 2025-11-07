@@ -130,8 +130,15 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
     }
 
     private void renderProfile(Profile profile) {
-        tvFragmentName.setText(profile.getName());
-        tvFragmentEmail.setText(profile.getEmail());
+        // Handle optional name
+        String name = profile.getName();
+        tvFragmentName.setText((name == null || name.trim().isEmpty()) ? "Anonymous User" : name);
+        
+        // Handle optional email
+        String email = profile.getEmail();
+        tvFragmentEmail.setText((email == null || email.trim().isEmpty()) ? "No email provided" : email);
+        
+        // Handle optional phone
         String phone = profile.getPhone();
         tvFragmentPhone.setText((phone == null || phone.trim().isEmpty()) ? "—" : phone);
 
@@ -160,13 +167,100 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
         
         new androidx.appcompat.app.AlertDialog.Builder(getContext())
                 .setTitle("Delete profile?")
-                .setMessage("This will permanently remove your profile from the database.")
+                .setMessage("This will permanently remove:\n• Your profile\n• All your created events\n• All waitlist entries for those events\n• Your entries in other events")
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Delete", (dialog, which) -> deleteProfileById(id))
                 .show();
     }
     
     private void deleteProfileById(String id) {
+        // Delete profile with cascade: events → waitlist entries for those events, and waitlist entries by this user
+        String deviceId = getOrCreateDeviceId();
+        
+        // Step 1: Delete all events created by this device AND their waitlist entries
+        db.collection("events")
+                .whereEqualTo("organizerDeviceId", deviceId)
+                .get()
+                .addOnSuccessListener(eventSnapshot -> {
+                    com.google.firebase.firestore.WriteBatch batch = db.batch();
+                    
+                    // For each event, delete its waitlist subcollection entries first
+                    int eventsCount = eventSnapshot.size();
+                    final int[] processedEvents = {0};
+                    
+                    if (eventsCount == 0) {
+                        // No events to delete, move to step 2
+                        deleteUserWaitlistEntries(id, deviceId);
+                        return;
+                    }
+                    
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot eventDoc : eventSnapshot) {
+                        String eventId = eventDoc.getId();
+                        
+                        // Delete waitlist entries for this event
+                        db.collection("events").document(eventId)
+                                .collection("waitlist")
+                                .get()
+                                .addOnSuccessListener(waitlistSnapshot -> {
+                                    for (com.google.firebase.firestore.QueryDocumentSnapshot waitlistDoc : waitlistSnapshot) {
+                                        batch.delete(waitlistDoc.getReference());
+                                    }
+                                    
+                                    processedEvents[0]++;
+                                    
+                                    // When all events processed, delete the events themselves
+                                    if (processedEvents[0] == eventsCount) {
+                                        for (com.google.firebase.firestore.QueryDocumentSnapshot doc : eventSnapshot) {
+                                            batch.delete(doc.getReference());
+                                        }
+                                        
+                                        batch.commit().addOnSuccessListener(v -> {
+                                            // Step 2: Delete user's waitlist entries in OTHER events
+                                            deleteUserWaitlistEntries(id, deviceId);
+                                        }).addOnFailureListener(e -> {
+                                            if (getContext() != null) {
+                                                Toast.makeText(getContext(), "Failed to delete events: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                            }
+                                        });
+                                    }
+                                });
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), "Failed to find events: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                });
+    }
+    
+    private void deleteUserWaitlistEntries(String profileId, String deviceId) {
+        // Delete all waitlist entries by this user (in events they didn't organize)
+        db.collectionGroup("waitlist")
+                .whereEqualTo("userDeviceId", deviceId)
+                .get()
+                .addOnSuccessListener(waitlistSnapshot -> {
+                    com.google.firebase.firestore.WriteBatch batch = db.batch();
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : waitlistSnapshot) {
+                        batch.delete(doc.getReference());
+                    }
+                    
+                    batch.commit().addOnSuccessListener(v -> {
+                        // Finally, delete the profile
+                        deleteProfileDocument(profileId);
+                    }).addOnFailureListener(e -> {
+                        if (getContext() != null) {
+                            Toast.makeText(getContext(), "Failed to delete waitlist entries: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), "Failed to find waitlist entries: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                });
+    }
+    
+    private void deleteProfileDocument(String id) {
         db.collection("profiles").document(id).delete()
                 .addOnSuccessListener(v -> {
                     if (getContext() == null) return;
@@ -184,7 +278,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                     tvFragmentPhone.setText("—");
                     ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
                     
-                    Toast.makeText(getContext(), "Profile deleted successfully.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "Profile, events, and waitlist entries deleted successfully.", Toast.LENGTH_SHORT).show();
                     
                     // Redirect to setup page
                     Intent intent = new Intent(getActivity(), SetupProfileActivity.class);
@@ -192,7 +286,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                 })
                 .addOnFailureListener(e -> {
                     if (getContext() != null) {
-                        Toast.makeText(getContext(), "Delete failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(getContext(), "Failed to delete profile: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
     }

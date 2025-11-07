@@ -4,21 +4,21 @@ import androidx.annotation.Nullable;
 
 import java.io.Serializable;
 public class Profile implements Serializable{
-    private String name;
-    private String email;
-    @Nullable private String phone; // nullable/optional
-    @Nullable private String deviceId; // unique device identifier
-    @Nullable private String profilePictureUrl; // URL to profile picture
+    @Nullable private String name; // optional
+    @Nullable private String email; // optional
+    @Nullable private String phone; // optional
+    private String deviceId; // REQUIRED - unique device identifier
+    @Nullable private String profilePictureUrl; // optional
 
     public Profile() {}                   // required for toObject(...)
     
-    public Profile(String name, String email, @Nullable String phone) {
-        this.name = name;
-        this.email = email;
-        this.phone = phone;
+    // Constructor with deviceId only (minimal profile)
+    public Profile(String deviceId) {
+        this.deviceId = deviceId;
     }
     
-    public Profile(String name, String email, @Nullable String phone, @Nullable String deviceId, @Nullable String profilePictureUrl) {
+    // Constructor with all fields
+    public Profile(@Nullable String name, @Nullable String email, @Nullable String phone, String deviceId, @Nullable String profilePictureUrl) {
         this.name = name;
         this.email = email;
         this.phone = phone;
@@ -26,28 +26,34 @@ public class Profile implements Serializable{
         this.profilePictureUrl = profilePictureUrl;
     }
     
+    @Nullable
     public String getName() {
         return name;
     }
-    public void setName(String name){
+    public void setName(@Nullable String name){
         this.name = name;
     }
+    
+    @Nullable
     public String getEmail() {
         return email;
     }
-    public void setEmail(String email){
+    public void setEmail(@Nullable String email){
         this.email = email;
     }
-    @Nullable public String getPhone(){
+    
+    @Nullable
+    public String getPhone(){
         return  phone;
     }
     public void setPhone(@Nullable String phone){
         this.phone = phone;
     }
-    @Nullable public String getDeviceId(){
+    
+    public String getDeviceId(){
         return deviceId;
     }
-    public void setDeviceId(@Nullable String deviceId){
+    public void setDeviceId(String deviceId){
         this.deviceId = deviceId;
     }
     @Nullable public String getProfilePictureUrl(){

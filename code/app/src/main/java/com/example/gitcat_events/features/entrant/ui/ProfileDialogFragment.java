@@ -119,18 +119,20 @@ public class ProfileDialogFragment extends DialogFragment {
                 return;
             }
 
-            String name  = etName.getText().toString().trim();
-            String email = etEmail.getText().toString().trim();
+            String nameRaw  = etName.getText().toString().trim();
+            String emailRaw = etEmail.getText().toString().trim();
             String phoneRaw = etPhone.getText().toString().trim();
 
-            boolean ok = true;
-            if (name.isEmpty()) { etName.setError("Name required"); ok = false; }
-            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                etEmail.setError("Valid email required"); ok = false;
+            // Validate email format if provided
+            if (!emailRaw.isEmpty() && !android.util.Patterns.EMAIL_ADDRESS.matcher(emailRaw).matches()) {
+                etEmail.setError("Please enter a valid email");
+                return; // keep dialog open
             }
-            if (!ok) return; // keep dialog open
 
-            String phone = phoneRaw.isEmpty() ? null : phoneRaw; // optional
+            // All fields are optional
+            String name = nameRaw.isEmpty() ? null : nameRaw;
+            String email = emailRaw.isEmpty() ? null : emailRaw;
+            String phone = phoneRaw.isEmpty() ? null : phoneRaw;
             
             // If user selected a new image, convert to Base64
             if (selectedImageUri != null) {
@@ -151,13 +153,10 @@ public class ProfileDialogFragment extends DialogFragment {
                             
                             if (imageBase64 != null) {
                                 // Create profile with Base64 image
-                                Profile p = new Profile(name, email, phone);
-                                p.setProfilePictureUrl(imageBase64);
-                                
-                                // Preserve device ID if it exists
-                                if (existingProfile != null && existingProfile.getDeviceId() != null) {
-                                    p.setDeviceId(existingProfile.getDeviceId());
-                                }
+                                String deviceId = (existingProfile != null && existingProfile.getDeviceId() != null) 
+                                        ? existingProfile.getDeviceId() 
+                                        : getOrCreateDeviceId();
+                                Profile p = new Profile(name, email, phone, deviceId, imageBase64);
                                 
                                 saveProfile(p);
                                 dlg.dismiss();
@@ -165,10 +164,10 @@ public class ProfileDialogFragment extends DialogFragment {
                             } else {
                                 Toast.makeText(requireContext(), "Failed to process image. Saving without picture.", Toast.LENGTH_SHORT).show();
                                 // Save without image
-                                Profile p = new Profile(name, email, phone);
-                                if (existingProfile != null && existingProfile.getDeviceId() != null) {
-                                    p.setDeviceId(existingProfile.getDeviceId());
-                                }
+                                String deviceId = (existingProfile != null && existingProfile.getDeviceId() != null) 
+                                        ? existingProfile.getDeviceId() 
+                                        : getOrCreateDeviceId();
+                                Profile p = new Profile(name, email, phone, deviceId, null);
                                 saveProfile(p);
                                 dlg.dismiss();
                             }
@@ -178,10 +177,10 @@ public class ProfileDialogFragment extends DialogFragment {
                         requireActivity().runOnUiThread(() -> {
                             progressDialog.dismiss();
                             Toast.makeText(requireContext(), "Image error. Saving without picture.", Toast.LENGTH_SHORT).show();
-                            Profile p = new Profile(name, email, phone);
-                            if (existingProfile != null && existingProfile.getDeviceId() != null) {
-                                p.setDeviceId(existingProfile.getDeviceId());
-                            }
+                            String deviceId = (existingProfile != null && existingProfile.getDeviceId() != null) 
+                                    ? existingProfile.getDeviceId() 
+                                    : getOrCreateDeviceId();
+                            Profile p = new Profile(name, email, phone, deviceId, null);
                             saveProfile(p);
                             dlg.dismiss();
                         });
@@ -189,20 +188,17 @@ public class ProfileDialogFragment extends DialogFragment {
                 }).start();
             } else {
                 // No new image selected, just save profile
-                Profile p = new Profile(name, email, phone);
+                String deviceId = (existingProfile != null && existingProfile.getDeviceId() != null) 
+                        ? existingProfile.getDeviceId() 
+                        : getOrCreateDeviceId();
                 
                 // Keep existing profile picture if no new image selected
-                if (base64Image != null) {
-                    p.setProfilePictureUrl(base64Image);
-                } else if (existingProfile != null && existingProfile.getProfilePictureUrl() != null) {
-                    p.setProfilePictureUrl(existingProfile.getProfilePictureUrl());
+                String profilePicture = base64Image;
+                if (profilePicture == null && existingProfile != null) {
+                    profilePicture = existingProfile.getProfilePictureUrl();
                 }
                 
-                // Preserve device ID if it exists
-                if (existingProfile != null && existingProfile.getDeviceId() != null) {
-                    p.setDeviceId(existingProfile.getDeviceId());
-                }
-                
+                Profile p = new Profile(name, email, phone, deviceId, profilePicture);
                 saveProfile(p);
                 dlg.dismiss();
             }
@@ -299,6 +295,27 @@ public class ProfileDialogFragment extends DialogFragment {
         }
     }
     
+    private String getOrCreateDeviceId() {
+        if (getContext() == null) return java.util.UUID.randomUUID().toString();
+        
+        android.content.SharedPreferences sp = getContext().getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE);
+        String deviceId = sp.getString("device_id", null);
+
+        if (deviceId == null) {
+            try {
+                deviceId = android.provider.Settings.Secure.getString(getContext().getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to get Android ID", e);
+            }
+
+            if (deviceId == null || deviceId.isEmpty()) {
+                deviceId = java.util.UUID.randomUUID().toString();
+            }
+            sp.edit().putString("device_id", deviceId).apply();
+        }
+        return deviceId;
+    }
+
     /**
      * Save profile by calling the listener
      */

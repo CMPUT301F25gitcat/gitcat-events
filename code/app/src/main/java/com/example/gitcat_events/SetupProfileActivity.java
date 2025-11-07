@@ -43,7 +43,7 @@ public class SetupProfileActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private ImageView ivSetupProfilePicture;
     private TextInputEditText etSetupName, etSetupEmail, etSetupPhone;
-    private Button btnSelectImage, btnCreateProfile;
+    private Button btnSelectImage, btnCreateProfile, btnSkip;
     
     private Uri selectedImageUri;
     private String base64Image = null;
@@ -75,6 +75,7 @@ public class SetupProfileActivity extends AppCompatActivity {
         etSetupPhone = findViewById(R.id.etSetupPhone);
         btnSelectImage = findViewById(R.id.btnSelectImage);
         btnCreateProfile = findViewById(R.id.btnCreateProfile);
+        btnSkip = findViewById(R.id.btnSkip);
 
         // Setup image picker
         btnSelectImage.setOnClickListener(v -> {
@@ -85,28 +86,32 @@ public class SetupProfileActivity extends AppCompatActivity {
 
         // Setup create profile button
         btnCreateProfile.setOnClickListener(v -> createProfile());
+        
+        // Setup skip button - creates minimal profile with just device ID
+        btnSkip.setOnClickListener(v -> skipProfileSetup());
+    }
+
+    private void skipProfileSetup() {
+        ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Setting up...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        // Create minimal profile with just device ID
+        saveProfileToFirestore(null, null, null, null, progressDialog);
     }
 
     private void createProfile() {
-        // Get input values
+        // Get input values (all optional now)
         String name = etSetupName.getText().toString().trim();
         String email = etSetupEmail.getText().toString().trim();
         String phone = etSetupPhone.getText().toString().trim();
 
-        // Validate inputs
-        boolean isValid = true;
-        
-        if (name.isEmpty()) {
-            etSetupName.setError("Name is required");
-            isValid = false;
+        // Validate email format if provided
+        if (!email.isEmpty() && !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            etSetupEmail.setError("Please enter a valid email");
+            return;
         }
-        
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            etSetupEmail.setError("Valid email is required");
-            isValid = false;
-        }
-
-        if (!isValid) return;
 
         // Show progress
         ProgressDialog progressDialog = new ProgressDialog(this);
@@ -119,14 +124,29 @@ public class SetupProfileActivity extends AppCompatActivity {
             new Thread(() -> {
                 try {
                     String imageBase64 = convertImageToBase64(selectedImageUri);
-                    runOnUiThread(() -> saveProfileToFirestore(name, email, phone.isEmpty() ? null : phone, imageBase64, progressDialog));
+                    runOnUiThread(() -> saveProfileToFirestore(
+                            name.isEmpty() ? null : name,
+                            email.isEmpty() ? null : email,
+                            phone.isEmpty() ? null : phone,
+                            imageBase64,
+                            progressDialog));
                 } catch (Exception e) {
                     Log.e(TAG, "Error processing image", e);
-                    runOnUiThread(() -> saveProfileToFirestore(name, email, phone.isEmpty() ? null : phone, null, progressDialog));
+                    runOnUiThread(() -> saveProfileToFirestore(
+                            name.isEmpty() ? null : name,
+                            email.isEmpty() ? null : email,
+                            phone.isEmpty() ? null : phone,
+                            null,
+                            progressDialog));
                 }
             }).start();
         } else {
-            saveProfileToFirestore(name, email, phone.isEmpty() ? null : phone, null, progressDialog);
+            saveProfileToFirestore(
+                    name.isEmpty() ? null : name,
+                    email.isEmpty() ? null : email,
+                    phone.isEmpty() ? null : phone,
+                    null,
+                    progressDialog);
         }
     }
 
