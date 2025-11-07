@@ -43,7 +43,7 @@ public class CreateEventActivity extends AppCompatActivity {
 
     private FirebaseFirestore db;
     private ImageView ivEventPoster;
-    private EditText etEventName, etEventDescription, etCapacity, etMaxWaitlist;
+    private EditText etEventName, etEventDescription, etCapacity, etMaxWaitlist, etSelectionCriteria;
     private Button btnSelectPoster, btnSelectEventDate, btnSelectRaffleDate, btnCreateEvent;
     private TextView tvEventDateDisplay, tvRaffleDateDisplay;
     private SwitchMaterial switchGeoLocation;
@@ -77,6 +77,7 @@ public class CreateEventActivity extends AppCompatActivity {
         etEventDescription = findViewById(R.id.etEventDescription);
         etCapacity = findViewById(R.id.etCapacity);
         etMaxWaitlist = findViewById(R.id.etMaxWaitlist);
+        etSelectionCriteria = findViewById(R.id.etSelectionCriteria);
         btnSelectPoster = findViewById(R.id.btnSelectPoster);
         btnSelectEventDate = findViewById(R.id.btnSelectEventDate);
         btnSelectRaffleDate = findViewById(R.id.btnSelectRaffleDate);
@@ -167,6 +168,12 @@ public class CreateEventActivity extends AppCompatActivity {
         int capacity = Integer.parseInt(capacityStr);
         Integer maxWaitlist = maxWaitlistStr.isEmpty() ? null : Integer.parseInt(maxWaitlistStr);
         boolean geoLocationRequired = switchGeoLocation.isChecked();
+        String selectionCriteria = etSelectionCriteria.getText().toString().trim();
+        
+        // If no criteria provided, use default
+        if (selectionCriteria.isEmpty()) {
+            selectionCriteria = "Random selection from all registered participants. All entrants have an equal chance of being selected.";
+        }
 
         // Get organizer device ID (permanent identifier)
         String organizerDeviceId = getOrCreateDeviceId();
@@ -200,6 +207,7 @@ public class CreateEventActivity extends AppCompatActivity {
                 geoLocationRequired
         );
         newEvent.setOrganizerDeviceId(organizerDeviceId);
+        newEvent.setSelectionCriteria(selectionCriteria);
 
         // Save to Firestore with auto-incrementing ID
         saveEventToFirestore(newEvent, progressDialog);
@@ -233,6 +241,7 @@ public class CreateEventActivity extends AppCompatActivity {
             data.put("geoLocationRequired", event.getGeoLocationRequired());
             data.put("poster", event.getPoster());
             data.put("organizerDeviceId", event.getOrganizerDeviceId());
+            data.put("selectionCriteria", event.getSelectionCriteria());
             data.put("eventId", next);
 
             transaction.set(eventRef, data);
