@@ -178,54 +178,94 @@ public class HomeFragment extends Fragment {
     }
     
     private void loadEnteredEvents(String deviceId) {
-        // Get all waitlist entries for this user
+        enteredEvents.clear();
+        java.util.Set<String> eventIds = new java.util.HashSet<>();
+        final int[] queriesCompleted = {0};
+        final int totalQueries = 2; // waitlist + acceptedList
+        
+        // Query 1: Events where user is in the waiting list
         db.collectionGroup("waitlist")
                 .whereEqualTo("userDeviceId", deviceId)
                 .get()
                 .addOnSuccessListener(waitlistSnapshot -> {
-                    enteredEvents.clear();
-                    
-                    // Get unique event IDs
-                    ArrayList<String> eventIds = new ArrayList<>();
+                    // Collect all event IDs from waitlist
                     for (QueryDocumentSnapshot doc : waitlistSnapshot) {
                         String eventId = doc.getString("eventId");
-                        if (eventId != null && !eventIds.contains(eventId)) {
+                        if (eventId != null) {
                             eventIds.add(eventId);
                         }
                     }
                     
-                    // Load each event
-                    if (eventIds.isEmpty()) {
-                        updateEnteredEventsUI();
-                        return;
-                    }
-                    
-                    for (String eventId : eventIds) {
-                        db.collection("events").document(eventId)
-                                .get()
-                                .addOnSuccessListener(eventDoc -> {
-                                    if (eventDoc.exists()) {
-                                        try {
-                                            Event event = parseEvent(eventDoc);
-                                            enteredEvents.add(event);
-                                            
-                                            // Sort by event date
-                                            enteredEvents.sort((e1, e2) -> {
-                                                if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
-                                                return e1.getEventDate().compareTo(e2.getEventDate());
-                                            });
-                                            
-                                            updateEnteredEventsUI();
-                                        } catch (Exception e) {
-                                            Log.e(TAG, "Error parsing entered event", e);
-                                        }
-                                    }
-                                });
+                    queriesCompleted[0]++;
+                    if (queriesCompleted[0] == totalQueries) {
+                        loadEventDetails(eventIds);
                     }
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error loading entered events", e);
+                    Log.e(TAG, "Error loading waitlist events", e);
+                    queriesCompleted[0]++;
+                    if (queriesCompleted[0] == totalQueries) {
+                        loadEventDetails(eventIds);
+                    }
                 });
+        
+        // Query 2: Events where user has accepted invitation
+        db.collectionGroup("acceptedList")
+                .whereEqualTo("userDeviceId", deviceId)
+                .get()
+                .addOnSuccessListener(acceptedSnapshot -> {
+                    // Collect all event IDs from accepted list
+                    for (QueryDocumentSnapshot doc : acceptedSnapshot) {
+                        String eventId = doc.getString("eventId");
+                        if (eventId != null) {
+                            eventIds.add(eventId);
+                        }
+                    }
+                    
+                    queriesCompleted[0]++;
+                    if (queriesCompleted[0] == totalQueries) {
+                        loadEventDetails(eventIds);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error loading accepted events", e);
+                    queriesCompleted[0]++;
+                    if (queriesCompleted[0] == totalQueries) {
+                        loadEventDetails(eventIds);
+                    }
+                });
+    }
+    
+    private void loadEventDetails(java.util.Set<String> eventIds) {
+        if (eventIds.isEmpty()) {
+            updateEnteredEventsUI();
+            return;
+        }
+        
+        for (String eventId : eventIds) {
+            db.collection("events").document(eventId)
+                    .get()
+                    .addOnSuccessListener(eventDoc -> {
+                        if (eventDoc.exists()) {
+                            try {
+                                Event event = parseEvent(eventDoc);
+                                if (!enteredEvents.contains(event)) {
+                                    enteredEvents.add(event);
+                                }
+                                
+                                // Sort by event date
+                                enteredEvents.sort((e1, e2) -> {
+                                    if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
+                                    return e1.getEventDate().compareTo(e2.getEventDate());
+                                });
+                                
+                                updateEnteredEventsUI();
+                            } catch (Exception e) {
+                                Log.e(TAG, "Error parsing entered event", e);
+                            }
+                        }
+                    });
+        }
     }
     
     private Event parseEvent(com.google.firebase.firestore.DocumentSnapshot document) {
