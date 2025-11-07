@@ -138,6 +138,13 @@ public class EventDetailsActivity extends AppCompatActivity {
             currentEvent.setEventDate(eventCal);
         }
         
+        Date registrationStartDate = document.getDate("registrationStartDate");
+        if (registrationStartDate != null) {
+            Calendar regStartCal = Calendar.getInstance();
+            regStartCal.setTime(registrationStartDate);
+            currentEvent.setRegistrationStartDate(regStartCal);
+        }
+        
         Date raffleDate = document.getDate("raffleDate");
         if (raffleDate != null) {
             Calendar raffleCal = Calendar.getInstance();
@@ -300,8 +307,14 @@ public class EventDetailsActivity extends AppCompatActivity {
             return;
         }
 
-        // Check if registration is still open (before raffle date)
+        //checking if the registration period has started 
         Calendar now = Calendar.getInstance();
+        if (currentEvent.getEventDate() != null && now.before(currentEvent.getRegistrationStartDate())) {
+            showError("Registation has not started. please wait until the registration period begins.");
+            return;
+        }
+
+        // Check if registration is still open (before raffle date)
         if (currentEvent.getRaffleDate() != null && now.after(currentEvent.getRaffleDate())) {
             showError("Registration is closed. The deadline has passed.");
             return;

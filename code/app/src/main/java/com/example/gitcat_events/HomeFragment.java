@@ -153,7 +153,14 @@ public class HomeFragment extends Fragment {
                             
                             // Only show events where registration is still open
                             Calendar now = Calendar.getInstance();
-                            if (event.getRaffleDate() != null && now.before(event.getRaffleDate())) {
+                           //checking if the registration period has started
+                            boolean registrationStarted = event.getRegistrationStartDate() != null ||
+                                    !now.before(event.getRegistrationStartDate());
+                            //checking if the registration period has ended. 
+                            boolean registrationOpen = event.getRaffleDate() != null ||
+                                    now.before(event.getRaffleDate());
+                            
+                            if (registrationStarted && registrationOpen) {
                                 upcomingEvents.add(event);
                             }
                         } catch (Exception e) {
@@ -292,6 +299,13 @@ public class HomeFragment extends Fragment {
             Calendar eventCal = Calendar.getInstance();
             eventCal.setTime(eventDate);
             event.setEventDate(eventCal);
+        }
+        
+        Date registrationStartDate = document.getDate("registrationStartDate");
+        if (registrationStartDate != null) {
+            Calendar regStartCal = Calendar.getInstance();
+            regStartCal.setTime(registrationStartDate);
+            event.setRegistrationStartDate(regStartCal);
         }
         
         Date raffleDate = document.getDate("raffleDate");

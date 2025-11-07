@@ -44,13 +44,13 @@ public class CreateEventActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private ImageView ivEventPoster;
     private EditText etEventName, etEventDescription, etCapacity, etMaxWaitlist, etSelectionCriteria;
-    private Button btnSelectPoster, btnSelectEventDate, btnSelectRaffleDate, btnCreateEvent;
-    private TextView tvEventDateDisplay, tvRaffleDateDisplay;
+    private Button btnSelectPoster, btnSelectEventDate, btnSelectRaffleDate, btnSelectRegistrationStartDate, btnCreateEvent;
+    private TextView tvEventDateDisplay, tvRaffleDateDisplay, tvRegistrationStartDateDisplay;
     private SwitchMaterial switchGeoLocation;
-
     private Uri selectedPosterUri;
     private Calendar selectedEventDate;
     private Calendar selectedRaffleDate;
+    private Calendar selectedRegistrationStartDate;
 
     // Activity result launcher for image selection
     private final ActivityResultLauncher<Intent> posterPickerLauncher = registerForActivityResult(
@@ -81,15 +81,18 @@ public class CreateEventActivity extends AppCompatActivity {
         btnSelectPoster = findViewById(R.id.btnSelectPoster);
         btnSelectEventDate = findViewById(R.id.btnSelectEventDate);
         btnSelectRaffleDate = findViewById(R.id.btnSelectRaffleDate);
+        btnSelectRegistrationStartDate = findViewById(R.id.btnSelectRegistrationStartDate);
         btnCreateEvent = findViewById(R.id.btnCreateEvent);
         tvEventDateDisplay = findViewById(R.id.tvEventDateDisplay);
         tvRaffleDateDisplay = findViewById(R.id.tvRaffleDateDisplay);
+        tvRegistrationStartDateDisplay = findViewById(R.id.tvRegistrationStartDateDisplay);
         switchGeoLocation = findViewById(R.id.switchGeoLocation);
 
         // Set up click listeners
         btnSelectPoster.setOnClickListener(v -> selectPoster());
         btnSelectEventDate.setOnClickListener(v -> selectEventDate());
         btnSelectRaffleDate.setOnClickListener(v -> selectRaffleDate());
+        btnSelectRegistrationStartDate.setOnClickListener(v -> selectRegistrationStartDate());
         btnCreateEvent.setOnClickListener(v -> createEvent());
     }
 
@@ -135,6 +138,24 @@ public class CreateEventActivity extends AppCompatActivity {
         datePickerDialog.show();
     }
 
+    private void selectRegistrationStartDate() {
+        Calendar calendar = Calendar.getInstance();
+        DatePickerDialog datePickerDialog = new DatePickerDialog(
+                this,
+                (view, year, month, dayOfMonth) -> {
+                    selectedRegistrationStartDate = Calendar.getInstance();
+                    selectedRegistrationStartDate.set(year, month, dayOfMonth);
+                    tvRegistrationStartDateDisplay.setText(
+                            String.format("%02d/%02d/%d", dayOfMonth, month + 1, year)
+                    );
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+        );
+        datePickerDialog.show();
+    }
+
     private void createEvent() {
         // Validate inputs
         String name = etEventName.getText().toString().trim();
@@ -159,9 +180,26 @@ public class CreateEventActivity extends AppCompatActivity {
             Toast.makeText(this, "Please select an event date", Toast.LENGTH_SHORT).show();
             ok = false;
         }
+        if (selectedRegistrationStartDate == null) {
+            Toast.makeText(this, "Please select a registration start date", Toast.LENGTH_SHORT).show();
+            ok = false;
+        }
         if (selectedRaffleDate == null) {
             Toast.makeText(this, "Please select a final registration date", Toast.LENGTH_SHORT).show();
             ok = false;
+        }
+        //check if date order is correct and that registration start is < registration end < event date 
+        if (selectedRegistrationStartDate != null && selectedRaffleDate != null) {
+            if (!selectedRegistrationStartDate.before(selectedRaffleDate)) {
+                Toast.makeText(this, "Registration start date must be before registration end date", Toast.LENGTH_SHORT).show();
+                ok = false;
+            }
+        }
+        if (selectedRaffleDate != null && selectedEventDate != null) {
+            if (!selectedRaffleDate.before(selectedEventDate)) {
+                Toast.makeText(this, "Registration end date must be before event date", Toast.LENGTH_SHORT).show();
+                ok = false;
+            }
         }
         if (!ok) return;
 
@@ -202,6 +240,7 @@ public class CreateEventActivity extends AppCompatActivity {
                 capacity,
                 maxWaitlist,
                 base64Poster,
+                selectedRegistrationStartDate,
                 selectedRaffleDate,
                 selectedEventDate,
                 geoLocationRequired
@@ -238,6 +277,7 @@ public class CreateEventActivity extends AppCompatActivity {
             data.put("maxWaitListSize", event.getMaxWaitListSize());
             data.put("eventDate", event.getEventDate().getTime());
             data.put("raffleDate", event.getRaffleDate().getTime());
+            data.put("registrationStartDate", event.getRegistrationStartDate().getTime());
             data.put("geoLocationRequired", event.getGeoLocationRequired());
             data.put("poster", event.getPoster());
             data.put("organizerDeviceId", event.getOrganizerDeviceId());

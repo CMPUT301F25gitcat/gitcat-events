@@ -24,6 +24,9 @@ public class EventClassTests {
 
     @Test
     public void testConstructorAndGetters() {
+        Calendar registrationStartDate = Calendar.getInstance();
+        registrationStartDate.set(2022, Calendar.DECEMBER, 1);
+        
         Calendar raffleDate = Calendar.getInstance();
         raffleDate.set(2023, Calendar.JANUARY, 1);
         
@@ -36,6 +39,7 @@ public class EventClassTests {
                 100,
                 20,
                 "https://example.com/poster.png",
+                registrationStartDate,
                 raffleDate,
                 eventDate,
                 false
@@ -46,6 +50,7 @@ public class EventClassTests {
         assertEquals(100, event.getCapacity());
         assertEquals((Integer) 20, event.getMaxWaitListSize());
         assertEquals("https://example.com/poster.png", event.getPoster());
+        assertEquals(registrationStartDate, event.getRegistrationStartDate());
         assertEquals(raffleDate, event.getRaffleDate());
         assertEquals(eventDate, event.getEventDate());
         assertFalse(event.getGeoLocationRequired());

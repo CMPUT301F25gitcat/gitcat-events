@@ -323,9 +323,15 @@ public class EventDetails extends Fragment {
         
         String deviceId = getOrCreateDeviceId();
         
+        // Check if registration has started
+        Calendar now = Calendar.getInstance();
+        if (currentEvent.getEventDate() != null && now.before(currentEvent.getRegistrationStartDate())) {
+            showError("Registation has not started. please wait until the registration period begins.");
+            return;
+        }
+        
         // Check if registration is still open
         if (event.getRaffleDate() != null) {
-            Calendar now = Calendar.getInstance();
             if (now.after(event.getRaffleDate())) {
                 showError("Registration has closed for this event.");
                 return;
