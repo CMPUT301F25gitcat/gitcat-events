@@ -113,7 +113,6 @@
             android:layout_height="60dp"
             android:text="Create Profile"
             android:textSize="16sp"
-            android:backgroundTint="@color/purple_500"
             android:layout_marginTop="16dp"/>
 
         <TextView
