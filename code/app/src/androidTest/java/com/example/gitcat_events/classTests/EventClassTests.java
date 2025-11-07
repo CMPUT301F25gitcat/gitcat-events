@@ -1,7 +1,10 @@
 package com.example.gitcat_events.classTests;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
@@ -10,15 +13,22 @@ import org.junit.runner.RunWith;
 
 import com.example.gitcat_events.core.model.Event;
 
-import java.util.Date;
+import java.util.Calendar;
 
+/**
+ * Unit tests for Event model
+ * Tests event creation, getters, setters, and field management
+ */
 @RunWith(AndroidJUnit4.class)
 public class EventClassTests {
 
     @Test
     public void testConstructorAndGetters() {
-        Date raffleDate = new Date(1672531200000L); // Jan 1, 2023
-        Date eventDate = new Date(1652731200000L);  // May 16, 2022
+        Calendar raffleDate = Calendar.getInstance();
+        raffleDate.set(2023, Calendar.JANUARY, 1);
+        
+        Calendar eventDate = Calendar.getInstance();
+        eventDate.set(2023, Calendar.MAY, 16);
 
         Event event = new Event(
                 "Hackathon",
@@ -27,7 +37,8 @@ public class EventClassTests {
                 20,
                 "https://example.com/poster.png",
                 raffleDate,
-                eventDate
+                eventDate,
+                false
         );
 
         assertEquals("Hackathon", event.getName());
@@ -37,12 +48,13 @@ public class EventClassTests {
         assertEquals("https://example.com/poster.png", event.getPoster());
         assertEquals(raffleDate, event.getRaffleDate());
         assertEquals(eventDate, event.getEventDate());
+        assertFalse(event.getGeoLocationRequired());
     }
 
     @Test
     public void testNullableMaxWaitListSize() {
-        Date raffleDate = new Date();
-        Date eventDate = new Date();
+        Calendar raffleDate = Calendar.getInstance();
+        Calendar eventDate = Calendar.getInstance();
 
         Event event = new Event(
                 "Seminar",
@@ -51,16 +63,21 @@ public class EventClassTests {
                 null,
                 "https://poster.com",
                 raffleDate,
-                eventDate
+                eventDate,
+                true
         );
 
         assertNull(event.getMaxWaitListSize());
+        assertTrue(event.getGeoLocationRequired());
     }
 
     @Test
     public void testSetters() {
-        Date raffleDate = new Date(1700000000000L);
-        Date eventDate = new Date(1710000000000L);
+        Calendar raffleDate = Calendar.getInstance();
+        raffleDate.set(2023, Calendar.MARCH, 1);
+        
+        Calendar eventDate = Calendar.getInstance();
+        eventDate.set(2023, Calendar.APRIL, 15);
 
         Event event = new Event(
                 "Workshop",
@@ -69,39 +86,52 @@ public class EventClassTests {
                 5,
                 "https://poster1.com",
                 raffleDate,
-                eventDate
+                eventDate,
+                false
         );
 
-        // modify all fields
+        // Modify all fields
         event.setName("Updated Workshop");
         event.setDescription("Updated description");
         event.setCapacity(200);
         event.setMaxWaitListSize(40);
         event.setPoster("https://poster2.com");
-        event.setOrganizer(99);
-        event.setRaffleDate(new Date(1800000000000L));
-        event.setEventDate(new Date(1810000000000L));
+        event.setOrganizerDeviceId("device_99");
+        event.setGeoLocationRequired(true);
+        
+        Calendar newRaffleDate = Calendar.getInstance();
+        newRaffleDate.set(2023, Calendar.JUNE, 1);
+        event.setRaffleDate(newRaffleDate);
+        
+        Calendar newEventDate = Calendar.getInstance();
+        newEventDate.set(2023, Calendar.JULY, 1);
+        event.setEventDate(newEventDate);
 
         assertEquals("Updated Workshop", event.getName());
         assertEquals("Updated description", event.getDescription());
         assertEquals(200, event.getCapacity());
         assertEquals((Integer) 40, event.getMaxWaitListSize());
         assertEquals("https://poster2.com", event.getPoster());
-        assertEquals(99, event.getOrganizer());
-        assertEquals(new Date(1800000000000L), event.getRaffleDate());
-        assertEquals(new Date(1810000000000L), event.getEventDate());
+        assertEquals("device_99", event.getOrganizerDeviceId());
+        assertTrue(event.getGeoLocationRequired());
+        assertEquals(newRaffleDate, event.getRaffleDate());
+        assertEquals(newEventDate, event.getEventDate());
     }
 
     @Test
     public void testSetMaxWaitListSizeToNull() {
+        Calendar raffleDate = Calendar.getInstance();
+        Calendar eventDate = Calendar.getInstance();
+        
         Event event = new Event(
                 "Concert",
                 "Music festival",
                 1000,
                 200,
                 "poster.png",
-                new Date(),
-                new Date()
+                raffleDate,
+                eventDate,
+                false
         );
 
         event.setMaxWaitListSize(null);
@@ -110,24 +140,93 @@ public class EventClassTests {
 
     @Test
     public void testMultipleMutations() {
+        Calendar raffleDate = Calendar.getInstance();
+        raffleDate.setTimeInMillis(100000L);
+        
+        Calendar eventDate = Calendar.getInstance();
+        eventDate.setTimeInMillis(200000L);
+        
         Event event = new Event(
                 "Initial Event",
                 "Desc",
                 10,
                 null,
                 "posterA.png",
-                new Date(100000L),
-                new Date(200000L)
+                raffleDate,
+                eventDate,
+                false
         );
 
         event.setCapacity(500);
-        event.setOrganizer(42);
+        event.setOrganizerDeviceId("device_42");
         event.setName("Final Event");
         event.setPoster("posterB.png");
+        event.setDocumentId("doc123");
 
         assertEquals("Final Event", event.getName());
         assertEquals("posterB.png", event.getPoster());
         assertEquals(500, event.getCapacity());
-        assertEquals(42, event.getOrganizer());
+        assertEquals("device_42", event.getOrganizerDeviceId());
+        assertEquals("doc123", event.getDocumentId());
+    }
+
+    @Test
+    public void testNoArgConstructor() {
+        Event event = new Event();
+        assertNotNull(event);
+    }
+
+    @Test
+    public void testSelectionCriteria() {
+        Calendar raffleDate = Calendar.getInstance();
+        Calendar eventDate = Calendar.getInstance();
+        
+        Event event = new Event(
+                "Test Event",
+                "Test Description",
+                50,
+                100,
+                null,
+                raffleDate,
+                eventDate,
+                false
+        );
+
+        assertNull(event.getSelectionCriteria());
+
+        event.setSelectionCriteria("Random selection from all participants");
+        assertEquals("Random selection from all participants", event.getSelectionCriteria());
+    }
+
+    @Test
+    public void testGeoLocationRequired() {
+        Calendar raffleDate = Calendar.getInstance();
+        Calendar eventDate = Calendar.getInstance();
+        
+        Event eventWithGeo = new Event(
+                "Geo Event",
+                "Requires location",
+                50,
+                null,
+                null,
+                raffleDate,
+                eventDate,
+                true
+        );
+
+        assertTrue(eventWithGeo.getGeoLocationRequired());
+
+        Event eventWithoutGeo = new Event(
+                "No Geo Event",
+                "No location required",
+                50,
+                null,
+                null,
+                raffleDate,
+                eventDate,
+                false
+        );
+
+        assertFalse(eventWithoutGeo.getGeoLocationRequired());
     }
 }
