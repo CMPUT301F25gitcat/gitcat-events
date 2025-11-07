@@ -3,9 +3,11 @@ package com.example.gitcat_events.core.model;
 import androidx.annotation.Nullable;
 
 import java.io.Serializable;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 
 public class Event implements Serializable {
     //TODO: javadocs, waitlist functions, accepted list functions, tests
@@ -122,6 +124,16 @@ public class Event implements Serializable {
 
     public void setOrganizer(int organizer) {
         this.organizer = organizer;
+    }
+
+    public String getRaffleDateString(){
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        return formatter.format(this.raffleDate);
+    }
+
+    public String getEventDateString(){
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        return formatter.format(this.eventDate);
     }
 
     /*public void setQRCode(QRCode qrCode) {  -- QR code class is not ready yet
