@@ -23,6 +23,7 @@ import com.example.gitcat_events.MainActivity;
 import com.example.gitcat_events.NotifsFragment;
 import com.example.gitcat_events.ProfileFragment;
 import com.example.gitcat_events.R;
+import com.example.gitcat_events.SetupProfileActivity;
 import com.example.gitcat_events.core.model.Profile;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.firestore.DocumentReference;
