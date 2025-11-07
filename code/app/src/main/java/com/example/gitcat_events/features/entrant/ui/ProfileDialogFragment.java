@@ -45,7 +45,12 @@ public class ProfileDialogFragment extends DialogFragment {
     private ImageView ivDialogProfilePicture;
     private String base64Image = null;
 
-    // Activity result launcher for image selection
+    /**
+     * Activity result launcher for image selection.
+     * This is used to handle the result of the image selection activity.
+     * 
+     * @param result the result of the image selection activity.
+     */
     private final ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -60,7 +65,7 @@ public class ProfileDialogFragment extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
-        // Inflate content view
+        // used to inflating a content view for the dialog fragment.
         View v = getLayoutInflater().inflate(R.layout.dialog_profile, null);
         EditText etName  = v.findViewById(R.id.etName);
         EditText etEmail = v.findViewById(R.id.etEmail);
@@ -68,7 +73,7 @@ public class ProfileDialogFragment extends DialogFragment {
         ivDialogProfilePicture = v.findViewById(R.id.ivDialogProfilePicture);
         Button btnSelectProfilePicture = v.findViewById(R.id.btnSelectProfilePicture);
 
-        // Prefill if editing
+        // prefill if editing an existing profile.
         Bundle args = getArguments();
         if (args != null && args.getSerializable("profile") instanceof Profile) {
             existingProfile = (Profile) args.getSerializable("profile");
@@ -78,26 +83,26 @@ public class ProfileDialogFragment extends DialogFragment {
             etEmail.setText(existingProfile.getEmail());
             if (existingProfile.getPhone() != null) etPhone.setText(existingProfile.getPhone());
             
-            // Load existing profile picture if available
+            // load existing profile picture if available.
             if (existingProfile.getProfilePictureUrl() != null && !existingProfile.getProfilePictureUrl().isEmpty()) {
                 base64Image = existingProfile.getProfilePictureUrl();
                 loadBase64Image(base64Image, ivDialogProfilePicture);
             }
         }
 
-        // Setup image picker button
+        // setup image picker button to select a new profile picture.
         btnSelectProfilePicture.setOnClickListener(view -> {
             Intent intent = new Intent(Intent.ACTION_PICK);
             intent.setType("image/*");
             imagePickerLauncher.launch(intent);
         });
 
-        // NOTE: setPositiveButton(null) so we can attach a custom click in onStart()
+        // NOTE: setPositiveButton(null) so we can attach a custom click in onStart().
         return new AlertDialog.Builder(requireContext())
                 .setTitle(existingProfile == null ? "Create profile" : "Edit profile")
                 .setView(v)
                 .setNegativeButton("Cancel", null)
-                .setPositiveButton("Save", null) // custom handler in onStart()
+                .setPositiveButton("Save", null) 
                 .create();
     }
 
@@ -107,15 +112,15 @@ public class ProfileDialogFragment extends DialogFragment {
         AlertDialog dlg = (AlertDialog) getDialog();
         if (dlg == null) return;
 
-        // Grab views from the dialog
+        // grab views from the dialog.
         final EditText etName  = dlg.findViewById(R.id.etName);
         final EditText etEmail = dlg.findViewById(R.id.etEmail);
         final EditText etPhone = dlg.findViewById(R.id.etPhone);
 
-        // Attach custom Save handler (prevents auto-dismiss on validation errors)
+        // attach custom save handler which also prevents auto-dismiss pretty much like on validation errors.
         dlg.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
             if (etName == null || etEmail == null || etPhone == null) {
-                dlg.dismiss(); // defensive (shouldn't happen)
+                dlg.dismiss(); 
                 return;
             }
 
@@ -123,36 +128,36 @@ public class ProfileDialogFragment extends DialogFragment {
             String emailRaw = etEmail.getText().toString().trim();
             String phoneRaw = etPhone.getText().toString().trim();
 
-            // Validate email format if provided
+            // inorder to validate the email format if provided.
             if (!emailRaw.isEmpty() && !android.util.Patterns.EMAIL_ADDRESS.matcher(emailRaw).matches()) {
                 etEmail.setError("Please enter a valid email");
-                return; // keep dialog open
+                return; 
             }
 
-            // All fields are optional
+            // all fields are optional.
             String name = nameRaw.isEmpty() ? null : nameRaw;
             String email = emailRaw.isEmpty() ? null : emailRaw;
             String phone = phoneRaw.isEmpty() ? null : phoneRaw;
             
-            // If user selected a new image, convert to Base64
+            // if user selected a new image, convert to Base64.
             if (selectedImageUri != null) {
-                // Show progress dialog
+                // show progress dialog to indicate that the image is being processed.
                 ProgressDialog progressDialog = new ProgressDialog(requireContext());
                 progressDialog.setMessage("Processing image...");
                 progressDialog.setCancelable(false);
                 progressDialog.show();
                 
-                // Convert image to Base64 in background
+                // convert image to Base64 in background.
                 new Thread(() -> {
                     try {
                         String imageBase64 = convertImageToBase64(selectedImageUri);
                         
-                        // Update UI on main thread
+                        // update UI on main thread.
                         requireActivity().runOnUiThread(() -> {
                             progressDialog.dismiss();
                             
                             if (imageBase64 != null) {
-                                // Create profile with Base64 image
+                                // create profile with Base64 image.
                                 String deviceId = (existingProfile != null && existingProfile.getDeviceId() != null) 
                                         ? existingProfile.getDeviceId() 
                                         : getOrCreateDeviceId();
@@ -163,7 +168,7 @@ public class ProfileDialogFragment extends DialogFragment {
                                 Toast.makeText(requireContext(), "Profile picture saved!", Toast.LENGTH_SHORT).show();
                             } else {
                                 Toast.makeText(requireContext(), "Failed to process image. Saving without picture.", Toast.LENGTH_SHORT).show();
-                                // Save without image
+                                // save without image.
                                 String deviceId = (existingProfile != null && existingProfile.getDeviceId() != null) 
                                         ? existingProfile.getDeviceId() 
                                         : getOrCreateDeviceId();
@@ -187,12 +192,12 @@ public class ProfileDialogFragment extends DialogFragment {
                     }
                 }).start();
             } else {
-                // No new image selected, just save profile
+                // no new image selected, just save profile.
                 String deviceId = (existingProfile != null && existingProfile.getDeviceId() != null) 
                         ? existingProfile.getDeviceId() 
                         : getOrCreateDeviceId();
                 
-                // Keep existing profile picture if no new image selected
+                // keep existing profile picture if no new image selected.
                 String profilePicture = base64Image;
                 if (profilePicture == null && existingProfile != null) {
                     profilePicture = existingProfile.getProfilePictureUrl();
@@ -205,6 +210,11 @@ public class ProfileDialogFragment extends DialogFragment {
         });
     }
 
+    /**
+     * na ew instance of the profile dialog fragment.
+     * @param existing this is theexisting profile to edit.
+     * @return the new instance of the profile dialog fragment.
+     */
     public static ProfileDialogFragment newInstance(@Nullable Profile existing) {
         ProfileDialogFragment f = new ProfileDialogFragment();
         Bundle b = new Bundle();
@@ -214,7 +224,10 @@ public class ProfileDialogFragment extends DialogFragment {
     }
     
     /**
-     * Convert image URI to Base64 string
+     * convert image URL's to Base64 string.
+     * 
+     * @param imageUri the image URL to convert to Base64 string.
+     * @return the Base64 string of the image.
      */
     private String convertImageToBase64(Uri imageUri) {
         try {
@@ -224,7 +237,7 @@ public class ProfileDialogFragment extends DialogFragment {
                 return null;
             }
             
-            // Decode image to bitmap
+            // decode image to bitmap.
             Bitmap originalBitmap = BitmapFactory.decodeStream(inputStream);
             inputStream.close();
             
@@ -233,10 +246,10 @@ public class ProfileDialogFragment extends DialogFragment {
                 return null;
             }
             
-            // Resize bitmap to reduce size (max 500px on longest side)
+            // resize bitmap to reduce size (max 500px on longest side).
             Bitmap resizedBitmap = resizeBitmap(originalBitmap, 500);
             
-            // Convert to Base64
+            // convert to Base64.
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream);
             byte[] byteArray = byteArrayOutputStream.toByteArray();
@@ -245,7 +258,7 @@ public class ProfileDialogFragment extends DialogFragment {
             
             Log.d(TAG, "Image converted to Base64. Size: " + (base64Image.length() / 1024) + "KB");
             
-            // Firestore has a 1MB limit per document, warn if close
+            
             if (base64Image.length() > 800000) {
                 Log.w(TAG, "Warning: Image size is large (" + (base64Image.length() / 1024) + "KB). May hit Firestore limit.");
             }
@@ -259,7 +272,11 @@ public class ProfileDialogFragment extends DialogFragment {
     }
     
     /**
-     * Resize bitmap to fit within maxSize while maintaining aspect ratio
+     * resize bitmap to fit within maxSize while maintaining aspect ratio.
+     * 
+     * @param bitmap the bitmap to resize.
+     * @param maxSize the maximum size to resize the bitmap to.
+     * @return the resized bitmap.
      */
     private Bitmap resizeBitmap(Bitmap bitmap, int maxSize) {
         int width = bitmap.getWidth();
@@ -277,7 +294,10 @@ public class ProfileDialogFragment extends DialogFragment {
     }
     
     /**
-     * Load Base64 image into ImageView
+     * load Base64 image into ImageView.
+     * 
+     * @param base64String the Base64 string of the image.
+     * @param imageView the ImageView to load the image into.
      */
     private void loadBase64Image(String base64String, ImageView imageView) {
         try {
@@ -295,6 +315,11 @@ public class ProfileDialogFragment extends DialogFragment {
         }
     }
     
+    /**
+     * get or create a device id.
+     * 
+     * @return the device id.
+     */
     private String getOrCreateDeviceId() {
         if (getContext() == null) return java.util.UUID.randomUUID().toString();
         
@@ -316,8 +341,10 @@ public class ProfileDialogFragment extends DialogFragment {
         return deviceId;
     }
 
-    /**
-     * Save profile by calling the listener
+     /**
+     * save profile by calling the listener.
+     * 
+     * @param profile the profile to save.
      */
     private void saveProfile(Profile profile) {
         OnSaveProfileListener host = null;

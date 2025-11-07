@@ -253,11 +253,20 @@ public class Event implements Serializable {
         this.documentId = documentId;
     }
 
-    // Selection Criteria
+    // this is the selection criteria 
+    /**
+     * this gets the selction criteraia for an event 
+     * @return the selection criteria for an event which can be null. 
+     */
     @Nullable
     public String getSelectionCriteria() {
         return selectionCriteria;
     }
+
+    /**
+     * 
+     * @param selectionCriteria set the selection criteria for an event.
+     */
 
     public void setSelectionCriteria(@Nullable String selectionCriteria) {
         this.selectionCriteria = selectionCriteria;

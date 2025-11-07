@@ -6,8 +6,7 @@ public class InvitationListEntry extends Entry {
     private String status; // "pending", "accepted", "declined"
     private int drawRound;
     private long timestamp;
-    private long expiresAt; // Optional expiration time
-    
+    private long expiresAt; //potnetial expiration time for the invitation. 
     // No-arg constructor for Firebase
     public InvitationListEntry() {
         super();
