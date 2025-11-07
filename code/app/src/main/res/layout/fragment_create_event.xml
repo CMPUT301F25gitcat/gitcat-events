@@ -34,7 +34,7 @@
                 android:id="@+id/create_event_edit_poster_button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Edit Poster" />
+                android:text="@string/create_event_edit_poster_button_text" />
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/event_name_text_input_layout"
@@ -45,7 +45,7 @@
                     android:id="@+id/event_name_text_input"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Event Name" />
+                    android:hint="@string/event_name_hint" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
@@ -57,7 +57,7 @@
                     android:id="@+id/description_text_input"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Description" />
+                    android:hint="@string/description_hint" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
@@ -69,7 +69,7 @@
                     android:id="@+id/slots_available_text_input"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Slots Available" />
+                    android:hint="@string/slots_available_hint" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -94,26 +94,26 @@
                     android:id="@+id/limit_entrants_text_input"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Limit Entrants to: (optional)" />
+                    android:hint="@string/limit_entrants_hint" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <CheckBox
                 android:id="@+id/geo_location_check_box"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Require Geo Location (optional)" />
+                android:text="@string/require_geo_location_text" />
 
             <Button
                 android:id="@+id/create_event_text_box"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Create Event" />
+                android:text="@string/create_event_button_text" />
 
             <Button
                 android:id="@+id/create_event_cancel_button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Cancel" />
+                android:text="@string/create_event_cancel_button_text" />
         </LinearLayout>
     </ScrollView>
 
