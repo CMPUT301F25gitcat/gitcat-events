@@ -86,7 +86,16 @@
         android:id="@+id/btnFragmentViewFullProfile"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="View/Edit Full Profile"
+        android:text="Edit Profile"
+        android:layout_marginTop="8dp"/>
+    
+    <Button
+        android:id="@+id/btnFragmentDeleteProfile"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Delete Profile"
+        android:textColor="@android:color/white"
+        android:backgroundTint="#D32F2F"
         android:layout_marginTop="8dp"/>
 
 </LinearLayout>

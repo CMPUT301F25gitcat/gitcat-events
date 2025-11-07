@@ -32,7 +32,7 @@ public class ProfileFragment extends Fragment {
     private FirebaseFirestore db;
     private TextView tvFragmentName, tvFragmentEmail, tvFragmentPhone;
     private ImageView ivFragmentProfilePicture;
-    private Button btnFragmentViewFullProfile;
+    private Button btnFragmentViewFullProfile, btnFragmentDeleteProfile;
 
     public ProfileFragment() {
         // Required empty public constructor
@@ -65,12 +65,16 @@ public class ProfileFragment extends Fragment {
         tvFragmentPhone = view.findViewById(R.id.tvFragmentPhone);
         ivFragmentProfilePicture = view.findViewById(R.id.ivFragmentProfilePicture);
         btnFragmentViewFullProfile = view.findViewById(R.id.btnFragmentViewFullProfile);
+        btnFragmentDeleteProfile = view.findViewById(R.id.btnFragmentDeleteProfile);
 
         // Setup button to open full profile activity
         btnFragmentViewFullProfile.setOnClickListener(v -> {
             Intent intent = new Intent(getActivity(), ProfileActivity.class);
             startActivity(intent);
         });
+        
+        // Setup delete button
+        btnFragmentDeleteProfile.setOnClickListener(v -> confirmAndDelete());
 
         // Load profile data
         loadProfile();
@@ -135,5 +139,46 @@ public class ProfileFragment extends Fragment {
         if (getActivity() == null) return null;
         SharedPreferences sp = getActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         return sp.getString(KEY_PROFILE_ID, null);
+    }
+    
+    private void confirmAndDelete() {
+        String id = getSavedDocId();
+        if (id == null) {
+            Toast.makeText(getContext(), "No profile to delete.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        if (getContext() == null) return;
+        
+        new androidx.appcompat.app.AlertDialog.Builder(getContext())
+                .setTitle("Delete profile?")
+                .setMessage("This will permanently remove your profile from the database.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Delete", (dialog, which) -> deleteProfileById(id))
+                .show();
+    }
+    
+    private void deleteProfileById(String id) {
+        db.collection("profiles").document(id).delete()
+                .addOnSuccessListener(v -> {
+                    if (getContext() == null) return;
+                    
+                    // Clear local state
+                    SharedPreferences sp = getActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+                    sp.edit().remove(KEY_PROFILE_ID).apply();
+                    
+                    // Clear UI
+                    tvFragmentName.setText("No profile yet");
+                    tvFragmentEmail.setText("—");
+                    tvFragmentPhone.setText("—");
+                    ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
+                    
+                    Toast.makeText(getContext(), "Profile deleted successfully.", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), "Delete failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                });
     }
 }
