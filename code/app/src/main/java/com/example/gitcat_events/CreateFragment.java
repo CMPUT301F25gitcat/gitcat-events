@@ -262,10 +262,19 @@ public class CreateFragment extends Fragment {
                     ivEventThumbnail.setImageResource(R.drawable.ic_launcher_foreground);
                 }
 
-                // Click listener for event item (future: navigate to event details)
+                // Click listener for event item - navigate to event details
                 itemView.setOnClickListener(v -> {
-                    Toast.makeText(getContext(), "Event: " + event.getName(), Toast.LENGTH_SHORT).show();
-                    // TODO: Navigate to event details page
+                    // Navigate to EventDetails fragment to show organizer buttons
+                    EventDetails detailFragment = EventDetails.newInstance(event);
+                    if (getParentFragmentManager() != null) {
+                        getParentFragmentManager()
+                                .beginTransaction()
+                                .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.fade_out,
+                                        android.R.anim.fade_in, android.R.anim.fade_out)
+                                .add(R.id.frameLayout, detailFragment)
+                                .addToBackStack(null)
+                                .commit();
+                    }
                 });
 
                 // Click listener for edit button - navigate to edit event
