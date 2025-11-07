@@ -36,8 +36,8 @@ public class EventArrayAdapter extends ArrayAdapter<Event> {
         TextView eventDate = view.findViewById((R.id.eventCardDateText));
 
         eventName.setText(event.getName());
-        eventDescription.setText(event.getDesc());
-        eventDate.setText(event.getDate());
+        eventDescription.setText(event.getDescription());
+        eventDate.setText(event.getEventDate().toString());
 
         return view;
     }

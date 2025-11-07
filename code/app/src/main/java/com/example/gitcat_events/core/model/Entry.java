@@ -1,6 +1,6 @@
 package com.example.gitcat_events.core.model;
 
-abstract class Entry {
+public abstract class Entry {
     //TODO: javadocs, tests
     private int eventID;
     private int userID;

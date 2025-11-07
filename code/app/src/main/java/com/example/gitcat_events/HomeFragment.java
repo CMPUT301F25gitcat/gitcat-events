@@ -2,6 +2,7 @@ package com.example.gitcat_events;
 
 import android.os.Bundle;
 
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import android.view.LayoutInflater;
@@ -14,6 +15,7 @@ import com.example.gitcat_events.core.model.Event;
 import com.example.gitcat_events.features.event.ui.EventArrayAdapter;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 public class HomeFragment extends Fragment {
     private ArrayList<Event> upcomingEvents;
@@ -42,13 +44,26 @@ public class HomeFragment extends Fragment {
         enteredEventsList = view.findViewById(R.id.enteredEventsList);
         upcomingEventsList = view.findViewById(R.id.upcomingEventsList);
 
-        Event eventOne = new Event("Event 1", "This is a description", "Oct 2, 2025");
-        Event eventTwo = new Event("Event 2", "This is a description", "Oct 20, 2025");
+//        Event(String name, String description, int capacity, @Nullable Integer maxWaitListSize, String poster, Date
+//        raffleDate, Date eventDate)
+        Event eventOne = new Event(
+                "Event 1",
+                "This is a description",
+                10,
+                        null,
+                "blah",
+                        new Date(),
+                        new Date()
+                );
+//        Event eventTwo = new Event("Event 2", "This is a description", "Oct 20, 2025");
 
         enteredEvents = new ArrayList<>();
         upcomingEvents = new ArrayList<>();
-        enteredEvents.add(eventTwo);
+        enteredEvents.add(eventOne);
         upcomingEvents.add(eventOne);
+        upcomingEvents.add(eventOne);
+
+
 
         enteredEventsAdapter = new EventArrayAdapter(getContext(), enteredEvents);
         upcomingEventsAdapter = new EventArrayAdapter(getContext(), upcomingEvents);
