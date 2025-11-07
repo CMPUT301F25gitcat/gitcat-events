@@ -6,13 +6,26 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 
+
+/**
+ * Represents an event that users can register for. 
+ * Events have a capacity , optional waitlist size , dates via calendar objects , and a boolean for if geolocation is required.
+ * 
+ * @author Momoore Oshinaike 
+ * @see AcceptedListEntry
+ * @see WaitListEntry
+ * @see Entry
+ * 
+ * 
+ */
+
 public class Event {
-    //TODO: javadocs, waitlist functions, accepted list functions, tests
+    
     //based off CRC card in wiki: https://github.com/CMPUT301F25gitcat/gitcat-events/wiki/Part-3:-CRC-Cards#event
-    private String name;
-    private String description;
+    private String name;//name of the event 
+    private String description;//descriptions of the event 
     private int capacity;   //refers to the size of the final list
-    @Nullable private Integer maxWaitListSize;
+    @Nullable private Integer maxWaitListSize; // basically the maximum number of people that could attend the event. 
     private Calendar eventDate;
     private Calendar raffleDate;
     private Boolean geoLocationRequired;
@@ -21,6 +34,14 @@ public class Event {
     private String poster;
     //private QRCode qrCode; --QRCode class is not done yet
     private int organizer;
+    /**
+     * here we construct the event object with the following parameters:
+     * @param name the name of the event which can not be null
+     * @param description a brief and concise description of the event
+     * @param capacity the maximum number of people that can attend the event. can only be poisitive 
+     * @param maxWaitListSize the maximum size of waitlist and should be positive 
+     * 
+     */
 
     public Event(String name, String description, int capacity, @Nullable Integer maxWaitListSize, String poster,  Calendar raffleDate, Calendar eventDate, Boolean geoLocationRequired) {
         this.name = name;
