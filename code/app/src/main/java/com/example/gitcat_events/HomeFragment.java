@@ -10,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.LinearLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -36,14 +37,19 @@ public class HomeFragment extends Fragment {
 
     private ArrayList<Event> upcomingEvents;
     private ArrayList<Event> enteredEvents;
+    private ArrayList<Event> pendingInvitations;
 
     private EventArrayAdapter upcomingEventsAdapter;
     private EventArrayAdapter enteredEventsAdapter;
+    private EventArrayAdapter pendingInvitationsAdapter;
 
     private ListView enteredEventsList;
     private ListView upcomingEventsList;
+    private ListView pendingInvitationsList;
     private TextView upcomingEventsEmpty;
     private TextView enteredEventsEmpty;
+    private TextView pendingInvitationsEmpty;
+    private LinearLayout pendingInvitationsContainer;
 
     private FirebaseFirestore db;
 
@@ -65,20 +71,26 @@ public class HomeFragment extends Fragment {
         // Initialize views
         enteredEventsList = view.findViewById(R.id.enteredEventsList);
         upcomingEventsList = view.findViewById(R.id.upcomingEventsList);
+        pendingInvitationsList = view.findViewById(R.id.pendingInvitationsList);
         upcomingEventsEmpty = view.findViewById(R.id.upcomingEventsEmpty);
         enteredEventsEmpty = view.findViewById(R.id.EnteredEventsEmpty);
+        pendingInvitationsEmpty = view.findViewById(R.id.pendingInvitationsEmpty);
+        pendingInvitationsContainer = view.findViewById(R.id.PendingInvitationsContainer);
 
         // Initialize lists
         enteredEvents = new ArrayList<>();
         upcomingEvents = new ArrayList<>();
+        pendingInvitations = new ArrayList<>();
 
         // Initialize adapters
         enteredEventsAdapter = new EventArrayAdapter(getContext(), enteredEvents);
         upcomingEventsAdapter = new EventArrayAdapter(getContext(), upcomingEvents);
+        pendingInvitationsAdapter = new EventArrayAdapter(getContext(), pendingInvitations);
 
         // Set adapters
         enteredEventsList.setAdapter(enteredEventsAdapter);
         upcomingEventsList.setAdapter(upcomingEventsAdapter);
+        pendingInvitationsList.setAdapter(pendingInvitationsAdapter);
 
         // Set up click listeners
         upcomingEventsList.setOnItemClickListener((parent, tmpView, position, id) -> {
@@ -107,6 +119,19 @@ public class HomeFragment extends Fragment {
                     .commit();
         });
 
+        pendingInvitationsList.setOnItemClickListener((parent, tmpView, position, id) -> {
+            Event selectedEvent = pendingInvitations.get(position);
+            EventDetails detailFragment = EventDetails.newInstance(selectedEvent);
+
+            getParentFragmentManager()
+                    .beginTransaction()
+                    .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.fade_out,
+                            android.R.anim.fade_in, android.R.anim.fade_out)
+                    .add(R.id.frameLayout, detailFragment)
+                    .addToBackStack(null)
+                    .commit();
+        });
+
         // Load events
         loadEvents();
 
@@ -117,7 +142,7 @@ public class HomeFragment extends Fragment {
     public void onResume() {
         super.onResume();
         // Reload events when returning to fragment
-        if (enteredEvents != null && upcomingEvents != null) {
+        if (enteredEvents != null && upcomingEvents != null && pendingInvitations != null) {
             loadEvents();
         }
     }
@@ -125,11 +150,97 @@ public class HomeFragment extends Fragment {
     private void loadEvents() {
         String deviceId = getOrCreateDeviceId();
 
+        // Load pending invitations first (highest priority)
+        loadPendingInvitations(deviceId);
+        
         // Load all upcoming events
         loadUpcomingEvents();
 
-        // Load events user has entered (waitlisted)
+        // Load events user has entered (accepted invitations)
         loadEnteredEvents(deviceId);
+    }
+    
+    private void loadPendingInvitations(String deviceId) {
+        pendingInvitations.clear();
+        
+        // Find all events where user has a pending invitation
+        db.collectionGroup("invitation_list")
+                .whereEqualTo("userDeviceId", deviceId)
+                .get()
+                .addOnSuccessListener(invitationSnapshot -> {
+                    if (invitationSnapshot.isEmpty()) {
+                        updatePendingInvitationsUI();
+                        return;
+                    }
+                    
+                    // Collect event IDs with pending invitations
+                    Set<String> invitationEventIds = new HashSet<>();
+                    for (QueryDocumentSnapshot doc : invitationSnapshot) {
+                        String status = doc.getString("status");
+                        String eventId = doc.getString("eventId");
+                        // Only show events with "pending" status
+                        if ("pending".equals(status) && eventId != null) {
+                            invitationEventIds.add(eventId);
+                        }
+                    }
+                    
+                    if (invitationEventIds.isEmpty()) {
+                        updatePendingInvitationsUI();
+                        return;
+                    }
+                    
+                    // Load event details for each invitation
+                    final int[] completed = {0};
+                    final int total = invitationEventIds.size();
+                    
+                    for (String eventId : invitationEventIds) {
+                        db.collection("events").document(eventId)
+                                .get()
+                                .addOnSuccessListener(eventDoc -> {
+                                    if (eventDoc.exists()) {
+                                        try {
+                                            Event event = parseEvent(eventDoc);
+                                            pendingInvitations.add(event);
+                                        } catch (Exception e) {
+                                            Log.e(TAG, "Error parsing invitation event", e);
+                                        }
+                                    }
+                                    
+                                    completed[0]++;
+                                    if (completed[0] == total) {
+                                        // Sort by event date
+                                        pendingInvitations.sort((e1, e2) -> {
+                                            if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
+                                            return e1.getEventDate().compareTo(e2.getEventDate());
+                                        });
+                                        updatePendingInvitationsUI();
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e(TAG, "Error loading invitation event: " + eventId, e);
+                                    completed[0]++;
+                                    if (completed[0] == total) {
+                                        updatePendingInvitationsUI();
+                                    }
+                                });
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error loading pending invitations", e);
+                    updatePendingInvitationsUI();
+                });
+    }
+    
+    private void updatePendingInvitationsUI() {
+        if (pendingInvitations.isEmpty()) {
+            pendingInvitationsContainer.setVisibility(View.GONE);
+        } else {
+            pendingInvitationsContainer.setVisibility(View.VISIBLE);
+            pendingInvitationsEmpty.setVisibility(View.GONE);
+            pendingInvitationsList.setVisibility(View.VISIBLE);
+            pendingInvitationsAdapter.notifyDataSetChanged();
+            setListViewHeightBasedOnChildren(pendingInvitationsList);
+        }
     }
 
     private void loadUpcomingEvents() {
