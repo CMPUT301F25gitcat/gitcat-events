@@ -15,33 +15,35 @@ import java.io.Serializable;
  * 
  */
 public class Profile implements Serializable{
-    private String name;//user full name 
-    private String email;//which is the user email address 
-    @Nullable private String phone; // nullable/optional
-    @Nullable private String deviceId; // unique device identifier
-    @Nullable private String profilePictureUrl; // URL to profile picture
-    //default constructor for serializable 
-    public Profile() {}                   // required for toObject(...)
+    @Nullable private String name; // optional
+    @Nullable private String email; // optional
+    @Nullable private String phone; // optional
+    private String deviceId; // REQUIRED - unique device identifier
+    @Nullable private String profilePictureUrl; // optional
+
     /**
-     *  constructing a profile with minimal info. 
-     * @param name the user's full name can't be null
-     * @param email the users email address and it cant be null 
-     * @param phone the users phone number and it can't be null
+     * default constructor for serializable 
+     * required for toObject(...)
      */
-    public Profile(String name, String email, @Nullable String phone) {
-        this.name = name;
-        this.email = email;
-        this.phone = phone;
+    public Profile() {}
+    
+    /**
+     * constructing a profile with minimal info (deviceId only).
+     * @param deviceId the unique device identifier which cannot be null 
+     */
+    public Profile(String deviceId) {
+        this.deviceId = deviceId;
     }
+    
     /**
      * constructing a profile with all info.
-     * @param name the user's full name and it cant be null 
-     * @param email the users email address and it cant be null 
+     * @param name the user's full name and it can be null 
+     * @param email the users email address and it can be null 
      * @param phone the users phone number and it can be null 
-     * @param deviceId the unique device identifier which can be null 
+     * @param deviceId the unique device identifier which cannot be null 
      * @param profilePictureUrl the URL to the users profile pic and can be null.
      */
-    public Profile(String name, String email, @Nullable String phone, @Nullable String deviceId, @Nullable String profilePictureUrl) {
+    public Profile(@Nullable String name, @Nullable String email, @Nullable String phone, String deviceId, @Nullable String profilePictureUrl) {
         this.name = name;
         this.email = email;
         this.phone = phone;
@@ -53,16 +55,16 @@ public class Profile implements Serializable{
      * Gets the name of the user 
      * @return the user's full name 
      */
-    
+    @Nullable
     public String getName() {
         return name;
     }
 
     /**
      * sets the name of the user 
-     * @param name sets the name of the user and it cant be null 
+     * @param name sets the name of the user and it can be null 
      */
-    public void setName(String name){
+    public void setName(@Nullable String name){
         this.name = name;
     }
 
@@ -70,14 +72,16 @@ public class Profile implements Serializable{
      * gets the email of the user 
      * @return the users email address 
      */
+    @Nullable
     public String getEmail() {
         return email;
     }
+    
     /**
      * sets the email of the user 
      * @param email the users email address 
      */
-    public void setEmail(String email){
+    public void setEmail(@Nullable String email){
         this.email = email;
     }
 
@@ -85,7 +89,8 @@ public class Profile implements Serializable{
      * get the phone number of the user which can be null 
      * @return the users phone number 
      */
-    @Nullable public String getPhone(){
+    @Nullable
+    public String getPhone(){
         return  phone;
     }
 
@@ -96,19 +101,20 @@ public class Profile implements Serializable{
     public void setPhone(@Nullable String phone){
         this.phone = phone;
     }
+    
     /**
-     * gets the unique device ID which can be null 
+     * gets the unique device ID which cannot be null 
      * @return the unique device Identifier(ID)
      */
-    @Nullable public String getDeviceId(){
+    public String getDeviceId(){
         return deviceId;
     }
 
     /**
-     * sets the unique device ID which can be null 
+     * sets the unique device ID which cannot be null 
      * @param deviceId  which sets the unique device Identifier(ID)  
      */
-    public void setDeviceId(@Nullable String deviceId){
+    public void setDeviceId(String deviceId){
         this.deviceId = deviceId;
     }
 

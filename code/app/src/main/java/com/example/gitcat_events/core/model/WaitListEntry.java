@@ -13,13 +13,19 @@ package com.example.gitcat_events.core.model;
 
 public class WaitListEntry extends Entry {
     /**
-     * Constructs a new waitlist entry with specific event ID and user ID.
-     * @param EventID identifier for every single event in the database uniquely  
-     * @param UserID identifier for every single user in the database uniquely
+     * No-arg constructor for Firebase
      */
-    //TODO: tests
-   public WaitListEntry(int EventID, int UserID){
-       super(EventID, UserID);
-   }
+    public WaitListEntry() {
+        super();
+    }
+    
+    /**
+     * Constructs a new waitlist entry with specific event ID and user device ID.
+     * @param eventId identifier for every single event in the database uniquely  
+     * @param userDeviceId identifier for every single user in the database uniquely
+     */
+    public WaitListEntry(String eventId, String userDeviceId){
+        super(eventId, userDeviceId);
+    }
 }
 

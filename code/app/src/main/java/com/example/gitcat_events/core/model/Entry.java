@@ -11,54 +11,56 @@ package com.example.gitcat_events.core.model;
  */
 
 public abstract class Entry {
-    //TODO: javadocs, tests
-    private int eventID;
-    private int userID;
-
+    private String eventId;
+    private String userDeviceId;
+    
     /**
-     * constructs a new Entry with specific event ID and user ID. 
-     * @param eventID identifier for every single event in the database uniquely 
-     * @param userID identifier for every single user in the database uniquely 
+     * No-arg constructor for Firebase
      */
-    public Entry(int eventID, int userID){
-        this.eventID=eventID;
-        this.userID=userID;
+    public Entry() {
+    }
+    
+    /**
+     * constructs a new Entry with specific event ID and user device ID. 
+     * @param eventId identifier for every single event in the database uniquely 
+     * @param userDeviceId identifier for every single user in the database uniquely 
+     */
+    public Entry(String eventId, String userDeviceId){
+        this.eventId = eventId;
+        this.userDeviceId = userDeviceId;
     }
 
     //getters and setters:
 
     /**
      * sets the event ID for this entry. 
-     * @param eventID the event ID for this event. 
+     * @param eventId the event ID for this event. 
      */
-    public void setEventID(int eventID) {
-        this.eventID = eventID;
+    public void setEventId(String eventId) {
+        this.eventId = eventId;
     }
-
 
     /**
      * gets the event ID for this entry. 
      * @return the event ID for this event. 
      */
-    public int getEventID() {
-        return eventID;
+    public String getEventId() {
+        return eventId;
     }
 
     /**
-     * gets the user ID for this entry. 
-     * @return the user ID for this entry. 
+     * gets the user device ID for this entry. 
+     * @return the user device ID for this entry. 
      */
-
-    public int getUserID() {
-        return userID;
+    public String getUserDeviceId() {
+        return userDeviceId;
     }
 
     /**
-     * sets the user ID for this entry. 
-     * @param userID the user ID for this user. 
+     * sets the user device ID for this entry. 
+     * @param userDeviceId the user device ID for this user. 
      */
-
-    public void setUserID(int userID) {
-        this.userID = userID;
+    public void setUserDeviceId(String userDeviceId) {
+        this.userDeviceId = userDeviceId;
     }
 }

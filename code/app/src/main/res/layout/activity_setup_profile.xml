@@ -63,7 +63,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:hint="Name *"
+            android:hint="Name (Optional)"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -79,7 +79,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:hint="Email *"
+            android:hint="Email (Optional)"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -106,6 +106,15 @@
                 android:maxLines="1"/>
         </com.google.android.material.textfield.TextInputLayout>
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="All fields are optional"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"/>
+
         <!-- Create Profile Button -->
         <Button
             android:id="@+id/btnCreateProfile"
@@ -113,15 +122,16 @@
             android:layout_height="60dp"
             android:text="Create Profile"
             android:textSize="16sp"
-            android:layout_marginTop="16dp"/>
+            android:layout_marginBottom="12dp"/>
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="* Required fields"
-            android:textSize="12sp"
-            android:textColor="@android:color/darker_gray"
-            android:layout_marginTop="16dp"/>
+        <!-- Skip Button -->
+        <Button
+            android:id="@+id/btnSkip"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="Skip for Now"
+            android:textSize="16sp"
+            style="@style/Widget.Material3.Button.OutlinedButton"/>
 
     </LinearLayout>
 </ScrollView>

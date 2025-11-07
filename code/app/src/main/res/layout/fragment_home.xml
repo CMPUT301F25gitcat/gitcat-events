@@ -5,8 +5,7 @@
     android:id="@+id/fragment_home"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".HomeFragment"
-    android:id="@+id/fragment_home">
+    tools:context=".HomeFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -117,7 +116,7 @@
                         android:layout_marginLeft="10dp"
                         android:layout_marginTop="10dp"
                         android:layout_marginBottom="5dp"
-                        android:text="Upcoming Events"
+                        android:text="Available Events"
                         android:textColor="#2260FF"
                         android:textSize="20sp"
                         android:textStyle="bold" />
@@ -129,7 +128,7 @@
                         android:background="#cad6ff"
                         android:paddingTop="30dp"
                         android:paddingBottom="30dp"
-                        android:text="No Events Entered"
+                        android:text="No Available Events"
                         android:textAlignment="center"
                         android:textColor="#77000000"
                         android:textSize="16sp"

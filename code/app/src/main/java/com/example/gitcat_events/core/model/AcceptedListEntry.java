@@ -11,12 +11,18 @@ package com.example.gitcat_events.core.model;
  */
 public class AcceptedListEntry extends Entry {
     /**
-     * 
-     * Constructing a new AcceptedListEntry with a specified event ID and user ID 
-     * @param EventID identifier for every single event uniquely in the database 
-     * @param UserID identifier for every single user uniquely in the database 
+     * No-arg constructor for Firebase
      */
-    public AcceptedListEntry(int EventID, int UserID){
-        super(EventID, UserID);
+    public AcceptedListEntry() {
+        super();
+    }
+    
+    /**
+     * Constructing a new AcceptedListEntry with a specified event ID and user device ID 
+     * @param eventId identifier for every single event uniquely in the database 
+     * @param userDeviceId identifier for every single user uniquely in the database 
+     */
+    public AcceptedListEntry(String eventId, String userDeviceId){
+        super(eventId, userDeviceId);
     }
 }
