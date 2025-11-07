@@ -81,6 +81,16 @@ public class HomeFragment extends Fragment {
         enteredEventsAdapter = new EventArrayAdapter(getContext(), enteredEvents);
         upcomingEventsAdapter = new EventArrayAdapter(getContext(), upcomingEvents);
 
+
+        // show placeholders if there is no events
+        if(enteredEvents.size() == 0){
+            view.findViewById(R.id.EnteredEventsEmpty).setVisibility(View.VISIBLE);;
+        }
+
+        if(upcomingEvents.size() == 0){
+            view.findViewById(R.id.upcomingEventsEmpty).setVisibility(View.VISIBLE);;
+        }
+
         enteredEventsList.setAdapter(enteredEventsAdapter);
         upcomingEventsList.setAdapter(upcomingEventsAdapter);
 
