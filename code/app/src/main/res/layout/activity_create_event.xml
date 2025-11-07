@@ -289,32 +289,35 @@
                     android:textStyle="bold" />
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:text="Explain how participants will be selected (optional)"
+                    android:text="Explain how participants will be selected (optional)\n\nExample: Random selection from all registered participants. All entrants have equal chance of being selected."
                     android:textColor="#85000000"
-                    android:textSize="12sp" />
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="2dp" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="24dp"
-                    android:hint="Selection Criteria (Optional)"
+                    android:hint="Selection Criteria"
                     app:boxStrokeColor="#6850a4"
                     app:boxStrokeWidth="2dp"
-                    app:boxStrokeWidthFocused="3dp">
+                    app:boxStrokeWidthFocused="3dp"
+                    app:hintEnabled="true">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etSelectionCriteria"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="top"
-                        android:hint="e.g., Random selection from all registered participants. All entrants have equal chance of being selected."
-                        android:inputType="textMultiLine"
-                        android:maxLines="5"
-                        android:minLines="3" />
+                        android:gravity="top|start"
+                        android:inputType="textMultiLine|textCapSentences"
+                        android:maxLines="8"
+                        android:minLines="4"
+                        android:scrollbars="vertical"
+                        android:padding="12dp" />
                 </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
 
