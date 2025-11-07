@@ -47,6 +47,7 @@ public class CreateEventActivity extends AppCompatActivity {
     private Button btnSelectPoster, btnSelectEventDate, btnSelectRaffleDate, btnCreateEvent;
     private TextView tvEventDateDisplay, tvRaffleDateDisplay;
     private SwitchMaterial switchGeoLocation;
+    private android.widget.ImageButton btnBack;
 
     private Uri selectedPosterUri;
     private Calendar selectedEventDate;
@@ -72,6 +73,7 @@ public class CreateEventActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
 
         // Initialize views
+        btnBack = findViewById(R.id.btnBack);
         ivEventPoster = findViewById(R.id.ivEventPoster);
         etEventName = findViewById(R.id.etEventName);
         etEventDescription = findViewById(R.id.etEventDescription);
@@ -87,10 +89,17 @@ public class CreateEventActivity extends AppCompatActivity {
         switchGeoLocation = findViewById(R.id.switchGeoLocation);
 
         // Set up click listeners
+        btnBack.setOnClickListener(v -> onBackPressed());
         btnSelectPoster.setOnClickListener(v -> selectPoster());
         btnSelectEventDate.setOnClickListener(v -> selectEventDate());
         btnSelectRaffleDate.setOnClickListener(v -> selectRaffleDate());
         btnCreateEvent.setOnClickListener(v -> createEvent());
+    }
+    
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        finish();
     }
 
     private void selectPoster() {
@@ -136,6 +145,9 @@ public class CreateEventActivity extends AppCompatActivity {
     }
 
     private void createEvent() {
+        // Disable button to prevent duplicate submissions
+        btnCreateEvent.setEnabled(false);
+        
         // Validate inputs
         String name = etEventName.getText().toString().trim();
         String description = etEventDescription.getText().toString().trim();
@@ -163,7 +175,11 @@ public class CreateEventActivity extends AppCompatActivity {
             Toast.makeText(this, "Please select a final registration date", Toast.LENGTH_SHORT).show();
             ok = false;
         }
-        if (!ok) return;
+        if (!ok) {
+            // Re-enable button if validation fails
+            btnCreateEvent.setEnabled(true);
+            return;
+        }
 
         int capacity = Integer.parseInt(capacityStr);
         Integer maxWaitlist = maxWaitlistStr.isEmpty() ? null : Integer.parseInt(maxWaitlistStr);
@@ -260,12 +276,15 @@ public class CreateEventActivity extends AppCompatActivity {
             progressDialog.dismiss();
             Toast.makeText(this, "Event created successfully!", Toast.LENGTH_LONG).show();
             
-            // Return to Create fragment
+            // Return to Create fragment (button stays disabled since we're leaving)
             finish();
         }).addOnFailureListener(e -> {
             progressDialog.dismiss();
             Log.e(TAG, "Failed to create event", e);
             Toast.makeText(this, "Failed to create event: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            
+            // Re-enable button on failure so user can try again
+            btnCreateEvent.setEnabled(true);
         });
     }
 
