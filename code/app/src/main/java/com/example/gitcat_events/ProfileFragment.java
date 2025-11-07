@@ -130,8 +130,15 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
     }
 
     private void renderProfile(Profile profile) {
-        tvFragmentName.setText(profile.getName());
-        tvFragmentEmail.setText(profile.getEmail());
+        // Handle optional name
+        String name = profile.getName();
+        tvFragmentName.setText((name == null || name.trim().isEmpty()) ? "Anonymous User" : name);
+        
+        // Handle optional email
+        String email = profile.getEmail();
+        tvFragmentEmail.setText((email == null || email.trim().isEmpty()) ? "No email provided" : email);
+        
+        // Handle optional phone
         String phone = profile.getPhone();
         tvFragmentPhone.setText((phone == null || phone.trim().isEmpty()) ? "—" : phone);
 
