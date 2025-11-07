@@ -2,6 +2,8 @@ package com.example.gitcat_events;
 
 import androidx.fragment.app.Fragment;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -17,9 +19,24 @@ import com.example.gitcat_events.databinding.ActivityMainBinding;
 public class MainActivity extends AppCompatActivity {
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
+    private static final String PREFS = "app_prefs";
+    private static final String KEY_PROFILE_ID = "profile_doc_id";
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Check if profile exists - if not, redirect to setup
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        String profileId = prefs.getString(KEY_PROFILE_ID, null);
+        
+        if (profileId == null) {
+            // No profile exists, redirect to setup page
+            Intent intent = new Intent(this, SetupProfileActivity.class);
+            startActivity(intent);
+            finish(); // Close MainActivity so user can't go back
+            return;
+        }
 
         // add binding for bottom navigation menu
         binding = ActivityMainBinding.inflate(getLayoutInflater());
