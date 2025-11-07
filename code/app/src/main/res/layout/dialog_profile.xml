@@ -3,6 +3,30 @@
     android:padding="16dp" android:orientation="vertical"
     android:layout_width="match_parent" android:layout_height="wrap_content">
 
+    <!-- Profile Picture Preview and Selection -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingBottom="16dp">
+        
+        <ImageView
+            android:id="@+id/ivDialogProfilePicture"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:scaleType="centerCrop"
+            android:contentDescription="Profile Picture Preview"
+            android:background="@android:color/darker_gray"/>
+    </LinearLayout>
+    
+    <Button
+        android:id="@+id/btnSelectProfilePicture"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Select Profile Picture"
+        android:layout_marginBottom="16dp"/>
+
     <EditText android:id="@+id/etName"  android:hint="@string/name"
         android:layout_width="match_parent" android:layout_height="wrap_content"/>
 
