@@ -2,9 +2,11 @@ package com.example.gitcat_events.features.entrant.ui;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -19,8 +21,13 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
 
+import com.bumptech.glide.Glide;
 import com.example.gitcat_events.R;
 import com.example.gitcat_events.core.model.Profile;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+
+import java.util.UUID;
 
 public class ProfileDialogFragment extends DialogFragment {
 
@@ -28,9 +35,13 @@ public class ProfileDialogFragment extends DialogFragment {
         void onSaveProfile(Profile profile);
     }
 
+    private static final String TAG = "ProfileDialogFragment";
+    
     private @Nullable Profile existingProfile;
     private @Nullable Uri selectedImageUri;
     private ImageView ivDialogProfilePicture;
+    private FirebaseStorage storage;
+    private String uploadedImageUrl = null;
 
     // Activity result launcher for image selection
     private final ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
@@ -47,6 +58,9 @@ public class ProfileDialogFragment extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
+        // Initialize Firebase Storage
+        storage = FirebaseStorage.getInstance();
+        
         // Inflate content view
         View v = getLayoutInflater().inflate(R.layout.dialog_profile, null);
         EditText etName  = v.findViewById(R.id.etName);
@@ -67,8 +81,13 @@ public class ProfileDialogFragment extends DialogFragment {
             
             // Load existing profile picture if available
             if (existingProfile.getProfilePictureUrl() != null && !existingProfile.getProfilePictureUrl().isEmpty()) {
-                // TODO: Load image from URL using Glide or Picasso
-                ivDialogProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
+                uploadedImageUrl = existingProfile.getProfilePictureUrl();
+                Glide.with(this)
+                    .load(existingProfile.getProfilePictureUrl())
+                    .placeholder(R.drawable.ic_launcher_foreground)
+                    .error(R.drawable.ic_launcher_foreground)
+                    .circleCrop()
+                    .into(ivDialogProfilePicture);
             }
         }
 
@@ -119,33 +138,66 @@ public class ProfileDialogFragment extends DialogFragment {
 
             String phone = phoneRaw.isEmpty() ? null : phoneRaw; // optional
             
-            // Create profile with device ID and picture URL
-            Profile p = new Profile(name, email, phone);
-            
-            // If user selected a new image, convert URI to string (for now)
-            // In production, you'd upload to Firebase Storage and get the download URL
+            // If user selected a new image, upload it first
             if (selectedImageUri != null) {
-                p.setProfilePictureUrl(selectedImageUri.toString());
-                Toast.makeText(requireContext(), "Note: Image upload to Firebase Storage not implemented yet", Toast.LENGTH_SHORT).show();
-            } else if (existingProfile != null && existingProfile.getProfilePictureUrl() != null) {
+                // Show progress dialog
+                ProgressDialog progressDialog = new ProgressDialog(requireContext());
+                progressDialog.setMessage("Uploading profile picture...");
+                progressDialog.setCancelable(false);
+                progressDialog.show();
+                
+                uploadImageToFirebase(selectedImageUri, new ImageUploadCallback() {
+                    @Override
+                    public void onSuccess(String imageUrl) {
+                        progressDialog.dismiss();
+                        // Create profile with uploaded image URL
+                        Profile p = new Profile(name, email, phone);
+                        p.setProfilePictureUrl(imageUrl);
+                        
+                        // Preserve device ID if it exists
+                        if (existingProfile != null && existingProfile.getDeviceId() != null) {
+                            p.setDeviceId(existingProfile.getDeviceId());
+                        }
+                        
+                        saveProfile(p);
+                        dlg.dismiss();
+                    }
+
+                    @Override
+                    public void onFailure(String error) {
+                        progressDialog.dismiss();
+                        Toast.makeText(requireContext(), "Image upload failed: " + error, Toast.LENGTH_LONG).show();
+                        // Continue with save anyway, without image
+                        Profile p = new Profile(name, email, phone);
+                        if (existingProfile != null && existingProfile.getProfilePictureUrl() != null) {
+                            p.setProfilePictureUrl(existingProfile.getProfilePictureUrl());
+                        }
+                        if (existingProfile != null && existingProfile.getDeviceId() != null) {
+                            p.setDeviceId(existingProfile.getDeviceId());
+                        }
+                        saveProfile(p);
+                        dlg.dismiss();
+                    }
+                });
+            } else {
+                // No new image selected, just save profile
+                Profile p = new Profile(name, email, phone);
+                
                 // Keep existing profile picture URL if no new image selected
-                p.setProfilePictureUrl(existingProfile.getProfilePictureUrl());
+                if (uploadedImageUrl != null) {
+                    p.setProfilePictureUrl(uploadedImageUrl);
+                } else if (existingProfile != null && existingProfile.getProfilePictureUrl() != null) {
+                    p.setProfilePictureUrl(existingProfile.getProfilePictureUrl());
+                }
+                
+                // Preserve device ID if it exists
+                if (existingProfile != null && existingProfile.getDeviceId() != null) {
+                    p.setDeviceId(existingProfile.getDeviceId());
+                }
+                
+                saveProfile(p);
+                dlg.dismiss();
             }
-            
-            // Preserve device ID if it exists
-            if (existingProfile != null && existingProfile.getDeviceId() != null) {
-                p.setDeviceId(existingProfile.getDeviceId());
-            }
-
-            OnSaveProfileListener host = null;
-            if (getParentFragment() instanceof OnSaveProfileListener) {
-                host = (OnSaveProfileListener) getParentFragment();
-            } else if (getActivity() instanceof OnSaveProfileListener) {
-                host = (OnSaveProfileListener) getActivity();
-            }
-            if (host != null) host.onSaveProfile(p);
-
-            dlg.dismiss(); // only dismiss after successful validation/callback
         });
     }
 
@@ -155,5 +207,61 @@ public class ProfileDialogFragment extends DialogFragment {
         if (existing != null) b.putSerializable("profile", existing);
         f.setArguments(b);
         return f;
+    }
+    
+    /**
+     * Upload image to Firebase Storage and get download URL
+     */
+    private void uploadImageToFirebase(Uri imageUri, ImageUploadCallback callback) {
+        if (imageUri == null) {
+            callback.onFailure("No image selected");
+            return;
+        }
+        
+        // Create a unique filename for the image
+        String filename = "profile_pictures/" + UUID.randomUUID().toString() + ".jpg";
+        StorageReference storageRef = storage.getReference().child(filename);
+        
+        // Upload the file
+        storageRef.putFile(imageUri)
+            .addOnSuccessListener(taskSnapshot -> {
+                // Get the download URL
+                storageRef.getDownloadUrl()
+                    .addOnSuccessListener(uri -> {
+                        Log.d(TAG, "Image uploaded successfully: " + uri.toString());
+                        callback.onSuccess(uri.toString());
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Failed to get download URL", e);
+                        callback.onFailure(e.getMessage());
+                    });
+            })
+            .addOnFailureListener(e -> {
+                Log.e(TAG, "Image upload failed", e);
+                callback.onFailure(e.getMessage());
+            });
+    }
+    
+    /**
+     * Save profile by calling the listener
+     */
+    private void saveProfile(Profile profile) {
+        OnSaveProfileListener host = null;
+        if (getParentFragment() instanceof OnSaveProfileListener) {
+            host = (OnSaveProfileListener) getParentFragment();
+        } else if (getActivity() instanceof OnSaveProfileListener) {
+            host = (OnSaveProfileListener) getActivity();
+        }
+        if (host != null) {
+            host.onSaveProfile(profile);
+        }
+    }
+    
+    /**
+     * Callback interface for image upload
+     */
+    private interface ImageUploadCallback {
+        void onSuccess(String imageUrl);
+        void onFailure(String error);
     }
 }

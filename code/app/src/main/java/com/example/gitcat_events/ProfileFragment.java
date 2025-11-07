@@ -30,7 +30,7 @@ public class ProfileFragment extends Fragment {
     private static final String KEY_PROFILE_ID = "profile_doc_id";
 
     private FirebaseFirestore db;
-    private TextView tvFragmentName, tvFragmentEmail, tvFragmentPhone, tvFragmentDeviceId;
+    private TextView tvFragmentName, tvFragmentEmail, tvFragmentPhone;
     private ImageView ivFragmentProfilePicture;
     private Button btnFragmentViewFullProfile;
 
@@ -63,7 +63,6 @@ public class ProfileFragment extends Fragment {
         tvFragmentName = view.findViewById(R.id.tvFragmentName);
         tvFragmentEmail = view.findViewById(R.id.tvFragmentEmail);
         tvFragmentPhone = view.findViewById(R.id.tvFragmentPhone);
-        tvFragmentDeviceId = view.findViewById(R.id.tvFragmentDeviceId);
         ivFragmentProfilePicture = view.findViewById(R.id.ivFragmentProfilePicture);
         btnFragmentViewFullProfile = view.findViewById(R.id.btnFragmentViewFullProfile);
 
@@ -91,7 +90,6 @@ public class ProfileFragment extends Fragment {
             tvFragmentName.setText("No profile yet");
             tvFragmentEmail.setText("—");
             tvFragmentPhone.setText("—");
-            tvFragmentDeviceId.setText("—");
             ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
             return;
         }
@@ -119,13 +117,15 @@ public class ProfileFragment extends Fragment {
         tvFragmentEmail.setText(profile.getEmail());
         String phone = profile.getPhone();
         tvFragmentPhone.setText((phone == null || phone.trim().isEmpty()) ? "—" : phone);
-        String deviceId = profile.getDeviceId();
-        tvFragmentDeviceId.setText((deviceId == null || deviceId.trim().isEmpty()) ? "—" : deviceId);
 
-        // Load profile picture
+        // Load profile picture with Glide
         if (profile.getProfilePictureUrl() != null && !profile.getProfilePictureUrl().isEmpty()) {
-            // TODO: Use Glide or Picasso to load image from URL
-            ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
+            com.bumptech.glide.Glide.with(this)
+                .load(profile.getProfilePictureUrl())
+                .placeholder(R.drawable.ic_launcher_foreground)
+                .error(R.drawable.ic_launcher_foreground)
+                .circleCrop()
+                .into(ivFragmentProfilePicture);
         } else {
             ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
         }

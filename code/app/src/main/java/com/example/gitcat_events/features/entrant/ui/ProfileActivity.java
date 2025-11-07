@@ -1,5 +1,6 @@
 package com.example.gitcat_events.features.entrant.ui;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -13,8 +14,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.gitcat_events.CreateFragment;
+import com.example.gitcat_events.HomeFragment;
+import com.example.gitcat_events.MainActivity;
+import com.example.gitcat_events.NotifsFragment;
+import com.example.gitcat_events.ProfileFragment;
 import com.example.gitcat_events.R;
 import com.example.gitcat_events.core.model.Profile;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -28,7 +35,7 @@ public class ProfileActivity extends AppCompatActivity
 
     private FirebaseFirestore db;
     String TAG = "FirestoreSmoke";
-    private TextView tvName, tvEmail, tvPhone, tvDeviceId;
+    private TextView tvName, tvEmail, tvPhone;
     private ImageView ivProfilePicture;
 
     private static final String PREFS = "app_prefs";
@@ -57,7 +64,6 @@ public class ProfileActivity extends AppCompatActivity
         tvName  = findViewById(R.id.tvName);
         tvEmail = findViewById(R.id.tvEmail);
         tvPhone = findViewById(R.id.tvPhone);
-        tvDeviceId = findViewById(R.id.tvDeviceId);
         ivProfilePicture = findViewById(R.id.ivProfilePicture);
         Button btnEdit = findViewById(R.id.btnEdit);
 
@@ -68,6 +74,39 @@ public class ProfileActivity extends AppCompatActivity
                         .show(getSupportFragmentManager(), "editProfile"));
         Button btnDelete = findViewById(R.id.btnDelete);
         btnDelete.setOnClickListener(v -> confirmAndDelete());
+        
+        // Setup bottom navigation
+        BottomNavigationView bottomNav = findViewById(R.id.bottomNavigationView);
+        bottomNav.setSelectedItemId(R.id.profile); // Highlight profile tab
+        bottomNav.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            
+            if (id == R.id.home) {
+                // Go back to MainActivity with Home fragment
+                Intent intent = new Intent(this, MainActivity.class);
+                intent.putExtra("fragment", "home");
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+                return true;
+            } else if (id == R.id.notifs) {
+                Intent intent = new Intent(this, MainActivity.class);
+                intent.putExtra("fragment", "notifs");
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+                return true;
+            } else if (id == R.id.create) {
+                Intent intent = new Intent(this, MainActivity.class);
+                intent.putExtra("fragment", "create");
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+                return true;
+            } else if (id == R.id.profile) {
+                // Already on profile, do nothing
+                return true;
+            }
+            
+            return false;
+        });
     }
 
     private Profile currentProfile;
@@ -102,16 +141,17 @@ public class ProfileActivity extends AppCompatActivity
         tvEmail.setText(p.getEmail());
         String ph = p.getPhone();
         tvPhone.setText((ph == null || ph.trim().isEmpty()) ? "—" : ph);
-        String devId = p.getDeviceId();
-        tvDeviceId.setText((devId == null || devId.trim().isEmpty()) ? "—" : devId);
         
-        // TODO: Load profile picture from URL if available
-        // For now, show a placeholder or default image
+        // Load profile picture from URL using Glide
         if (p.getProfilePictureUrl() != null && !p.getProfilePictureUrl().isEmpty()) {
-            // You can use Glide or Picasso here: Glide.with(this).load(p.getProfilePictureUrl()).into(ivProfilePicture);
-            ivProfilePicture.setImageResource(R.drawable.ic_launcher_foreground); // placeholder
+            com.bumptech.glide.Glide.with(this)
+                .load(p.getProfilePictureUrl())
+                .placeholder(R.drawable.ic_launcher_foreground)
+                .error(R.drawable.ic_launcher_foreground)
+                .circleCrop()
+                .into(ivProfilePicture);
         } else {
-            ivProfilePicture.setImageResource(R.drawable.ic_launcher_foreground); // default
+            ivProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
         }
     }
 
@@ -225,7 +265,6 @@ public class ProfileActivity extends AppCompatActivity
                     tvName.setText("—");
                     tvEmail.setText("—");
                     tvPhone.setText("—");
-                    tvDeviceId.setText("—");
                     ivProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
                     Toast.makeText(this, "Profile deleted.", Toast.LENGTH_SHORT).show();
 
