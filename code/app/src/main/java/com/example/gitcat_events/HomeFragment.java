@@ -10,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.LinearLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -36,14 +37,19 @@ public class HomeFragment extends Fragment {
 
     private ArrayList<Event> upcomingEvents;
     private ArrayList<Event> enteredEvents;
+    private ArrayList<Event> pendingInvitations;
 
     private EventArrayAdapter upcomingEventsAdapter;
     private EventArrayAdapter enteredEventsAdapter;
+    private EventArrayAdapter pendingInvitationsAdapter;
 
     private ListView enteredEventsList;
     private ListView upcomingEventsList;
+    private ListView pendingInvitationsList;
     private TextView upcomingEventsEmpty;
     private TextView enteredEventsEmpty;
+    private TextView pendingInvitationsEmpty;
+    private LinearLayout pendingInvitationsContainer;
 
     private FirebaseFirestore db;
 
@@ -65,20 +71,26 @@ public class HomeFragment extends Fragment {
         // Initialize views
         enteredEventsList = view.findViewById(R.id.enteredEventsList);
         upcomingEventsList = view.findViewById(R.id.upcomingEventsList);
+        pendingInvitationsList = view.findViewById(R.id.pendingInvitationsList);
         upcomingEventsEmpty = view.findViewById(R.id.upcomingEventsEmpty);
         enteredEventsEmpty = view.findViewById(R.id.EnteredEventsEmpty);
+        pendingInvitationsEmpty = view.findViewById(R.id.pendingInvitationsEmpty);
+        pendingInvitationsContainer = view.findViewById(R.id.PendingInvitationsContainer);
 
         // Initialize lists
         enteredEvents = new ArrayList<>();
         upcomingEvents = new ArrayList<>();
+        pendingInvitations = new ArrayList<>();
 
         // Initialize adapters
         enteredEventsAdapter = new EventArrayAdapter(getContext(), enteredEvents);
         upcomingEventsAdapter = new EventArrayAdapter(getContext(), upcomingEvents);
+        pendingInvitationsAdapter = new EventArrayAdapter(getContext(), pendingInvitations);
 
         // Set adapters
         enteredEventsList.setAdapter(enteredEventsAdapter);
         upcomingEventsList.setAdapter(upcomingEventsAdapter);
+        pendingInvitationsList.setAdapter(pendingInvitationsAdapter);
 
         // Set up click listeners
         upcomingEventsList.setOnItemClickListener((parent, tmpView, position, id) -> {
@@ -107,6 +119,19 @@ public class HomeFragment extends Fragment {
                     .commit();
         });
 
+        pendingInvitationsList.setOnItemClickListener((parent, tmpView, position, id) -> {
+            Event selectedEvent = pendingInvitations.get(position);
+            EventDetails detailFragment = EventDetails.newInstance(selectedEvent);
+
+            getParentFragmentManager()
+                    .beginTransaction()
+                    .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.fade_out,
+                            android.R.anim.fade_in, android.R.anim.fade_out)
+                    .add(R.id.frameLayout, detailFragment)
+                    .addToBackStack(null)
+                    .commit();
+        });
+
         // Load events
         loadEvents();
 
@@ -117,7 +142,7 @@ public class HomeFragment extends Fragment {
     public void onResume() {
         super.onResume();
         // Reload events when returning to fragment
-        if (enteredEvents != null && upcomingEvents != null) {
+        if (enteredEvents != null && upcomingEvents != null && pendingInvitations != null) {
             loadEvents();
         }
     }
@@ -125,11 +150,97 @@ public class HomeFragment extends Fragment {
     private void loadEvents() {
         String deviceId = getOrCreateDeviceId();
 
+        // Load pending invitations first (highest priority)
+        loadPendingInvitations(deviceId);
+        
         // Load all upcoming events
         loadUpcomingEvents();
 
-        // Load events user has entered (waitlisted)
+        // Load events user has entered (accepted invitations)
         loadEnteredEvents(deviceId);
+    }
+    
+    private void loadPendingInvitations(String deviceId) {
+        pendingInvitations.clear();
+        
+        // Find all events where user has a pending invitation
+        db.collectionGroup("invitation_list")
+                .whereEqualTo("userDeviceId", deviceId)
+                .get()
+                .addOnSuccessListener(invitationSnapshot -> {
+                    if (invitationSnapshot.isEmpty()) {
+                        updatePendingInvitationsUI();
+                        return;
+                    }
+                    
+                    // Collect event IDs with pending invitations
+                    Set<String> invitationEventIds = new HashSet<>();
+                    for (QueryDocumentSnapshot doc : invitationSnapshot) {
+                        String status = doc.getString("status");
+                        String eventId = doc.getString("eventId");
+                        // Only show events with "pending" status
+                        if ("pending".equals(status) && eventId != null) {
+                            invitationEventIds.add(eventId);
+                        }
+                    }
+                    
+                    if (invitationEventIds.isEmpty()) {
+                        updatePendingInvitationsUI();
+                        return;
+                    }
+                    
+                    // Load event details for each invitation
+                    final int[] completed = {0};
+                    final int total = invitationEventIds.size();
+                    
+                    for (String eventId : invitationEventIds) {
+                        db.collection("events").document(eventId)
+                                .get()
+                                .addOnSuccessListener(eventDoc -> {
+                                    if (eventDoc.exists()) {
+                                        try {
+                                            Event event = parseEvent(eventDoc);
+                                            pendingInvitations.add(event);
+                                        } catch (Exception e) {
+                                            Log.e(TAG, "Error parsing invitation event", e);
+                                        }
+                                    }
+                                    
+                                    completed[0]++;
+                                    if (completed[0] == total) {
+                                        // Sort by event date
+                                        pendingInvitations.sort((e1, e2) -> {
+                                            if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
+                                            return e1.getEventDate().compareTo(e2.getEventDate());
+                                        });
+                                        updatePendingInvitationsUI();
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e(TAG, "Error loading invitation event: " + eventId, e);
+                                    completed[0]++;
+                                    if (completed[0] == total) {
+                                        updatePendingInvitationsUI();
+                                    }
+                                });
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error loading pending invitations", e);
+                    updatePendingInvitationsUI();
+                });
+    }
+    
+    private void updatePendingInvitationsUI() {
+        if (pendingInvitations.isEmpty()) {
+            pendingInvitationsContainer.setVisibility(View.GONE);
+        } else {
+            pendingInvitationsContainer.setVisibility(View.VISIBLE);
+            pendingInvitationsEmpty.setVisibility(View.GONE);
+            pendingInvitationsList.setVisibility(View.VISIBLE);
+            pendingInvitationsAdapter.notifyDataSetChanged();
+            setListViewHeightBasedOnChildren(pendingInvitationsList);
+        }
     }
 
     private void loadUpcomingEvents() {
@@ -141,39 +252,65 @@ public class HomeFragment extends Fragment {
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     upcomingEvents.clear();
 
-                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        try {
-                            Event event = parseEvent(document);
-
-                            // Don't show events organized by this user
-                            if (event.getOrganizerDeviceId() != null &&
-                                    event.getOrganizerDeviceId().equals(currentDeviceId)) {
-                                continue;
-                            }
-
-                            // Only show events where registration is currently open
-                            Calendar now = Calendar.getInstance();
-                            boolean registrationStarted = event.getRegistrationStartDate() == null ||
-                                    !now.before(event.getRegistrationStartDate());
-                            boolean registrationOpen = event.getRaffleDate() == null ||
-                                    now.before(event.getRaffleDate()) ||
-                                    now.equals(event.getRaffleDate());
-
-                            if (registrationStarted && registrationOpen) {
-                                upcomingEvents.add(event);
-                            }
-                        } catch (Exception e) {
-                            Log.e(TAG, "Error parsing event: " + document.getId(), e);
-                        }
-                    }
-
-                    // Sort by event date
-                    upcomingEvents.sort((e1, e2) -> {
-                        if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
-                        return e1.getEventDate().compareTo(e2.getEventDate());
-                    });
-
-                    updateUpcomingEventsUI();
+                    // First, collect all event IDs where user is already involved
+                    Set<String> involvedEventIds = new HashSet<>();
+                    
+                    // Check waitlist
+                    db.collectionGroup("waitlist")
+                            .whereEqualTo("userDeviceId", currentDeviceId)
+                            .get()
+                            .addOnSuccessListener(waitlistSnapshot -> {
+                                for (QueryDocumentSnapshot doc : waitlistSnapshot) {
+                                    String eventId = doc.getString("eventId");
+                                    if (eventId != null) {
+                                        involvedEventIds.add(eventId);
+                                    }
+                                }
+                                
+                                // Check invitation_list
+                                db.collectionGroup("invitation_list")
+                                        .whereEqualTo("userDeviceId", currentDeviceId)
+                                        .get()
+                                        .addOnSuccessListener(invitationSnapshot -> {
+                                            for (QueryDocumentSnapshot doc : invitationSnapshot) {
+                                                String eventId = doc.getString("eventId");
+                                                if (eventId != null) {
+                                                    involvedEventIds.add(eventId);
+                                                }
+                                            }
+                                            
+                                            // Check acceptedList
+                                            db.collectionGroup("acceptedList")
+                                                    .whereEqualTo("userDeviceId", currentDeviceId)
+                                                    .get()
+                                                    .addOnSuccessListener(acceptedSnapshot -> {
+                                                        for (QueryDocumentSnapshot doc : acceptedSnapshot) {
+                                                            String eventId = doc.getString("eventId");
+                                                            if (eventId != null) {
+                                                                involvedEventIds.add(eventId);
+                                                            }
+                                                        }
+                                                        
+                                                        // Now filter events
+                                                        filterUpcomingEvents(queryDocumentSnapshots, currentDeviceId, involvedEventIds);
+                                                    })
+                                                    .addOnFailureListener(e -> {
+                                                        Log.e(TAG, "Error loading acceptedList", e);
+                                                        // Continue with filtering even if this fails
+                                                        filterUpcomingEvents(queryDocumentSnapshots, currentDeviceId, involvedEventIds);
+                                                    });
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Log.e(TAG, "Error loading invitation_list", e);
+                                            // Continue with filtering even if this fails
+                                            filterUpcomingEvents(queryDocumentSnapshots, currentDeviceId, involvedEventIds);
+                                        });
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Error loading waitlist", e);
+                                // Continue with filtering even if this fails
+                                filterUpcomingEvents(queryDocumentSnapshots, currentDeviceId, involvedEventIds);
+                            });
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error loading upcoming events", e);
@@ -182,40 +319,58 @@ public class HomeFragment extends Fragment {
                     }
                 });
     }
+    
+    private void filterUpcomingEvents(com.google.firebase.firestore.QuerySnapshot queryDocumentSnapshots, 
+                                      String currentDeviceId, Set<String> involvedEventIds) {
+        upcomingEvents.clear();
+        
+        for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+            try {
+                Event event = parseEvent(document);
+                String eventId = event.getDocumentId();
+
+                // Don't show events organized by this user
+                if (event.getOrganizerDeviceId() != null &&
+                        event.getOrganizerDeviceId().equals(currentDeviceId)) {
+                    continue;
+                }
+
+                // Don't show events where user is already involved (waitlist, invited, or accepted)
+                if (involvedEventIds.contains(eventId)) {
+                    continue;
+                }
+
+                // Only show events where registration is currently open
+                Calendar now = Calendar.getInstance();
+                boolean registrationStarted = event.getRegistrationStartDate() == null ||
+                        !now.before(event.getRegistrationStartDate());
+                boolean registrationOpen = event.getRaffleDate() == null ||
+                        now.before(event.getRaffleDate()) ||
+                        now.equals(event.getRaffleDate());
+
+                if (registrationStarted && registrationOpen) {
+                    upcomingEvents.add(event);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error parsing event: " + document.getId(), e);
+            }
+        }
+
+        // Sort by event date
+        upcomingEvents.sort((e1, e2) -> {
+            if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
+            return e1.getEventDate().compareTo(e2.getEventDate());
+        });
+
+        updateUpcomingEventsUI();
+    }
 
     private void loadEnteredEvents(String deviceId) {
         enteredEvents.clear();
         Set<String> eventIds = new HashSet<>();
-        final int[] queriesCompleted = {0};
-        final int totalQueries = 2; // waitlist + acceptedList
 
-        // Query 1: Events where user is in the waiting list
-        db.collectionGroup("waitlist")
-                .whereEqualTo("userDeviceId", deviceId)
-                .get()
-                .addOnSuccessListener(waitlistSnapshot -> {
-                    // Collect all event IDs from waitlist
-                    for (QueryDocumentSnapshot doc : waitlistSnapshot) {
-                        String eventId = doc.getString("eventId");
-                        if (eventId != null) {
-                            eventIds.add(eventId);
-                        }
-                    }
-
-                    queriesCompleted[0]++;
-                    if (queriesCompleted[0] == totalQueries) {
-                        loadEventDetails(eventIds);
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error loading waitlist events", e);
-                    queriesCompleted[0]++;
-                    if (queriesCompleted[0] == totalQueries) {
-                        loadEventDetails(eventIds);
-                    }
-                });
-
-        // Query 2: Events where user has accepted invitation
+        // Only show events where user has accepted invitation (in acceptedList)
+        // Waitlisted events should NOT appear in "Entered Events"
         db.collectionGroup("acceptedList")
                 .whereEqualTo("userDeviceId", deviceId)
                 .get()
@@ -228,17 +383,12 @@ public class HomeFragment extends Fragment {
                         }
                     }
 
-                    queriesCompleted[0]++;
-                    if (queriesCompleted[0] == totalQueries) {
-                        loadEventDetails(eventIds);
-                    }
+                    loadEventDetails(eventIds);
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error loading accepted events", e);
-                    queriesCompleted[0]++;
-                    if (queriesCompleted[0] == totalQueries) {
-                        loadEventDetails(eventIds);
-                    }
+                    // Even if query fails, try to load with empty set
+                    loadEventDetails(eventIds);
                 });
     }
 

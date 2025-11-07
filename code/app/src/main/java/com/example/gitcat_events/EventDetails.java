@@ -17,6 +17,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -53,7 +54,8 @@ public class EventDetails extends Fragment {
     private ImageView ivEventPoster;
     private TextView tvEventName, tvEventDate, tvEventSpots, tvEventDesc;
     private TextView tvWaitingListCount, tvStatusMessage, tvSelectionCriteria;
-    private Button btnJoinWaitingList, btnBack, btnRunRaffle, btnViewWaitingList, btnViewInvitedEntrants, btnViewEnrolledEntrants, btnViewCancelledEntrants;
+    private Button btnJoinWaitingList, btnRunRaffle, btnViewWaitingList, btnViewInvitedEntrants, btnViewEnrolledEntrants, btnViewCancelledEntrants, btnEditEvent;
+    private ImageButton btnBack;
     private Button btnAcceptInvitation, btnDeclineInvitation;
     private ViewGroup invitationButtons;
 
@@ -96,6 +98,7 @@ public class EventDetails extends Fragment {
         btnViewInvitedEntrants = view.findViewById(R.id.btnViewInvitedEntrants);
         btnViewEnrolledEntrants = view.findViewById(R.id.btnViewEnrolledEntrants);
         btnViewCancelledEntrants = view.findViewById(R.id.btnViewCancelledEntrants);
+        btnEditEvent = view.findViewById(R.id.btnEditEvent);
         btnBack = view.findViewById(R.id.eventDetailsBackBtn);
         btnAcceptInvitation = view.findViewById(R.id.btnAcceptInvitation);
         btnDeclineInvitation = view.findViewById(R.id.btnDeclineInvitation);
@@ -128,6 +131,9 @@ public class EventDetails extends Fragment {
         // Set up view cancelled entrants button (only visible to organizer)
         btnViewCancelledEntrants.setOnClickListener(v -> viewCancelledEntrants());
         
+        // Set up edit event button (only visible to organizer)
+        btnEditEvent.setOnClickListener(v -> editEvent());
+
         // Set up invitation response buttons
         btnAcceptInvitation.setOnClickListener(v -> acceptInvitation());
         btnDeclineInvitation.setOnClickListener(v -> declineInvitation());
@@ -191,6 +197,7 @@ public class EventDetails extends Fragment {
             btnViewInvitedEntrants.setVisibility(View.VISIBLE);
             btnViewEnrolledEntrants.setVisibility(View.VISIBLE);
             btnViewCancelledEntrants.setVisibility(View.VISIBLE);
+            btnEditEvent.setVisibility(View.VISIBLE);
             
             // Show organizer status
             showOrganizerStatus();
@@ -203,6 +210,10 @@ public class EventDetails extends Fragment {
         btnViewInvitedEntrants.setVisibility(View.GONE);
         btnViewEnrolledEntrants.setVisibility(View.GONE);
         btnViewCancelledEntrants.setVisibility(View.GONE);
+        btnEditEvent.setVisibility(View.GONE);
+        
+        // Show join button by default (will be hidden if user has invitation)
+        btnJoinWaitingList.setVisibility(View.VISIBLE);
         
         // Check if user has a pending invitation
         checkInvitationStatus(deviceId);
@@ -485,6 +496,15 @@ public class EventDetails extends Fragment {
         Intent intent = new Intent(requireContext(), CancelledEntrantsViewActivity.class);
         intent.putExtra("eventId", event.getDocumentId());
         intent.putExtra("eventName", event.getName());
+        startActivity(intent);
+    }
+    
+    private void editEvent() {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Navigate to EditEventActivity
+        Intent intent = new Intent(requireContext(), EditEventActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
         startActivity(intent);
     }
     
