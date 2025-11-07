@@ -166,7 +166,24 @@ public class ProfileDialogFragment extends DialogFragment {
                     @Override
                     public void onFailure(String error) {
                         progressDialog.dismiss();
-                        Toast.makeText(requireContext(), "Image upload failed: " + error, Toast.LENGTH_LONG).show();
+                        
+                        // Show helpful error message
+                        String userMessage = "Image upload failed.\n\n";
+                        if (error.contains("does not exist") || error.contains("Object does not exist")) {
+                            userMessage += "❌ Firebase Storage not configured!\n\n" +
+                                         "Fix: Go to Firebase Console → Storage → Rules\n" +
+                                         "Update rules to allow uploads.\n\n" +
+                                         "Saving profile without image...";
+                        } else if (error.contains("permission")) {
+                            userMessage += "❌ Permission denied!\n\n" +
+                                         "Fix: Update Storage Rules in Firebase Console\n\n" +
+                                         "Saving profile without image...";
+                        } else {
+                            userMessage += "Error: " + error + "\n\nSaving profile without image...";
+                        }
+                        
+                        Toast.makeText(requireContext(), userMessage, Toast.LENGTH_LONG).show();
+                        
                         // Continue with save anyway, without image
                         Profile p = new Profile(name, email, phone);
                         if (existingProfile != null && existingProfile.getProfilePictureUrl() != null) {
@@ -218,28 +235,46 @@ public class ProfileDialogFragment extends DialogFragment {
             return;
         }
         
-        // Create a unique filename for the image
-        String filename = "profile_pictures/" + UUID.randomUUID().toString() + ".jpg";
-        StorageReference storageRef = storage.getReference().child(filename);
-        
-        // Upload the file
-        storageRef.putFile(imageUri)
-            .addOnSuccessListener(taskSnapshot -> {
-                // Get the download URL
-                storageRef.getDownloadUrl()
-                    .addOnSuccessListener(uri -> {
-                        Log.d(TAG, "Image uploaded successfully: " + uri.toString());
-                        callback.onSuccess(uri.toString());
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e(TAG, "Failed to get download URL", e);
-                        callback.onFailure(e.getMessage());
-                    });
-            })
-            .addOnFailureListener(e -> {
-                Log.e(TAG, "Image upload failed", e);
-                callback.onFailure(e.getMessage());
-            });
+        try {
+            // Create a unique filename for the image
+            String filename = "profile_pictures/" + UUID.randomUUID().toString() + ".jpg";
+            StorageReference storageRef = storage.getReference().child(filename);
+            
+            Log.d(TAG, "Attempting to upload image to: " + filename);
+            
+            // Upload the file
+            storageRef.putFile(imageUri)
+                .addOnSuccessListener(taskSnapshot -> {
+                    Log.d(TAG, "Image upload successful, getting download URL...");
+                    // Get the download URL
+                    storageRef.getDownloadUrl()
+                        .addOnSuccessListener(uri -> {
+                            Log.d(TAG, "Image uploaded successfully: " + uri.toString());
+                            callback.onSuccess(uri.toString());
+                        })
+                        .addOnFailureListener(e -> {
+                            Log.e(TAG, "Failed to get download URL", e);
+                            String errorMsg = e.getMessage() != null ? e.getMessage() : "Unknown error getting URL";
+                            callback.onFailure(errorMsg);
+                        });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Image upload failed", e);
+                    String errorMsg = e.getMessage() != null ? e.getMessage() : "Unknown upload error";
+                    
+                    // Check for common errors and provide helpful messages
+                    if (errorMsg.contains("does not exist") || errorMsg.contains("Object does not exist")) {
+                        errorMsg = "Object does not exist at location - Firebase Storage not initialized or rules not configured";
+                    } else if (errorMsg.contains("permission")) {
+                        errorMsg = "Permission denied - Update Firebase Storage Rules to allow uploads";
+                    }
+                    
+                    callback.onFailure(errorMsg);
+                });
+        } catch (Exception e) {
+            Log.e(TAG, "Exception during image upload", e);
+            callback.onFailure("Exception: " + e.getMessage());
+        }
     }
     
     /**

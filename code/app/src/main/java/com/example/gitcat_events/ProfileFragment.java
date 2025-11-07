@@ -19,12 +19,13 @@ import android.widget.Toast;
 
 import com.example.gitcat_events.core.model.Profile;
 import com.example.gitcat_events.features.entrant.ui.ProfileActivity;
+import com.example.gitcat_events.features.entrant.ui.ProfileDialogFragment;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 /**
  * Fragment to display user profile information
  */
-public class ProfileFragment extends Fragment {
+public class ProfileFragment extends Fragment implements ProfileDialogFragment.OnSaveProfileListener {
 
     private static final String PREFS = "app_prefs";
     private static final String KEY_PROFILE_ID = "profile_doc_id";
@@ -33,6 +34,7 @@ public class ProfileFragment extends Fragment {
     private TextView tvFragmentName, tvFragmentEmail, tvFragmentPhone;
     private ImageView ivFragmentProfilePicture;
     private Button btnFragmentViewFullProfile, btnFragmentDeleteProfile;
+    private Profile currentProfile;
 
     public ProfileFragment() {
         // Required empty public constructor
@@ -67,10 +69,15 @@ public class ProfileFragment extends Fragment {
         btnFragmentViewFullProfile = view.findViewById(R.id.btnFragmentViewFullProfile);
         btnFragmentDeleteProfile = view.findViewById(R.id.btnFragmentDeleteProfile);
 
-        // Setup button to open full profile activity
+        // Setup button to open edit dialog directly
         btnFragmentViewFullProfile.setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), ProfileActivity.class);
-            startActivity(intent);
+            if (currentProfile != null) {
+                ProfileDialogFragment.newInstance(currentProfile)
+                        .show(getChildFragmentManager(), "editProfile");
+            } else {
+                ProfileDialogFragment.newInstance(null)
+                        .show(getChildFragmentManager(), "createProfile");
+            }
         });
         
         // Setup delete button
@@ -103,13 +110,16 @@ public class ProfileFragment extends Fragment {
                 .addOnSuccessListener(documentSnapshot -> {
                     Profile profile = documentSnapshot.toObject(Profile.class);
                     if (profile != null && isAdded()) {
+                        currentProfile = profile;
                         renderProfile(profile);
                     } else if (isAdded()) {
+                        currentProfile = null;
                         tvFragmentName.setText("Profile not found");
                     }
                 })
                 .addOnFailureListener(e -> {
                     if (isAdded()) {
+                        currentProfile = null;
                         Toast.makeText(getContext(), "Failed to load profile: " + e.getMessage(), 
                                 Toast.LENGTH_SHORT).show();
                     }
@@ -180,5 +190,118 @@ public class ProfileFragment extends Fragment {
                         Toast.makeText(getContext(), "Delete failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
+    }
+    
+    @Override
+    public void onSaveProfile(Profile profile) {
+        if (getContext() == null) return;
+        
+        // Ensure device ID is set
+        if (profile.getDeviceId() == null || profile.getDeviceId().isEmpty()) {
+            profile.setDeviceId(getOrCreateDeviceId());
+        }
+        
+        String existingId = getSavedDocId();
+        if (existingId == null) {
+            // Create new profile with sequential numeric id via transaction
+            createProfileWithAutoId(profile);
+        } else {
+            // Update existing - preserve deviceId and profilePictureUrl if not changed
+            if (currentProfile != null) {
+                if (profile.getDeviceId() == null) {
+                    profile.setDeviceId(currentProfile.getDeviceId());
+                }
+                if (profile.getProfilePictureUrl() == null) {
+                    profile.setProfilePictureUrl(currentProfile.getProfilePictureUrl());
+                }
+            }
+            db.collection("profiles").document(existingId).set(profile)
+                    .addOnSuccessListener(v -> {
+                        currentProfile = profile;
+                        renderProfile(profile);
+                        Toast.makeText(getContext(), "Profile saved", Toast.LENGTH_SHORT).show();
+                    })
+                    .addOnFailureListener(e ->
+                            Toast.makeText(getContext(), "Save failed: " + e.getMessage(), Toast.LENGTH_LONG).show());
+        }
+    }
+    
+    private void createProfileWithAutoId(Profile profile) {
+        db.runTransaction(transaction -> {
+            com.google.firebase.firestore.DocumentReference counterRef = db.collection("meta").document("profiles_counter");
+            com.google.firebase.firestore.DocumentSnapshot snap = transaction.get(counterRef);
+
+            long next;
+            boolean existed = snap.exists();
+            if (existed) {
+                Long val = snap.getLong("next");
+                next = (val != null) ? val : 0L;
+            } else {
+                next = 0L;
+            }
+
+            String docId = String.valueOf(next);
+            com.google.firebase.firestore.DocumentReference profileRef = db.collection("profiles").document(docId);
+
+            java.util.Map<String, Object> data = new java.util.HashMap<>();
+            data.put("name", profile.getName());
+            data.put("email", profile.getEmail());
+            data.put("phone", profile.getPhone());
+            data.put("deviceId", profile.getDeviceId());
+            data.put("profilePictureUrl", profile.getProfilePictureUrl());
+            data.put("uid", next);
+            transaction.set(profileRef, data);
+
+            if (existed) {
+                transaction.update(counterRef, "next", next + 1L);
+            } else {
+                java.util.Map<String, Object> counterInit = new java.util.HashMap<>();
+                counterInit.put("next", next + 1L);
+                transaction.set(counterRef, counterInit);
+            }
+
+            return docId;
+        }).addOnSuccessListener(assignedId -> {
+            if (getContext() == null) return;
+            saveDocId(assignedId);
+            currentProfile = profile;
+            renderProfile(profile);
+            Toast.makeText(getContext(), "Created user #" + assignedId, Toast.LENGTH_SHORT).show();
+        }).addOnFailureListener(e -> {
+            if (getContext() != null) {
+                Toast.makeText(getContext(), "Create failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+    
+    private void saveDocId(String id) {
+        if (getActivity() == null) return;
+        getActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_PROFILE_ID, id).apply();
+    }
+    
+    private String getOrCreateDeviceId() {
+        if (getActivity() == null) return java.util.UUID.randomUUID().toString();
+        
+        SharedPreferences sp = getActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        String deviceId = sp.getString("device_id", null);
+        
+        if (deviceId == null) {
+            try {
+                deviceId = android.provider.Settings.Secure.getString(
+                    getActivity().getContentResolver(), 
+                    android.provider.Settings.Secure.ANDROID_ID
+                );
+            } catch (Exception e) {
+                deviceId = null;
+            }
+            
+            if (deviceId == null || deviceId.isEmpty()) {
+                deviceId = java.util.UUID.randomUUID().toString();
+            }
+            
+            sp.edit().putString("device_id", deviceId).apply();
+        }
+        
+        return deviceId;
     }
 }
