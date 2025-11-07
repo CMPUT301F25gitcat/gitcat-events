@@ -470,7 +470,10 @@ public class HomeFragment extends Fragment {
             return;
         }
         
-        Log.d(TAG, "Filtering " + queryDocumentSnapshots.size() + " events. Current device: " + currentDeviceId + ", Involved in: " + involvedEventIds.size() + " events");
+        Log.d(TAG, "Filtering " + queryDocumentSnapshots.size() + " events. Current device: " + currentDeviceId + 
+                  ", Waitlist: " + waitlistEventIds.size() + 
+                  ", Invited: " + invitedEventIds.size() + 
+                  ", Accepted: " + acceptedEventIds.size());
         
         for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
             try {
