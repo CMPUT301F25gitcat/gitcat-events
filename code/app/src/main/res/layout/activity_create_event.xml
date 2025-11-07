@@ -12,237 +12,345 @@
         android:orientation="vertical"
         android:padding="24dp">
 
-        <!-- Header -->
-        <TextView
-            android:layout_width="wrap_content"
+        <!-- Back Button and Header -->
+        <RelativeLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Create New Event"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp"
-            android:textColor="?attr/colorPrimary"/>
+            android:layout_marginBottom="16dp">
+
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Back"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:tint="?attr/colorPrimary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:text="Create New Event"
+                android:textColor="?attr/colorPrimary"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+        </RelativeLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Fill in the details below to create your event"
-            android:textSize="14sp"
             android:layout_marginBottom="24dp"
-            android:textColor="@android:color/darker_gray"/>
+            android:text="Fill in the details below to create your event"
+            android:textColor="@android:color/darker_gray"
+            android:textSize="14sp" />
 
         <!-- Event Poster -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginLeft="20dp"
+            android:layout_marginBottom="8dp"
             android:text="Event Poster"
             android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp"/>
+            android:textStyle="bold" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
+            android:layout_marginBottom="24dp"
             android:gravity="center_horizontal"
-            android:layout_marginBottom="24dp">
+            android:orientation="vertical">
 
             <ImageView
                 android:id="@+id/ivEventPoster"
                 android:layout_width="200dp"
                 android:layout_height="200dp"
-                android:scaleType="centerCrop"
-                android:contentDescription="Event Poster Preview"
+                android:layout_marginBottom="12dp"
                 android:background="@android:color/darker_gray"
-                android:src="@drawable/ic_launcher_foreground"
-                android:layout_marginBottom="12dp"/>
+                android:contentDescription="Event Poster Preview"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_launcher_foreground" />
 
             <Button
                 android:id="@+id/btnSelectPoster"
+                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Select Poster Image"
-                style="@style/Widget.Material3.Button.OutlinedButton"/>
+                android:text="Select Poster Image" />
+
         </LinearLayout>
 
         <!-- Event Name -->
-        <com.google.android.material.textfield.TextInputLayout
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Event Name *"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_marginBottom="16dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etEventName"
+            android:layout_height="match_parent"
+            android:layout_margin="20dp"
+            app:cardBackgroundColor="#CAD6FF"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="8dp">
+
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textCapWords"/>
-        </com.google.android.material.textfield.TextInputLayout>
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:paddingLeft="20dp"
+                android:paddingTop="10dp"
+                android:paddingRight="20dp"
+                android:paddingBottom="10dp">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:hint="Event Name *"
+                    app:boxStrokeColor="#6851A4"
+                    app:boxStrokeWidth="2dp"
+                    app:boxStrokeWidthFocused="3dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etEventName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textCapWords" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:hint="Description *"
+                    app:boxStrokeColor="#6850A4"
+                    app:boxStrokeWidth="2dp"
+                    app:boxStrokeWidthFocused="3dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etEventDescription"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="top"
+                        android:inputType="textMultiLine"
+                        android:minLines="3" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:hint="Event Capacity (Final List Size) *"
+                    app:boxStrokeColor="#6850a4"
+                    app:boxStrokeWidth="2dp"
+                    app:boxStrokeWidthFocused="3dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etCapacity"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="number" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:hint="Max Waitlist Size (Optional)"
+                    app:boxStrokeColor="#6850a4"
+                    app:boxStrokeWidth="2dp"
+                    app:boxStrokeWidthFocused="3dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etMaxWaitlist"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="number" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Event Date *"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnSelectEventDate"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:text="Select Event Date" />
+
+                    <TextView
+                        android:id="@+id/tvEventDateDisplay"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@android:color/darker_gray"
+                        android:gravity="center"
+                        android:padding="12dp"
+                        android:text="Not selected"
+                        android:textColor="@android:color/white"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:text="Final Registration Date *"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Registration closes on this date. You can then run the raffle manually."
+                    android:textColor="#85000000"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnSelectRaffleDate"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:text="Select Registration Deadline" />
+
+                    <TextView
+                        android:id="@+id/tvRaffleDateDisplay"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@android:color/darker_gray"
+                        android:gravity="center"
+                        android:padding="12dp"
+                        android:text="Not selected"
+                        android:textColor="@android:color/white"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Require Geolocation?"
+                        android:textSize="16sp" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchGeoLocation"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start"
+                    android:layout_marginBottom="16dp"
+                    android:text="* Required fields"
+                    android:textColor="#85000000"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Lottery Selection Guidelines"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Explain how participants will be selected (optional)\n\nExample: Random selection from all registered participants. All entrants have equal chance of being selected."
+                    android:textColor="#85000000"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="2dp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp"
+                    android:hint="Selection Criteria"
+                    app:boxStrokeColor="#6850a4"
+                    app:boxStrokeWidth="2dp"
+                    app:boxStrokeWidthFocused="3dp"
+                    app:hintEnabled="true">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etSelectionCriteria"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="top|start"
+                        android:inputType="textMultiLine|textCapSentences"
+                        android:maxLines="8"
+                        android:minLines="4"
+                        android:scrollbars="vertical"
+                        android:padding="12dp" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
 
         <!-- Description -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Description *"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_marginBottom="16dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etEventDescription"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textMultiLine"
-                android:minLines="3"
-                android:gravity="top"/>
-        </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Capacity -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Event Capacity (Final List Size) *"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_marginBottom="16dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etCapacity"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="number"/>
-        </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Max Waitlist Size -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Max Waitlist Size (Optional)"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_marginBottom="16dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etMaxWaitlist"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="number"/>
-        </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Event Date -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Event Date *"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp"/>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="16dp">
-
-            <Button
-                android:id="@+id/btnSelectEventDate"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Select Event Date"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_marginEnd="8dp"/>
-
-            <TextView
-                android:id="@+id/tvEventDateDisplay"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Not selected"
-                android:textSize="14sp"
-                android:gravity="center"
-                android:padding="12dp"
-                android:background="@android:color/darker_gray"
-                android:textColor="@android:color/white"/>
-        </LinearLayout>
 
         <!-- Final Registration Date -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Final Registration Date *"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="4dp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Registration closes on this date. You can then run the raffle manually."
-            android:textSize="12sp"
-            android:textColor="@android:color/darker_gray"
-            android:layout_marginBottom="8dp"/>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="16dp">
-
-            <Button
-                android:id="@+id/btnSelectRaffleDate"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Select Registration Deadline"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_marginEnd="8dp"/>
-
-            <TextView
-                android:id="@+id/tvRaffleDateDisplay"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Not selected"
-                android:textSize="14sp"
-                android:gravity="center"
-                android:padding="12dp"
-                android:background="@android:color/darker_gray"
-                android:textColor="@android:color/white"/>
-        </LinearLayout>
 
         <!-- Geolocation Toggle -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="24dp">
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Require Geolocation?"
-                android:textSize="16sp"/>
-
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/switchGeoLocation"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
-        </LinearLayout>
+        <!-- Selection Criteria/Guidelines -->
 
         <!-- Required Fields Note -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="* Required fields"
-            android:layout_gravity="start"
-            android:textSize="12sp"
-            android:textColor="@android:color/darker_gray"
-            android:layout_marginBottom="16dp"/>
 
         <!-- Create Button -->
         <Button
             android:id="@+id/btnCreateEvent"
             android:layout_width="match_parent"
             android:layout_height="60dp"
+            android:layout_marginLeft="20dp"
+            android:layout_marginTop="30dp"
+            android:layout_marginRight="20dp"
+            android:layout_marginBottom="30dp"
             android:text="Create Event"
-            android:textSize="18sp"
-            android:textColor="@android:color/white"/>
+            android:textColor="@android:color/white"
+            android:textSize="18sp" />
 
     </LinearLayout>
 </ScrollView>

@@ -33,7 +33,9 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-
+/**
+ * This fragment displays events created by the current user and provides functionality to create new events via a floating action button.
+ */
 public class CreateFragment extends Fragment {
 
     private static final String TAG = "CreateFragment";
@@ -93,7 +95,10 @@ public class CreateFragment extends Fragment {
         // Reload events when returning to this fragment
         loadUserEvents();
     }
-
+    /**
+     * Loads and displays events created by the current user from Firestore
+     * Shows empty state if no events are found
+     */
     private void loadUserEvents() {
         // Get device ID (permanent organizer identifier)
         String deviceId = getOrCreateDeviceId();
@@ -170,6 +175,9 @@ public class CreateFragment extends Fragment {
     }
 
     // RecyclerView Adapter
+    /**
+     * RecyclerView adapter for displaying created events in a list
+     */
     private class EventsAdapter extends RecyclerView.Adapter<EventsAdapter.EventViewHolder> {
         private List<Event> events;
 
@@ -195,7 +203,9 @@ public class CreateFragment extends Fragment {
         public int getItemCount() {
             return events.size();
         }
-
+        /**
+         * ViewHolder for displaying individual event items in the RecyclerView
+         */
         class EventViewHolder extends RecyclerView.ViewHolder {
             ImageView ivEventThumbnail;
             TextView tvEventName, tvEventDescription, tvEventDate, tvEventCapacity;
@@ -208,7 +218,11 @@ public class CreateFragment extends Fragment {
                 tvEventDate = itemView.findViewById(R.id.tvEventDate);
                 tvEventCapacity = itemView.findViewById(R.id.tvEventCapacity);
             }
-
+            /**
+             * Binds event data to the ViewHolder views and sets up click listeners
+             * @param event
+             * the event to bind to the view
+             */
             void bind(Event event) {
                 tvEventName.setText(event.getName());
                 tvEventDescription.setText(event.getDescription());
@@ -238,7 +252,13 @@ public class CreateFragment extends Fragment {
             }
         }
     }
-
+    /**
+     * Loads and displays a Base64 encoded image in an ImageView
+     * @param base64String
+     * the Base64 encoded image string
+     * @param imageView
+     * the ImageView to display the image in
+     */
     private void loadBase64Image(String base64String, ImageView imageView) {
         try {
             byte[] decodedBytes = Base64.decode(base64String, Base64.DEFAULT);
@@ -253,7 +273,11 @@ public class CreateFragment extends Fragment {
             imageView.setImageResource(R.drawable.ic_launcher_foreground);
         }
     }
-
+    /**
+     * Gets the device ID from shared preferences or creates a new one if it doesn't exist
+     * @return
+     * returns the unique device identifier
+     */
     private String getOrCreateDeviceId() {
         SharedPreferences sp = requireContext().getSharedPreferences(PREFS, requireContext().MODE_PRIVATE);
         String deviceId = sp.getString("device_id", null);

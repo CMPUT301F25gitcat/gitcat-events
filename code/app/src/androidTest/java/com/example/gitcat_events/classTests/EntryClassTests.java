@@ -1,6 +1,7 @@
 package com.example.gitcat_events.classTests;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import android.content.Context;
@@ -12,6 +13,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import com.example.gitcat_events.core.model.Entry;
 
+/**
+ * Unit tests for Entry abstract class
+ * Tests basic functionality of eventId and userDeviceId fields
+ */
 @RunWith(AndroidJUnit4.class)
 public class EntryClassTests {
     @Test
@@ -22,42 +27,83 @@ public class EntryClassTests {
     }
 
     static class TestEntry extends Entry {
-        public TestEntry(int eventID, int userID) {
-            super(eventID, userID);
+        public TestEntry(String eventId, String userDeviceId) {
+            super(eventId, userDeviceId);
         }
     }
 
     @Test
+    public void testNoArgConstructor() {
+        TestEntry entry = new TestEntry(null, null);
+        assertNotNull(entry);
+    }
+
+    @Test
     public void testConstructorAndGetters() {
-        TestEntry entry = new TestEntry(123, 456);
-        assertEquals(123, entry.getEventID());
-        assertEquals(456, entry.getUserID());
+        TestEntry entry = new TestEntry("event123", "device456");
+        assertEquals("event123", entry.getEventId());
+        assertEquals("device456", entry.getUserDeviceId());
     }
 
     @Test
     public void testSetters() {
-        TestEntry entry = new TestEntry(1, 2);
+        TestEntry entry = new TestEntry("event1", "device1");
 
-        entry.setEventID(99);
-        entry.setUserID(77);
+        entry.setEventId("event99");
+        entry.setUserDeviceId("device77");
 
-        assertEquals(99, entry.getEventID());
-        assertEquals(77, entry.getUserID());
+        assertEquals("event99", entry.getEventId());
+        assertEquals("device77", entry.getUserDeviceId());
     }
 
     @Test
     public void testMultipleChanges() {
-        Entry entry = new TestEntry(0, 0);
+        Entry entry = new TestEntry("event0", "device0");
 
-        entry.setEventID(10);
-        entry.setUserID(20);
-        assertEquals(10, entry.getEventID());
-        assertEquals(20, entry.getUserID());
+        entry.setEventId("event10");
+        entry.setUserDeviceId("device20");
+        assertEquals("event10", entry.getEventId());
+        assertEquals("device20", entry.getUserDeviceId());
 
-        entry.setEventID(999);
-        entry.setUserID(888);
-        assertEquals(999, entry.getEventID());
-        assertEquals(888, entry.getUserID());
+        entry.setEventId("event999");
+        entry.setUserDeviceId("device888");
+        assertEquals("event999", entry.getEventId());
+        assertEquals("device888", entry.getUserDeviceId());
     }
 
+    @Test
+    public void testNullValues() {
+        TestEntry entry = new TestEntry(null, null);
+        assertNull(entry.getEventId());
+        assertNull(entry.getUserDeviceId());
+        
+        entry.setEventId("event1");
+        entry.setUserDeviceId("device1");
+        assertEquals("event1", entry.getEventId());
+        assertEquals("device1", entry.getUserDeviceId());
+    }
+
+    @Test
+    public void testEmptyStrings() {
+        TestEntry entry = new TestEntry("", "");
+        assertEquals("", entry.getEventId());
+        assertEquals("", entry.getUserDeviceId());
+    }
+
+    @Test
+    public void testLongIds() {
+        String longEventId = "event_with_very_long_id_12345678901234567890";
+        String longDeviceId = "device_with_very_long_id_abcdefghijklmnopqrstuvwxyz";
+        
+        TestEntry entry = new TestEntry(longEventId, longDeviceId);
+        assertEquals(longEventId, entry.getEventId());
+        assertEquals(longDeviceId, entry.getUserDeviceId());
+    }
+
+    @Test
+    public void testSpecialCharacters() {
+        TestEntry entry = new TestEntry("event-123_test", "device@456#test");
+        assertEquals("event-123_test", entry.getEventId());
+        assertEquals("device@456#test", entry.getUserDeviceId());
+    }
 }
