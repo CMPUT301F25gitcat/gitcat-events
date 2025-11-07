@@ -263,7 +263,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
     private void deleteProfileDocument(String id) {
         db.collection("profiles").document(id).delete()
                 .addOnSuccessListener(v -> {
-                    if (getContext() == null) return;
+                    if (getContext() == null || getActivity() == null) return;
                     
                     // Clear local state
                     SharedPreferences sp = getActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
@@ -272,17 +272,15 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                     // Clear current profile
                     currentProfile = null;
                     
-                    // Clear UI
-                    tvFragmentName.setText("No profile yet");
-                    tvFragmentEmail.setText("—");
-                    tvFragmentPhone.setText("—");
-                    ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
-                    
                     Toast.makeText(getContext(), "Profile, events, and waitlist entries deleted successfully.", Toast.LENGTH_SHORT).show();
                     
-                    // Redirect to setup page
+                    // Redirect to setup page and clear activity stack
                     Intent intent = new Intent(getActivity(), SetupProfileActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     startActivity(intent);
+                    
+                    // Finish the current activity
+                    getActivity().finish();
                 })
                 .addOnFailureListener(e -> {
                     if (getContext() != null) {
