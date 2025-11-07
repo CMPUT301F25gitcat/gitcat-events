@@ -254,7 +254,7 @@ public class EditEventActivity extends AppCompatActivity {
             etMaxWaitlist.setText(String.valueOf(currentEvent.getMaxWaitListSize()));
         }
         
-        if (currentEvent.getSelectionCriteria() != null) {
+        if (currentEvent.getSelectionCriteria() != null && etSelectionCriteria != null) {
             etSelectionCriteria.setText(currentEvent.getSelectionCriteria());
         }
 

@@ -277,7 +277,10 @@ public class CreateEventActivity extends AppCompatActivity {
         }
 
         boolean geoLocationRequired = switchGeoLocation.isChecked();
-        String selectionCriteria = etSelectionCriteria.getText().toString().trim();
+        String selectionCriteria = "";
+        if (etSelectionCriteria != null) {
+            selectionCriteria = etSelectionCriteria.getText().toString().trim();
+        }
         
         // If no criteria provided, use default
         if (selectionCriteria.isEmpty()) {
