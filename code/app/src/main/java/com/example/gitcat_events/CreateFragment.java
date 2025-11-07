@@ -1,43 +1,38 @@
 package com.example.gitcat_events;
 
-import android.app.Activity;
-import android.app.DatePickerDialog;
-import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.net.Uri;
 import android.os.Bundle;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.util.Base64;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.gitcat_events.core.model.Event;
-import com.google.android.material.switchmaterial.SwitchMaterial;
-import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 
 public class CreateFragment extends Fragment {
 
@@ -46,27 +41,11 @@ public class CreateFragment extends Fragment {
     private static final String KEY_PROFILE_ID = "profile_doc_id";
 
     private FirebaseFirestore db;
-    private ImageView ivEventPoster;
-    private EditText etEventName, etEventDescription, etCapacity, etMaxWaitlist;
-    private Button btnSelectPoster, btnSelectEventDate, btnSelectRaffleDate, btnCreateEvent;
-    private TextView tvEventDateDisplay, tvRaffleDateDisplay;
-    private SwitchMaterial switchGeoLocation;
-
-    private Uri selectedPosterUri;
-    private Calendar selectedEventDate;
-    private Calendar selectedRaffleDate;
-
-    // Activity result launcher for image selection
-    private final ActivityResultLauncher<Intent> posterPickerLauncher = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                    selectedPosterUri = result.getData().getData();
-                    if (ivEventPoster != null && selectedPosterUri != null) {
-                        ivEventPoster.setImageURI(selectedPosterUri);
-                    }
-                }
-            });
+    private RecyclerView recyclerViewEvents;
+    private LinearLayout emptyStateContainer;
+    private FloatingActionButton fabCreateEvent;
+    private EventsAdapter eventsAdapter;
+    private List<Event> eventsList = new ArrayList<>();
 
     public CreateFragment() {
         // Required empty public constructor
@@ -89,247 +68,194 @@ public class CreateFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         // Initialize views
-        ivEventPoster = view.findViewById(R.id.ivEventPoster);
-        etEventName = view.findViewById(R.id.etEventName);
-        etEventDescription = view.findViewById(R.id.etEventDescription);
-        etCapacity = view.findViewById(R.id.etCapacity);
-        etMaxWaitlist = view.findViewById(R.id.etMaxWaitlist);
-        btnSelectPoster = view.findViewById(R.id.btnSelectPoster);
-        btnSelectEventDate = view.findViewById(R.id.btnSelectEventDate);
-        btnSelectRaffleDate = view.findViewById(R.id.btnSelectRaffleDate);
-        btnCreateEvent = view.findViewById(R.id.btnCreateEvent);
-        tvEventDateDisplay = view.findViewById(R.id.tvEventDateDisplay);
-        tvRaffleDateDisplay = view.findViewById(R.id.tvRaffleDateDisplay);
-        switchGeoLocation = view.findViewById(R.id.switchGeoLocation);
+        recyclerViewEvents = view.findViewById(R.id.recyclerViewEvents);
+        emptyStateContainer = view.findViewById(R.id.emptyStateContainer);
+        fabCreateEvent = view.findViewById(R.id.fabCreateEvent);
 
-        // Set up click listeners
-        btnSelectPoster.setOnClickListener(v -> selectPoster());
-        btnSelectEventDate.setOnClickListener(v -> selectEventDate());
-        btnSelectRaffleDate.setOnClickListener(v -> selectRaffleDate());
-        btnCreateEvent.setOnClickListener(v -> createEvent());
+        // Setup RecyclerView
+        recyclerViewEvents.setLayoutManager(new LinearLayoutManager(getContext()));
+        eventsAdapter = new EventsAdapter(eventsList);
+        recyclerViewEvents.setAdapter(eventsAdapter);
+
+        // Setup FAB
+        fabCreateEvent.setOnClickListener(v -> {
+            Intent intent = new Intent(getContext(), CreateEventActivity.class);
+            startActivity(intent);
+        });
+
+        // Load user's events
+        loadUserEvents();
     }
 
-    private void selectPoster() {
-        Intent intent = new Intent(Intent.ACTION_PICK);
-        intent.setType("image/*");
-        posterPickerLauncher.launch(intent);
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Reload events when returning to this fragment
+        loadUserEvents();
     }
 
-    private void selectEventDate() {
-        Calendar calendar = Calendar.getInstance();
-        DatePickerDialog datePickerDialog = new DatePickerDialog(
-                requireContext(),
-                (view, year, month, dayOfMonth) -> {
-                    selectedEventDate = Calendar.getInstance();
-                    selectedEventDate.set(year, month, dayOfMonth);
-                    tvEventDateDisplay.setText(
-                            String.format("%02d/%02d/%d", dayOfMonth, month + 1, year)
-                    );
-                },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
-        );
-        datePickerDialog.show();
-    }
-
-    private void selectRaffleDate() {
-        Calendar calendar = Calendar.getInstance();
-        DatePickerDialog datePickerDialog = new DatePickerDialog(
-                requireContext(),
-                (view, year, month, dayOfMonth) -> {
-                    selectedRaffleDate = Calendar.getInstance();
-                    selectedRaffleDate.set(year, month, dayOfMonth);
-                    tvRaffleDateDisplay.setText(
-                            String.format("%02d/%02d/%d", dayOfMonth, month + 1, year)
-                    );
-                },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
-        );
-        datePickerDialog.show();
-    }
-
-    private void createEvent() {
-        // Validate inputs
-        String name = etEventName.getText().toString().trim();
-        String description = etEventDescription.getText().toString().trim();
-        String capacityStr = etCapacity.getText().toString().trim();
-        String maxWaitlistStr = etMaxWaitlist.getText().toString().trim();
-
-        boolean ok = true;
-        if (name.isEmpty()) {
-            etEventName.setError("Event name required");
-            ok = false;
-        }
-        if (description.isEmpty()) {
-            etEventDescription.setError("Description required");
-            ok = false;
-        }
-        if (capacityStr.isEmpty()) {
-            etCapacity.setError("Capacity required");
-            ok = false;
-        }
-        if (selectedEventDate == null) {
-            Toast.makeText(getContext(), "Please select an event date", Toast.LENGTH_SHORT).show();
-            ok = false;
-        }
-        if (selectedRaffleDate == null) {
-            Toast.makeText(getContext(), "Please select a raffle date", Toast.LENGTH_SHORT).show();
-            ok = false;
-        }
-        if (!ok) return;
-
-        int capacity = Integer.parseInt(capacityStr);
-        Integer maxWaitlist = maxWaitlistStr.isEmpty() ? null : Integer.parseInt(maxWaitlistStr);
-        boolean geoLocationRequired = switchGeoLocation.isChecked();
-
-        // Get organizer ID (current user's profile ID)
+    private void loadUserEvents() {
         SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, getContext().MODE_PRIVATE);
         String profileIdStr = prefs.getString(KEY_PROFILE_ID, null);
+        
         if (profileIdStr == null) {
             Toast.makeText(getContext(), "Error: No user profile found", Toast.LENGTH_SHORT).show();
             return;
         }
+
         int organizerId = Integer.parseInt(profileIdStr);
 
-        // Show progress dialog
-        ProgressDialog progressDialog = new ProgressDialog(getContext());
-        progressDialog.setMessage("Creating event...");
-        progressDialog.setCancelable(false);
-        progressDialog.show();
+        db.collection("events")
+                .whereEqualTo("organizer", organizerId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    eventsList.clear();
+                    
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        try {
+                            Event event = new Event();
+                            event.setName(document.getString("name"));
+                            event.setDescription(document.getString("description"));
+                            
+                            Long capacity = document.getLong("capacity");
+                            event.setCapacity(capacity != null ? capacity.intValue() : 0);
+                            
+                            Long maxWaitlist = document.getLong("maxWaitListSize");
+                            event.setMaxWaitListSize(maxWaitlist != null ? maxWaitlist.intValue() : null);
+                            
+                            event.setPoster(document.getString("poster"));
+                            
+                            Long organizer = document.getLong("organizer");
+                            event.setOrganizer(organizer != null ? organizer.intValue() : 0);
+                            
+                            Boolean geoLocation = document.getBoolean("geoLocationRequired");
+                            event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
+                            
+                            // Convert Date to Calendar
+                            Date eventDate = document.getDate("eventDate");
+                            if (eventDate != null) {
+                                Calendar eventCal = Calendar.getInstance();
+                                eventCal.setTime(eventDate);
+                                event.setEventDate(eventCal);
+                            }
+                            
+                            Date raffleDate = document.getDate("raffleDate");
+                            if (raffleDate != null) {
+                                Calendar raffleCal = Calendar.getInstance();
+                                raffleCal.setTime(raffleDate);
+                                event.setRaffleDate(raffleCal);
+                            }
+                            
+                            eventsList.add(event);
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error parsing event: " + document.getId(), e);
+                        }
+                    }
 
-        // Convert poster image to Base64 if selected
-        String base64Poster = null;
-        if (selectedPosterUri != null) {
-            try {
-                base64Poster = convertImageToBase64(selectedPosterUri);
-            } catch (Exception e) {
-                Log.e(TAG, "Error converting poster to Base64", e);
-                Toast.makeText(getContext(), "Failed to process poster image. Creating event without poster.", Toast.LENGTH_SHORT).show();
-            }
+                    // Sort by event date (most recent first)
+                    eventsList.sort((e1, e2) -> {
+                        if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
+                        return e2.getEventDate().compareTo(e1.getEventDate());
+                    });
+
+                    // Update UI
+                    if (eventsList.isEmpty()) {
+                        emptyStateContainer.setVisibility(View.VISIBLE);
+                        recyclerViewEvents.setVisibility(View.GONE);
+                    } else {
+                        emptyStateContainer.setVisibility(View.GONE);
+                        recyclerViewEvents.setVisibility(View.VISIBLE);
+                    }
+                    
+                    eventsAdapter.notifyDataSetChanged();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error loading events", e);
+                    Toast.makeText(getContext(), "Failed to load events: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    // RecyclerView Adapter
+    private class EventsAdapter extends RecyclerView.Adapter<EventsAdapter.EventViewHolder> {
+        private List<Event> events;
+
+        EventsAdapter(List<Event> events) {
+            this.events = events;
         }
 
-        // Create event object
-        Event newEvent = new Event(
-                name,
-                description,
-                capacity,
-                maxWaitlist,
-                base64Poster,
-                selectedRaffleDate,
-                selectedEventDate,
-                geoLocationRequired
-        );
-        newEvent.setOrganizer(organizerId);
+        @NonNull
+        @Override
+        public EventViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_created_event, parent, false);
+            return new EventViewHolder(view);
+        }
 
-        // Save to Firestore with auto-incrementing ID
-        saveEventToFirestore(newEvent, progressDialog);
-    }
+        @Override
+        public void onBindViewHolder(@NonNull EventViewHolder holder, int position) {
+            Event event = events.get(position);
+            holder.bind(event);
+        }
 
-    private void saveEventToFirestore(Event event, ProgressDialog progressDialog) {
-        db.runTransaction(transaction -> {
-            DocumentReference counterRef = db.collection("meta").document("events_counter");
-            DocumentSnapshot snap = transaction.get(counterRef);
+        @Override
+        public int getItemCount() {
+            return events.size();
+        }
 
-            long next;
-            boolean existed = snap.exists();
-            if (existed) {
-                Long val = snap.getLong("next");
-                next = (val != null) ? val : 0L;
-            } else {
-                next = 0L; // first event gets ID 0
+        class EventViewHolder extends RecyclerView.ViewHolder {
+            ImageView ivEventThumbnail;
+            TextView tvEventName, tvEventDescription, tvEventDate, tvEventCapacity;
+
+            EventViewHolder(@NonNull View itemView) {
+                super(itemView);
+                ivEventThumbnail = itemView.findViewById(R.id.ivEventThumbnail);
+                tvEventName = itemView.findViewById(R.id.tvEventName);
+                tvEventDescription = itemView.findViewById(R.id.tvEventDescription);
+                tvEventDate = itemView.findViewById(R.id.tvEventDate);
+                tvEventCapacity = itemView.findViewById(R.id.tvEventCapacity);
             }
 
-            String docId = String.valueOf(next);
-            DocumentReference eventRef = db.collection("events").document(docId);
+            void bind(Event event) {
+                tvEventName.setText(event.getName());
+                tvEventDescription.setText(event.getDescription());
+                tvEventCapacity.setText("Cap: " + event.getCapacity());
 
-            // Prepare event data
-            Map<String, Object> data = new HashMap<>();
-            data.put("name", event.getName());
-            data.put("description", event.getDescription());
-            data.put("capacity", event.getCapacity());
-            data.put("maxWaitListSize", event.getMaxWaitListSize());
-            data.put("eventDate", event.getEventDate().getTime());
-            data.put("raffleDate", event.getRaffleDate().getTime());
-            data.put("geoLocationRequired", event.getGeoLocationRequired());
-            data.put("poster", event.getPoster());
-            data.put("organizer", event.getOrganizer());
-            data.put("eventId", next);
+                // Format event date
+                if (event.getEventDate() != null) {
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
+                    tvEventDate.setText(dateFormat.format(event.getEventDate().getTime()));
+                } else {
+                    tvEventDate.setText("Date TBD");
+                }
 
-            transaction.set(eventRef, data);
+                // Load poster image (Base64)
+                if (event.getPoster() != null && !event.getPoster().isEmpty()) {
+                    loadBase64Image(event.getPoster(), ivEventThumbnail);
+                } else {
+                    ivEventThumbnail.setImageResource(R.drawable.ic_launcher_foreground);
+                }
 
-            // Increment counter
-            if (existed) {
-                transaction.update(counterRef, "next", next + 1L);
-            } else {
-                Map<String, Object> counterInit = new HashMap<>();
-                counterInit.put("next", next + 1L);
-                transaction.set(counterRef, counterInit);
+                // Click listener for event item (future: navigate to event details)
+                itemView.setOnClickListener(v -> {
+                    Toast.makeText(getContext(), "Event: " + event.getName(), Toast.LENGTH_SHORT).show();
+                    // TODO: Navigate to event details page
+                });
             }
-
-            return docId;
-        }).addOnSuccessListener(eventId -> {
-            progressDialog.dismiss();
-            Toast.makeText(getContext(), "Event created successfully! Event ID: " + eventId, Toast.LENGTH_LONG).show();
-            
-            // Clear form
-            clearForm();
-        }).addOnFailureListener(e -> {
-            progressDialog.dismiss();
-            Log.e(TAG, "Failed to create event", e);
-            Toast.makeText(getContext(), "Failed to create event: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        });
+        }
     }
 
-    private String convertImageToBase64(Uri imageUri) throws Exception {
-        InputStream inputStream = requireContext().getContentResolver().openInputStream(imageUri);
-        if (inputStream == null) throw new Exception("Failed to open input stream");
-
-        Bitmap originalBitmap = BitmapFactory.decodeStream(inputStream);
-        inputStream.close();
-
-        if (originalBitmap == null) throw new Exception("Failed to decode bitmap");
-
-        // Resize to max 800px for event posters (bigger than profile pics)
-        Bitmap resizedBitmap = resizeBitmap(originalBitmap, 800);
-
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream);
-        byte[] byteArray = byteArrayOutputStream.toByteArray();
-
-        String base64Image = Base64.encodeToString(byteArray, Base64.DEFAULT);
-        Log.d(TAG, "Poster converted to Base64. Size: " + (base64Image.length() / 1024) + "KB");
-        return base64Image;
-    }
-
-    private Bitmap resizeBitmap(Bitmap bitmap, int maxSize) {
-        int width = bitmap.getWidth();
-        int height = bitmap.getHeight();
-
-        float ratio = Math.min(
-                (float) maxSize / width,
-                (float) maxSize / height
-        );
-
-        int newWidth = Math.round(width * ratio);
-        int newHeight = Math.round(height * ratio);
-
-        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true);
-    }
-
-    private void clearForm() {
-        etEventName.setText("");
-        etEventDescription.setText("");
-        etCapacity.setText("");
-        etMaxWaitlist.setText("");
-        tvEventDateDisplay.setText("Not selected");
-        tvRaffleDateDisplay.setText("Not selected");
-        switchGeoLocation.setChecked(false);
-        selectedPosterUri = null;
-        selectedEventDate = null;
-        selectedRaffleDate = null;
-        ivEventPoster.setImageResource(R.drawable.ic_launcher_foreground);
+    private void loadBase64Image(String base64String, ImageView imageView) {
+        try {
+            byte[] decodedBytes = Base64.decode(base64String, Base64.DEFAULT);
+            Bitmap bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length);
+            if (bitmap != null) {
+                imageView.setImageBitmap(bitmap);
+            } else {
+                imageView.setImageResource(R.drawable.ic_launcher_foreground);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to decode Base64 image", e);
+            imageView.setImageResource(R.drawable.ic_launcher_foreground);
+        }
     }
 }
