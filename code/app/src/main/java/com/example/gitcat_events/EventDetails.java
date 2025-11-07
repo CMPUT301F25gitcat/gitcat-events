@@ -4,7 +4,7 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
-
+import android.content.Intent;
 import androidx.fragment.app.Fragment;
 
 import android.util.Base64;
@@ -44,7 +44,7 @@ public class EventDetails extends Fragment {
     private ImageView ivEventPoster;
     private TextView tvEventName, tvEventDate, tvEventSpots, tvEventDesc;
     private TextView tvWaitingListCount, tvStatusMessage, tvSelectionCriteria;
-    private Button btnJoinWaitingList, btnBack, btnRunRaffle;
+    private Button btnJoinWaitingList, btnBack, btnRunRaffle, btnViewWaitingList;
     private Button btnAcceptInvitation, btnDeclineInvitation;
     private android.view.ViewGroup invitationButtons;
 
@@ -102,6 +102,8 @@ public class EventDetails extends Fragment {
         
         // Set up raffle button (only visible to organizer)
         btnRunRaffle.setOnClickListener(v -> runRaffle());
+
+        btnViewWaitingList.setOnClickListener(v->btnViewWaitingList());
         
         // Set up invitation response buttons
         btnAcceptInvitation.setOnClickListener(v -> acceptInvitation());
@@ -160,8 +162,10 @@ public class EventDetails extends Fragment {
                 event.getOrganizerDeviceId().equals(deviceId)) {
             isOrganizer = true;
             btnJoinWaitingList.setVisibility(View.GONE);
+
             invitationButtons.setVisibility(View.GONE);
             btnRunRaffle.setVisibility(View.VISIBLE);
+            btnViewWaitingList.setVisibility(View.VISIBLE);
             
             // Show organizer status
             showOrganizerStatus();
@@ -658,6 +662,15 @@ public class EventDetails extends Fragment {
                         displayOrganizerStatus(acceptedCount[0], pendingCount[0]);
                     }
                 });
+    }
+
+    private void btnViewWaitingList() {
+        if (event == null || event.getDocumentId() == null) return;
+
+        Intent intent = new Intent(requireContext(), WaitingListActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
+        intent.putExtra("eventName", event.getName());
+        startActivity(intent);
     }
     
     private void displayOrganizerStatus(int acceptedCount, int pendingCount) {
