@@ -2,8 +2,10 @@ package com.example.gitcat_events.features.entrant.ui;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,16 +21,19 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class ProfileActivity extends AppCompatActivity
         implements ProfileDialogFragment.OnSaveProfileListener {
 
     private FirebaseFirestore db;
     String TAG = "FirestoreSmoke";
-    private TextView tvName, tvEmail, tvPhone;
+    private TextView tvName, tvEmail, tvPhone, tvDeviceId;
+    private ImageView ivProfilePicture;
 
     private static final String PREFS = "app_prefs";
     private static final String KEY_PROFILE_ID = "profile_doc_id"; // we'll store the numeric id as a String
+    private static final String KEY_DEVICE_ID = "device_id"; // unique device identifier
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -52,6 +57,8 @@ public class ProfileActivity extends AppCompatActivity
         tvName  = findViewById(R.id.tvName);
         tvEmail = findViewById(R.id.tvEmail);
         tvPhone = findViewById(R.id.tvPhone);
+        tvDeviceId = findViewById(R.id.tvDeviceId);
+        ivProfilePicture = findViewById(R.id.ivProfilePicture);
         Button btnEdit = findViewById(R.id.btnEdit);
 
         loadProfile();
@@ -95,17 +102,41 @@ public class ProfileActivity extends AppCompatActivity
         tvEmail.setText(p.getEmail());
         String ph = p.getPhone();
         tvPhone.setText((ph == null || ph.trim().isEmpty()) ? "—" : ph);
+        String devId = p.getDeviceId();
+        tvDeviceId.setText((devId == null || devId.trim().isEmpty()) ? "—" : devId);
+        
+        // TODO: Load profile picture from URL if available
+        // For now, show a placeholder or default image
+        if (p.getProfilePictureUrl() != null && !p.getProfilePictureUrl().isEmpty()) {
+            // You can use Glide or Picasso here: Glide.with(this).load(p.getProfilePictureUrl()).into(ivProfilePicture);
+            ivProfilePicture.setImageResource(R.drawable.ic_launcher_foreground); // placeholder
+        } else {
+            ivProfilePicture.setImageResource(R.drawable.ic_launcher_foreground); // default
+        }
     }
 
     /** Called when dialog presses Save */
     @Override
     public void onSaveProfile(Profile profile) {
+        // Ensure device ID is set
+        if (profile.getDeviceId() == null || profile.getDeviceId().isEmpty()) {
+            profile.setDeviceId(getOrCreateDeviceId());
+        }
+        
         String existingId = getSavedDocId();
         if (existingId == null) {
             // Create new profile with sequential numeric id (0,1,2,...) via transaction
             createProfileWithAutoId(profile);
         } else {
-            // Update existing
+            // Update existing - preserve deviceId and profilePictureUrl if not changed
+            if (currentProfile != null) {
+                if (profile.getDeviceId() == null) {
+                    profile.setDeviceId(currentProfile.getDeviceId());
+                }
+                if (profile.getProfilePictureUrl() == null) {
+                    profile.setProfilePictureUrl(currentProfile.getProfilePictureUrl());
+                }
+            }
             db.collection("profiles").document(existingId).set(profile)
                     .addOnSuccessListener(v -> {
                         currentProfile = profile;
@@ -140,6 +171,8 @@ public class ProfileActivity extends AppCompatActivity
             data.put("name", profile.getName());
             data.put("email", profile.getEmail());
             data.put("phone", profile.getPhone()); // may be null
+            data.put("deviceId", profile.getDeviceId()); // device identifier
+            data.put("profilePictureUrl", profile.getProfilePictureUrl()); // profile picture URL
             data.put("uid", next);
             transaction.set(profileRef, data);
 
@@ -192,6 +225,8 @@ public class ProfileActivity extends AppCompatActivity
                     tvName.setText("—");
                     tvEmail.setText("—");
                     tvPhone.setText("—");
+                    tvDeviceId.setText("—");
+                    ivProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
                     Toast.makeText(this, "Profile deleted.", Toast.LENGTH_SHORT).show();
 
                     // Prompt to create a new one (optional)
@@ -204,5 +239,33 @@ public class ProfileActivity extends AppCompatActivity
     }
     private void saveDocId(String id) {
         getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(KEY_PROFILE_ID, id).apply();
+    }
+    
+    /**
+     * Get or create a unique device identifier.
+     * First tries Android ID, falls back to UUID stored in SharedPreferences.
+     */
+    private String getOrCreateDeviceId() {
+        SharedPreferences sp = getSharedPreferences(PREFS, MODE_PRIVATE);
+        String deviceId = sp.getString(KEY_DEVICE_ID, null);
+        
+        if (deviceId == null) {
+            // Try to get Android ID (unique per device and app installation)
+            try {
+                deviceId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to get Android ID", e);
+            }
+            
+            // Fallback to UUID if Android ID is not available
+            if (deviceId == null || deviceId.isEmpty()) {
+                deviceId = UUID.randomUUID().toString();
+            }
+            
+            // Save for future use
+            sp.edit().putString(KEY_DEVICE_ID, deviceId).apply();
+        }
+        
+        return deviceId;
     }
 }

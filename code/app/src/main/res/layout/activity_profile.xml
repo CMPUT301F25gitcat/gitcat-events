@@ -1,8 +1,29 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+<LinearLayout
     android:orientation="vertical"
     android:padding="16dp"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="wrap_content">
+
+    <!-- Profile Picture -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingBottom="16dp">
+        
+        <ImageView
+            android:id="@+id/ivProfilePicture"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:scaleType="centerCrop"
+            android:contentDescription="Profile Picture"
+            android:background="@android:color/darker_gray"/>
+    </LinearLayout>
 
     <!-- Name -->
     <TextView
@@ -44,7 +65,23 @@
         android:textStyle="bold"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingBottom="16dp"/>
+        android:paddingBottom="8dp"/>
+
+    <!-- Device ID -->
+    <TextView
+        android:text="Device ID"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"/>
+
+    <TextView
+        android:id="@+id/tvDeviceId"
+        android:textStyle="bold"
+        android:textSize="12sp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="16dp"
+        android:textColor="@android:color/darker_gray"/>
 
     <Button
         android:id="@+id/btnEdit"
@@ -58,3 +95,4 @@
         android:text="@string/delete_profile"
         android:layout_marginTop="8dp"/>
 </LinearLayout>
+</ScrollView>

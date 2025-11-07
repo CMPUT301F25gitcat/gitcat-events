@@ -1,11 +1,19 @@
 package com.example.gitcat_events.features.entrant.ui;
 
+import android.app.Activity;
 import android.app.Dialog;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -21,6 +29,20 @@ public class ProfileDialogFragment extends DialogFragment {
     }
 
     private @Nullable Profile existingProfile;
+    private @Nullable Uri selectedImageUri;
+    private ImageView ivDialogProfilePicture;
+
+    // Activity result launcher for image selection
+    private final ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                    selectedImageUri = result.getData().getData();
+                    if (ivDialogProfilePicture != null && selectedImageUri != null) {
+                        ivDialogProfilePicture.setImageURI(selectedImageUri);
+                    }
+                }
+            });
 
     @NonNull
     @Override
@@ -30,6 +52,8 @@ public class ProfileDialogFragment extends DialogFragment {
         EditText etName  = v.findViewById(R.id.etName);
         EditText etEmail = v.findViewById(R.id.etEmail);
         EditText etPhone = v.findViewById(R.id.etPhone);
+        ivDialogProfilePicture = v.findViewById(R.id.ivDialogProfilePicture);
+        Button btnSelectProfilePicture = v.findViewById(R.id.btnSelectProfilePicture);
 
         // Prefill if editing
         Bundle args = getArguments();
@@ -40,7 +64,20 @@ public class ProfileDialogFragment extends DialogFragment {
             etName.setText(existingProfile.getName());
             etEmail.setText(existingProfile.getEmail());
             if (existingProfile.getPhone() != null) etPhone.setText(existingProfile.getPhone());
+            
+            // Load existing profile picture if available
+            if (existingProfile.getProfilePictureUrl() != null && !existingProfile.getProfilePictureUrl().isEmpty()) {
+                // TODO: Load image from URL using Glide or Picasso
+                ivDialogProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
+            }
         }
+
+        // Setup image picker button
+        btnSelectProfilePicture.setOnClickListener(view -> {
+            Intent intent = new Intent(Intent.ACTION_PICK);
+            intent.setType("image/*");
+            imagePickerLauncher.launch(intent);
+        });
 
         // NOTE: setPositiveButton(null) so we can attach a custom click in onStart()
         return new AlertDialog.Builder(requireContext())
@@ -81,7 +118,24 @@ public class ProfileDialogFragment extends DialogFragment {
             if (!ok) return; // keep dialog open
 
             String phone = phoneRaw.isEmpty() ? null : phoneRaw; // optional
+            
+            // Create profile with device ID and picture URL
             Profile p = new Profile(name, email, phone);
+            
+            // If user selected a new image, convert URI to string (for now)
+            // In production, you'd upload to Firebase Storage and get the download URL
+            if (selectedImageUri != null) {
+                p.setProfilePictureUrl(selectedImageUri.toString());
+                Toast.makeText(requireContext(), "Note: Image upload to Firebase Storage not implemented yet", Toast.LENGTH_SHORT).show();
+            } else if (existingProfile != null && existingProfile.getProfilePictureUrl() != null) {
+                // Keep existing profile picture URL if no new image selected
+                p.setProfilePictureUrl(existingProfile.getProfilePictureUrl());
+            }
+            
+            // Preserve device ID if it exists
+            if (existingProfile != null && existingProfile.getDeviceId() != null) {
+                p.setDeviceId(existingProfile.getDeviceId());
+            }
 
             OnSaveProfileListener host = null;
             if (getParentFragment() instanceof OnSaveProfileListener) {
