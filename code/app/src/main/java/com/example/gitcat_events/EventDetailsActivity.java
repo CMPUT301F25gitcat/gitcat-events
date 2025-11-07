@@ -5,10 +5,6 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
-<<<<<<< HEAD
-import android.provider.Settings;
-=======
->>>>>>> 707c31c (chore: fixing rebase mishap)
 import android.util.Base64;
 import android.util.Log;
 import android.widget.Button;
@@ -19,10 +15,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-<<<<<<< HEAD
-=======
 import com.bumptech.glide.Glide;
->>>>>>> 707c31c (chore: fixing rebase mishap)
 import com.example.gitcat_events.core.model.Event;
 import com.example.gitcat_events.core.model.WaitListEntry;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -31,10 +24,6 @@ import com.google.firebase.firestore.ListenerRegistration;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-<<<<<<< HEAD
-import java.util.Date;
-=======
->>>>>>> 707c31c (chore: fixing rebase mishap)
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -62,20 +51,12 @@ public class EventDetailsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_event_details);
 
-<<<<<<< HEAD
-        db = FirebaseFirestore.getInstance();
-
-        // Get event ID from intent
-        eventId = getIntent().getStringExtra("eventId");
-        if (eventId == null) {
-=======
         // Initialize Firestore
         db = FirebaseFirestore.getInstance();
 
         // Get event ID from Intent
         eventId = getIntent().getStringExtra("eventId");
         if (eventId == null || eventId.isEmpty()) {
->>>>>>> 707c31c (chore: fixing rebase mishap)
             Toast.makeText(this, "Error: No event ID provided", Toast.LENGTH_SHORT).show();
             finish();
             return;
@@ -119,9 +100,6 @@ public class EventDetailsActivity extends AppCompatActivity {
         db.collection("events").document(eventId).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
-<<<<<<< HEAD
-                        parseAndDisplayEvent(documentSnapshot);
-=======
                         currentEvent = parseEvent(documentSnapshot);
                         if (currentEvent != null) {
                             currentEvent.setDocumentId(documentSnapshot.getId());
@@ -130,80 +108,17 @@ public class EventDetailsActivity extends AppCompatActivity {
                             Toast.makeText(this, "Error parsing event data", Toast.LENGTH_SHORT).show();
                             finish();
                         }
->>>>>>> 707c31c (chore: fixing rebase mishap)
                     } else {
                         Toast.makeText(this, "Event not found", Toast.LENGTH_SHORT).show();
                         finish();
                     }
                 })
                 .addOnFailureListener(e -> {
-<<<<<<< HEAD
-                    Toast.makeText(this, "Failed to load event: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-=======
                     Toast.makeText(this, "Error loading event: " + e.getMessage(), Toast.LENGTH_SHORT).show();
->>>>>>> 707c31c (chore: fixing rebase mishap)
                     finish();
                 });
     }
 
-<<<<<<< HEAD
-    private void parseAndDisplayEvent(DocumentSnapshot document) {
-        currentEvent = new Event();
-        currentEvent.setName(document.getString("name"));
-        currentEvent.setDescription(document.getString("description"));
-        
-        Long capacity = document.getLong("capacity");
-        currentEvent.setCapacity(capacity != null ? capacity.intValue() : 0);
-        
-        Long maxWaitlist = document.getLong("maxWaitListSize");
-        currentEvent.setMaxWaitListSize(maxWaitlist != null ? maxWaitlist.intValue() : null);
-        
-        currentEvent.setPoster(document.getString("poster"));
-        currentEvent.setOrganizerDeviceId(document.getString("organizerDeviceId"));
-        
-        Boolean geoLocation = document.getBoolean("geoLocationRequired");
-        currentEvent.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
-        
-        // Convert Date to Calendar
-        Date eventDate = document.getDate("eventDate");
-        if (eventDate != null) {
-            Calendar eventCal = Calendar.getInstance();
-            eventCal.setTime(eventDate);
-            currentEvent.setEventDate(eventCal);
-        }
-        
-        Date raffleDate = document.getDate("raffleDate");
-        if (raffleDate != null) {
-            Calendar raffleCal = Calendar.getInstance();
-            raffleCal.setTime(raffleDate);
-            currentEvent.setRaffleDate(raffleCal);
-        }
-        
-        // Display event details
-        displayEvent();
-    }
-
-    private void displayEvent() {
-        tvEventDetailsName.setText(currentEvent.getName());
-        tvEventDetailsDescription.setText(currentEvent.getDescription());
-        tvEventDetailsCapacity.setText(String.valueOf(currentEvent.getCapacity()));
-        
-        SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault());
-        
-        if (currentEvent.getEventDate() != null) {
-            tvEventDetailsDate.setText(dateFormat.format(currentEvent.getEventDate().getTime()));
-        }
-        
-        if (currentEvent.getRaffleDate() != null) {
-            tvEventDetailsRaffleDate.setText(dateFormat.format(currentEvent.getRaffleDate().getTime()));
-        }
-        
-        tvEventDetailsGeolocation.setText(currentEvent.getGeoLocationRequired() ? "Required" : "Not required");
-        
-        // Load poster
-        if (currentEvent.getPoster() != null && !currentEvent.getPoster().isEmpty()) {
-            loadBase64Image(currentEvent.getPoster(), ivEventDetailsPoster);
-=======
     private Event parseEvent(DocumentSnapshot doc) {
         try {
             Event event = new Event();
@@ -249,19 +164,18 @@ public class EventDetailsActivity extends AppCompatActivity {
         // Format and display dates
         SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault());
         if (event.getEventDate() != null) {
-            tvEventDetailsDate.setText("Event Date: " + dateFormat.format(event.getEventDate().getTime()));
+            tvEventDetailsDate.setText(dateFormat.format(event.getEventDate().getTime()));
         }
         if (event.getRaffleDate() != null) {
-            tvEventDetailsRaffleDate.setText("Registration Deadline: " + dateFormat.format(event.getRaffleDate().getTime()));
+            tvEventDetailsRaffleDate.setText(dateFormat.format(event.getRaffleDate().getTime()));
         }
         
-        tvEventDetailsCapacity.setText("Capacity: " + event.getCapacity());
-        tvEventDetailsGeolocation.setText("Geolocation Required: " + (event.getGeoLocationRequired() ? "Yes" : "No"));
+        tvEventDetailsCapacity.setText(String.valueOf(event.getCapacity()));
+        tvEventDetailsGeolocation.setText(event.getGeoLocationRequired() ? "Required" : "Not required");
         
         // Load poster image
         if (event.getPoster() != null && !event.getPoster().isEmpty()) {
             loadBase64Image(event.getPoster(), ivEventDetailsPoster);
->>>>>>> 707c31c (chore: fixing rebase mishap)
         } else {
             ivEventDetailsPoster.setImageResource(R.drawable.ic_launcher_foreground);
         }
@@ -368,80 +282,23 @@ public class EventDetailsActivity extends AppCompatActivity {
                     
                     if (querySnapshot != null) {
                         int count = querySnapshot.size();
-<<<<<<< HEAD
-                        tvWaitingListCount.setText(String.valueOf(count));
-                        
-                        // Update max waitlist display if set
                         if (currentEvent != null && currentEvent.getMaxWaitListSize() != null) {
                             tvWaitingListCount.setText(count + " / " + currentEvent.getMaxWaitListSize());
+                        } else {
+                            tvWaitingListCount.setText(String.valueOf(count));
                         }
-=======
-                        tvWaitingListCount.setText("Waiting List: " + count + 
-                                (currentEvent != null && currentEvent.getMaxWaitListSize() != null ? 
-                                "/" + currentEvent.getMaxWaitListSize() : ""));
->>>>>>> 707c31c (chore: fixing rebase mishap)
                     }
                 });
     }
 
     private void joinWaitingList() {
-<<<<<<< HEAD
-        if (currentEvent == null) {
-            Toast.makeText(this, "Event data not loaded", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        String deviceId = getOrCreateDeviceId();
-        
-        // Check if user is the organizer
-=======
         // Check if user is the organizer (double check)
         String deviceId = getOrCreateDeviceId();
->>>>>>> 707c31c (chore: fixing rebase mishap)
         if (currentEvent.getOrganizerDeviceId() != null && 
                 currentEvent.getOrganizerDeviceId().equals(deviceId)) {
             showError("You cannot join your own event.");
             return;
         }
-<<<<<<< HEAD
-
-        // Check if registration is still open (before raffle date)
-        Calendar now = Calendar.getInstance();
-        if (currentEvent.getRaffleDate() != null && now.after(currentEvent.getRaffleDate())) {
-            showError("Registration is closed. The deadline has passed.");
-            return;
-        }
-
-        // Check if already joined
-        db.collection("events").document(eventId)
-                .collection("waitlist")
-                .whereEqualTo("userDeviceId", deviceId)
-                .get()
-                .addOnSuccessListener(userQuerySnapshot -> {
-                    if (!userQuerySnapshot.isEmpty()) {
-                        showError("You're already on the waiting list!");
-                        return;
-                    }
-
-                    // Check waitlist capacity (get total count)
-                    db.collection("events").document(eventId)
-                            .collection("waitlist")
-                            .get()
-                            .addOnSuccessListener(totalQuerySnapshot -> {
-                                int currentWaitlistSize = totalQuerySnapshot.size();
-                                if (currentEvent.getMaxWaitListSize() != null 
-                                        && currentWaitlistSize >= currentEvent.getMaxWaitListSize()) {
-                                    showError("Waiting list is full!");
-                                    return;
-                                }
-
-                                // All checks passed, add to waitlist
-                                addToWaitlist(deviceId);
-                            })
-                            .addOnFailureListener(e -> {
-                                Toast.makeText(this, "Error checking capacity: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                            });
-=======
         
         // Check if registration is still open
         if (currentEvent.getRaffleDate() != null) {
@@ -487,10 +344,9 @@ public class EventDetailsActivity extends AppCompatActivity {
                     } else {
                         addToWaitlist(deviceId);
                     }
->>>>>>> 707c31c (chore: fixing rebase mishap)
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Error checking waitlist: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Error checking capacity: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -534,19 +390,13 @@ public class EventDetailsActivity extends AppCompatActivity {
         try {
             byte[] decodedBytes = Base64.decode(base64String, Base64.DEFAULT);
             Bitmap bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length);
-<<<<<<< HEAD
             if (bitmap != null) {
                 imageView.setImageBitmap(bitmap);
             } else {
                 imageView.setImageResource(R.drawable.ic_launcher_foreground);
             }
         } catch (Exception e) {
-            Log.e(TAG, "Failed to decode Base64 image", e);
-=======
-            imageView.setImageBitmap(bitmap);
-        } catch (Exception e) {
             Log.e(TAG, "Error decoding Base64 image", e);
->>>>>>> 707c31c (chore: fixing rebase mishap)
             imageView.setImageResource(R.drawable.ic_launcher_foreground);
         }
     }
@@ -554,22 +404,8 @@ public class EventDetailsActivity extends AppCompatActivity {
     private String getOrCreateDeviceId() {
         SharedPreferences sp = getSharedPreferences(PREFS, MODE_PRIVATE);
         String deviceId = sp.getString("device_id", null);
-<<<<<<< HEAD
-
-        if (deviceId == null) {
-            try {
-                deviceId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
-            } catch (Exception e) {
-                Log.w(TAG, "Failed to get Android ID", e);
-            }
-
-            if (deviceId == null || deviceId.isEmpty()) {
-                deviceId = UUID.randomUUID().toString();
-            }
-=======
         if (deviceId == null) {
             deviceId = UUID.randomUUID().toString();
->>>>>>> 707c31c (chore: fixing rebase mishap)
             sp.edit().putString("device_id", deviceId).apply();
         }
         return deviceId;
@@ -593,4 +429,3 @@ public class EventDetailsActivity extends AppCompatActivity {
         finish();
     }
 }
-
