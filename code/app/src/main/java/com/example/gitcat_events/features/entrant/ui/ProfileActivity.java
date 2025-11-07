@@ -34,12 +34,34 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Activity for displaying and managing a user's profile info.
+ * Allows users to view , edit and delete their profile information.
+ * profile creation is handled by incrementing user ID Identification . 
+ * 
+ * @author Ryan Chattopadhyay
+ * 
+ * @see ProfileDialogFragment
+ * @see Profile
+ * @see ProfileFragment
+ * @see SetupProfileActivity
+ * @see MainActivity
+ * @see HomeFragment
+ * @see NotifsFragment
+ * @see CreateFragment
+ */
+
+
 public class ProfileActivity extends AppCompatActivity
         implements ProfileDialogFragment.OnSaveProfileListener {
 
+    /**Firebase integration stuff for database operations. */
     private FirebaseFirestore db;
+    /**Tagging for logging and debugging purposes. */
     String TAG = "FirestoreSmoke";
+    /**TextView displaying the user's name, email and phone number. */
     private TextView tvName, tvEmail, tvPhone;
+    /**ImageView displaying the user's profile picture. */
     private ImageView ivProfilePicture;
 
     private static final String PREFS = "app_prefs";
