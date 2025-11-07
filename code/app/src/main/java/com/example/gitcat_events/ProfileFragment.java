@@ -1,58 +1,58 @@
 package com.example.gitcat_events;
 
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.util.Base64;
+import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.example.gitcat_events.core.model.Profile;
+import com.example.gitcat_events.features.entrant.ui.ProfileActivity;
+import com.example.gitcat_events.features.entrant.ui.ProfileDialogFragment;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 /**
- * A simple {@link Fragment} subclass.
- * Use the {@link ProfileFragment#newInstance} factory method to
- * create an instance of this fragment.
+ * Fragment to display user profile information
  */
-public class ProfileFragment extends Fragment {
+public class ProfileFragment extends Fragment implements ProfileDialogFragment.OnSaveProfileListener {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
+    private static final String TAG = "ProfileFragment";
+    private static final String PREFS = "app_prefs";
+    private static final String KEY_PROFILE_ID = "profile_doc_id";
 
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
+    private FirebaseFirestore db;
+    private TextView tvFragmentName, tvFragmentEmail, tvFragmentPhone;
+    private ImageView ivFragmentProfilePicture;
+    private Button btnFragmentViewFullProfile, btnFragmentDeleteProfile;
+    private Profile currentProfile;
 
     public ProfileFragment() {
         // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment ProfileFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static ProfileFragment newInstance(String param1, String param2) {
-        ProfileFragment fragment = new ProfileFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
+    public static ProfileFragment newInstance() {
+        return new ProfileFragment();
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
+        db = FirebaseFirestore.getInstance();
     }
 
     @Override
@@ -61,4 +61,272 @@ public class ProfileFragment extends Fragment {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_profile, container, false);
     }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        
+        // Initialize views
+        tvFragmentName = view.findViewById(R.id.tvFragmentName);
+        tvFragmentEmail = view.findViewById(R.id.tvFragmentEmail);
+        tvFragmentPhone = view.findViewById(R.id.tvFragmentPhone);
+        ivFragmentProfilePicture = view.findViewById(R.id.ivFragmentProfilePicture);
+        btnFragmentViewFullProfile = view.findViewById(R.id.btnFragmentViewFullProfile);
+        btnFragmentDeleteProfile = view.findViewById(R.id.btnFragmentDeleteProfile);
+
+        // Setup button to open edit dialog directly
+        btnFragmentViewFullProfile.setOnClickListener(v -> {
+            if (currentProfile != null) {
+                ProfileDialogFragment.newInstance(currentProfile)
+                        .show(getChildFragmentManager(), "editProfile");
+            } else {
+                ProfileDialogFragment.newInstance(null)
+                        .show(getChildFragmentManager(), "createProfile");
+            }
+        });
+        
+        // Setup delete button
+        btnFragmentDeleteProfile.setOnClickListener(v -> confirmAndDelete());
+
+        // Load profile data
+        loadProfile();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Refresh profile data when fragment becomes visible
+        loadProfile();
+    }
+
+    private void loadProfile() {
+        String profileId = getSavedDocId();
+        if (profileId == null) {
+            // No profile yet, redirect to setup page
+            Intent intent = new Intent(getActivity(), SetupProfileActivity.class);
+            startActivity(intent);
+            return;
+        }
+
+        // Fetch profile from Firestore
+        db.collection("profiles").document(profileId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    Profile profile = documentSnapshot.toObject(Profile.class);
+                    if (profile != null && isAdded()) {
+                        currentProfile = profile;
+                        renderProfile(profile);
+                    } else if (isAdded()) {
+                        currentProfile = null;
+                        tvFragmentName.setText("Profile not found");
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (isAdded()) {
+                        currentProfile = null;
+                        Toast.makeText(getContext(), "Failed to load profile: " + e.getMessage(), 
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void renderProfile(Profile profile) {
+        tvFragmentName.setText(profile.getName());
+        tvFragmentEmail.setText(profile.getEmail());
+        String phone = profile.getPhone();
+        tvFragmentPhone.setText((phone == null || phone.trim().isEmpty()) ? "—" : phone);
+
+        // Load profile picture from Base64
+        if (profile.getProfilePictureUrl() != null && !profile.getProfilePictureUrl().isEmpty()) {
+            loadBase64Image(profile.getProfilePictureUrl(), ivFragmentProfilePicture);
+        } else {
+            ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
+        }
+    }
+
+    private @Nullable String getSavedDocId() {
+        if (getActivity() == null) return null;
+        SharedPreferences sp = getActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        return sp.getString(KEY_PROFILE_ID, null);
+    }
+    
+    private void confirmAndDelete() {
+        String id = getSavedDocId();
+        if (id == null) {
+            Toast.makeText(getContext(), "No profile to delete.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        if (getContext() == null) return;
+        
+        new androidx.appcompat.app.AlertDialog.Builder(getContext())
+                .setTitle("Delete profile?")
+                .setMessage("This will permanently remove your profile from the database.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Delete", (dialog, which) -> deleteProfileById(id))
+                .show();
+    }
+    
+    private void deleteProfileById(String id) {
+        db.collection("profiles").document(id).delete()
+                .addOnSuccessListener(v -> {
+                    if (getContext() == null) return;
+                    
+                    // Clear local state
+                    SharedPreferences sp = getActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+                    sp.edit().remove(KEY_PROFILE_ID).apply();
+                    
+                    // Clear current profile
+                    currentProfile = null;
+                    
+                    // Clear UI
+                    tvFragmentName.setText("No profile yet");
+                    tvFragmentEmail.setText("—");
+                    tvFragmentPhone.setText("—");
+                    ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
+                    
+                    Toast.makeText(getContext(), "Profile deleted successfully.", Toast.LENGTH_SHORT).show();
+                    
+                    // Redirect to setup page
+                    Intent intent = new Intent(getActivity(), SetupProfileActivity.class);
+                    startActivity(intent);
+                })
+                .addOnFailureListener(e -> {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), "Delete failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                });
+    }
+    
+    @Override
+    public void onSaveProfile(Profile profile) {
+        if (getContext() == null) return;
+        
+        // Ensure device ID is set
+        if (profile.getDeviceId() == null || profile.getDeviceId().isEmpty()) {
+            profile.setDeviceId(getOrCreateDeviceId());
+        }
+        
+        String existingId = getSavedDocId();
+        if (existingId == null) {
+            // Create new profile with sequential numeric id via transaction
+            createProfileWithAutoId(profile);
+        } else {
+            // Update existing - preserve deviceId and profilePictureUrl if not changed
+            if (currentProfile != null) {
+                if (profile.getDeviceId() == null) {
+                    profile.setDeviceId(currentProfile.getDeviceId());
+                }
+                if (profile.getProfilePictureUrl() == null) {
+                    profile.setProfilePictureUrl(currentProfile.getProfilePictureUrl());
+                }
+            }
+            db.collection("profiles").document(existingId).set(profile)
+                    .addOnSuccessListener(v -> {
+                        currentProfile = profile;
+                        renderProfile(profile);
+                        Toast.makeText(getContext(), "Profile saved", Toast.LENGTH_SHORT).show();
+                    })
+                    .addOnFailureListener(e ->
+                            Toast.makeText(getContext(), "Save failed: " + e.getMessage(), Toast.LENGTH_LONG).show());
+        }
+    }
+    
+    private void createProfileWithAutoId(Profile profile) {
+        db.runTransaction(transaction -> {
+            com.google.firebase.firestore.DocumentReference counterRef = db.collection("meta").document("profiles_counter");
+            com.google.firebase.firestore.DocumentSnapshot snap = transaction.get(counterRef);
+
+            long next;
+            boolean existed = snap.exists();
+            if (existed) {
+                Long val = snap.getLong("next");
+                next = (val != null) ? val : 0L;
+            } else {
+                next = 0L;
+            }
+
+            String docId = String.valueOf(next);
+            com.google.firebase.firestore.DocumentReference profileRef = db.collection("profiles").document(docId);
+
+            java.util.Map<String, Object> data = new java.util.HashMap<>();
+            data.put("name", profile.getName());
+            data.put("email", profile.getEmail());
+            data.put("phone", profile.getPhone());
+            data.put("deviceId", profile.getDeviceId());
+            data.put("profilePictureUrl", profile.getProfilePictureUrl());
+            data.put("uid", next);
+            transaction.set(profileRef, data);
+
+            if (existed) {
+                transaction.update(counterRef, "next", next + 1L);
+            } else {
+                java.util.Map<String, Object> counterInit = new java.util.HashMap<>();
+                counterInit.put("next", next + 1L);
+                transaction.set(counterRef, counterInit);
+            }
+
+            return docId;
+        }).addOnSuccessListener(assignedId -> {
+            if (getContext() == null) return;
+            saveDocId(assignedId);
+            currentProfile = profile;
+            renderProfile(profile);
+            Toast.makeText(getContext(), "Created user #" + assignedId, Toast.LENGTH_SHORT).show();
+        }).addOnFailureListener(e -> {
+            if (getContext() != null) {
+                Toast.makeText(getContext(), "Create failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+    
+    private void saveDocId(String id) {
+        if (getActivity() == null) return;
+        getActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_PROFILE_ID, id).apply();
+    }
+    
+    private String getOrCreateDeviceId() {
+        if (getActivity() == null) return java.util.UUID.randomUUID().toString();
+        
+        SharedPreferences sp = getActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        String deviceId = sp.getString("device_id", null);
+        
+        if (deviceId == null) {
+            try {
+                deviceId = android.provider.Settings.Secure.getString(
+                    getActivity().getContentResolver(), 
+                    android.provider.Settings.Secure.ANDROID_ID
+                );
+            } catch (Exception e) {
+                deviceId = null;
+            }
+            
+            if (deviceId == null || deviceId.isEmpty()) {
+                deviceId = java.util.UUID.randomUUID().toString();
+            }
+            
+            sp.edit().putString("device_id", deviceId).apply();
+        }
+        
+        return deviceId;
+    }
+    
+    /**
+     * Load Base64 image into ImageView
+     */
+    private void loadBase64Image(String base64String, ImageView imageView) {
+        try {
+            byte[] decodedBytes = Base64.decode(base64String, Base64.DEFAULT);
+            Bitmap bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length);
+            
+            if (bitmap != null) {
+                imageView.setImageBitmap(bitmap);
+            } else {
+                imageView.setImageResource(R.drawable.ic_launcher_foreground);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error loading Base64 image", e);
+            imageView.setImageResource(R.drawable.ic_launcher_foreground);
+        }
+    }
+    
 }
