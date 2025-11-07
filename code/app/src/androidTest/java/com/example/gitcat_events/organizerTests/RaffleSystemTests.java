@@ -104,8 +104,8 @@ public class RaffleSystemTests {
     public void testInvitationListEntryCreation() {
         InvitationListEntry entry = new InvitationListEntry("event-123", "user-456");
         
-        assertEquals("Event ID should match", "event-123", entry.getEventID());
-        assertEquals("User ID should match", "user-456", entry.getUserDeviceID());
+        assertEquals("Event ID should match", "event-123", entry.getEventId());
+        assertEquals("User ID should match", "user-456", entry.getUserDeviceId());
         assertEquals("Status should be pending", "pending", entry.getStatus());
     }
 
@@ -135,8 +135,8 @@ public class RaffleSystemTests {
     public void testAcceptedListEntryCreation() {
         AcceptedListEntry entry = new AcceptedListEntry("event-123", "user-456");
         
-        assertEquals("Event ID should match", "event-123", entry.getEventID());
-        assertEquals("User ID should match", "user-456", entry.getUserDeviceID());
+        assertEquals("Event ID should match", "event-123", entry.getEventId());
+        assertEquals("User ID should match", "user-456", entry.getUserDeviceId());
         assertEquals("Status should be accepted", "accepted", entry.getStatus());
     }
 

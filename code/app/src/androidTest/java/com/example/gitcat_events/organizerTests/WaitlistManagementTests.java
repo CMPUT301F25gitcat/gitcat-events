@@ -107,16 +107,16 @@ public class WaitlistManagementTests {
     public void testWaitlistEntryCreation() {
         WaitListEntry entry = new WaitListEntry(testEventId, testUserId);
         
-        assertEquals("Event ID should match", testEventId, entry.getEventID());
-        assertEquals("User ID should match", testUserId, entry.getUserDeviceID());
+        assertEquals("Event ID should match", testEventId, entry.getEventId());
+        assertEquals("User ID should match", testUserId, entry.getUserDeviceId());
     }
 
     @Test
     public void testWaitlistEntryGetters() {
         WaitListEntry entry = new WaitListEntry(testEventId, testUserId);
         
-        assertNotNull("Event ID should not be null", entry.getEventID());
-        assertNotNull("User ID should not be null", entry.getUserDeviceID());
+        assertNotNull("Event ID should not be null", entry.getEventId());
+        assertNotNull("User ID should not be null", entry.getUserDeviceId());
     }
 
     @Test
@@ -126,9 +126,9 @@ public class WaitlistManagementTests {
         WaitListEntry entry3 = new WaitListEntry(testEventId, "user3");
         
         assertNotEquals("Entries should have different user IDs", 
-                entry1.getUserDeviceID(), entry2.getUserDeviceID());
+                entry1.getUserDeviceId(), entry2.getUserDeviceId());
         assertEquals("All entries should be for same event", 
-                entry1.getEventID(), entry2.getEventID());
+                entry1.getEventId(), entry2.getEventId());
     }
 
     @Test
