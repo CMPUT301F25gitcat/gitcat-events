@@ -137,7 +137,11 @@ public class RaffleSystemTests {
         
         assertEquals("Event ID should match", "event-123", entry.getEventId());
         assertEquals("User ID should match", "user-456", entry.getUserDeviceId());
-        assertEquals("Status should be accepted", "accepted", entry.getStatus());
+        
+        // AcceptedListEntry starts as "pending" by default, then gets set to "accepted" when user accepts
+        assertEquals("Initial status should be pending", "pending", entry.getStatus());
+        entry.setStatus("accepted");
+        assertEquals("Status should be accepted after setting", "accepted", entry.getStatus());
     }
 
     @Test
