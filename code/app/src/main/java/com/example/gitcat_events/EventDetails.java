@@ -1,10 +1,14 @@
 package com.example.gitcat_events;
 
+import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Handler;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
 import android.util.Base64;
@@ -19,12 +23,17 @@ import android.widget.Toast;
 
 import com.example.gitcat_events.core.model.Event;
 import com.example.gitcat_events.core.model.WaitListEntry;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.WriteBatch;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -46,7 +55,7 @@ public class EventDetails extends Fragment {
     private TextView tvWaitingListCount, tvStatusMessage, tvSelectionCriteria;
     private Button btnJoinWaitingList, btnBack, btnRunRaffle, btnViewWaitingList, btnViewInvitedEntrants, btnViewEnrolledEntrants, btnViewCancelledEntrants;
     private Button btnAcceptInvitation, btnDeclineInvitation;
-    private android.view.ViewGroup invitationButtons;
+    private ViewGroup invitationButtons;
 
     public EventDetails() {}
 
@@ -293,7 +302,7 @@ public class EventDetails extends Fragment {
     }
     
     private void confirmLeaveWaitlist() {
-        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Leave Waiting List?")
                 .setMessage("Are you sure you want to leave the waiting list for this event?")
                 .setNegativeButton("Cancel", null)
@@ -442,7 +451,7 @@ public class EventDetails extends Fragment {
         if (event == null || event.getDocumentId() == null) return;
         
         // Navigate to WaitlistViewActivity
-        android.content.Intent intent = new android.content.Intent(requireContext(), WaitlistViewActivity.class);
+        Intent intent = new Intent(requireContext(), WaitlistViewActivity.class);
         intent.putExtra("eventId", event.getDocumentId());
         intent.putExtra("eventName", event.getName());
         startActivity(intent);
@@ -452,7 +461,7 @@ public class EventDetails extends Fragment {
         if (event == null || event.getDocumentId() == null) return;
         
         // Navigate to InvitationListViewActivity
-        android.content.Intent intent = new android.content.Intent(requireContext(), InvitationListViewActivity.class);
+        Intent intent = new Intent(requireContext(), InvitationListViewActivity.class);
         intent.putExtra("eventId", event.getDocumentId());
         intent.putExtra("eventName", event.getName());
         startActivity(intent);
@@ -462,7 +471,7 @@ public class EventDetails extends Fragment {
         if (event == null || event.getDocumentId() == null) return;
         
         // Navigate to AcceptedEntrantsViewActivity
-        android.content.Intent intent = new android.content.Intent(requireContext(), AcceptedEntrantsViewActivity.class);
+        Intent intent = new Intent(requireContext(), AcceptedEntrantsViewActivity.class);
         intent.putExtra("eventId", event.getDocumentId());
         intent.putExtra("eventName", event.getName());
         intent.putExtra("eventCapacity", event.getCapacity());
@@ -473,7 +482,7 @@ public class EventDetails extends Fragment {
         if (event == null || event.getDocumentId() == null) return;
         
         // Navigate to CancelledEntrantsViewActivity
-        android.content.Intent intent = new android.content.Intent(requireContext(), CancelledEntrantsViewActivity.class);
+        Intent intent = new Intent(requireContext(), CancelledEntrantsViewActivity.class);
         intent.putExtra("eventId", event.getDocumentId());
         intent.putExtra("eventName", event.getName());
         startActivity(intent);
@@ -540,7 +549,7 @@ public class EventDetails extends Fragment {
             return;
         }
         
-        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Run Raffle?")
                 .setMessage(message)
                 .setNegativeButton("Cancel", null)
@@ -562,7 +571,7 @@ public class EventDetails extends Fragment {
                     }
                     
                     // Get list of all user device IDs on waitlist
-                    java.util.List<String> waitlistUserIds = new java.util.ArrayList<>();
+                    List<String> waitlistUserIds = new ArrayList<>();
                     querySnapshot.forEach(doc -> {
                         waitlistUserIds.add(doc.getId());
                     });
@@ -578,8 +587,8 @@ public class EventDetails extends Fragment {
                     }
                     
                     // Randomly shuffle and select
-                    java.util.Collections.shuffle(waitlistUserIds);
-                    java.util.List<String> selectedUsers = waitlistUserIds.subList(0, numToSelect);
+                    Collections.shuffle(waitlistUserIds);
+                    List<String> selectedUsers = waitlistUserIds.subList(0, numToSelect);
                     
                     // Move selected users to invitation list
                     moveToInvitationList(selectedUsers, waitlistSize, numToSelect);
@@ -589,7 +598,7 @@ public class EventDetails extends Fragment {
                 });
     }
 
-    private void moveToInvitationList(java.util.List<String> selectedUsers, int totalWaitlist, int numSelected) {
+    private void moveToInvitationList(List<String> selectedUsers, int totalWaitlist, int numSelected) {
         if (event == null || event.getDocumentId() == null) return;
         
         // Get current draw round number
@@ -600,11 +609,11 @@ public class EventDetails extends Fragment {
                     int drawRound = (currentRound != null ? currentRound.intValue() : 0) + 1;
                     
                     // Batch write to move users to invitation_list
-                    com.google.firebase.firestore.WriteBatch batch = db.batch();
+                    WriteBatch batch = db.batch();
                     
                     for (String userId : selectedUsers) {
                         // Add to invitation_list (pending acceptance)
-                        com.google.firebase.firestore.DocumentReference invitationRef = 
+                        DocumentReference invitationRef = 
                             db.collection("events").document(event.getDocumentId())
                                 .collection("invitation_list").document(userId);
                         
@@ -618,14 +627,14 @@ public class EventDetails extends Fragment {
                         batch.set(invitationRef, invitationData);
                         
                         // Remove from waitlist
-                        com.google.firebase.firestore.DocumentReference waitlistRef = 
+                        DocumentReference waitlistRef = 
                             db.collection("events").document(event.getDocumentId())
                                 .collection("waitlist").document(userId);
                         batch.delete(waitlistRef);
                     }
                     
                     // Update draw round in event document
-                    com.google.firebase.firestore.DocumentReference eventRef = 
+                    DocumentReference eventRef = 
                         db.collection("events").document(event.getDocumentId());
                     batch.update(eventRef, "drawRound", drawRound);
                     batch.update(eventRef, "lastDrawTimestamp", System.currentTimeMillis());
@@ -642,7 +651,7 @@ public class EventDetails extends Fragment {
                                 // Refresh organizer status if organizer
                                 if (isOrganizer) {
                                     // Slight delay to allow Firestore to update
-                                    new android.os.Handler().postDelayed(() -> {
+                                    new Handler().postDelayed(() -> {
                                         showOrganizerStatus();
                                     }, 1000);
                                 }
@@ -772,16 +781,16 @@ public class EventDetails extends Fragment {
                         acceptedData.put("acceptedAt", System.currentTimeMillis());
                         
                         // Batch operation: add to acceptedList and remove from invitation_list
-                        com.google.firebase.firestore.WriteBatch batch = db.batch();
+                        WriteBatch batch = db.batch();
                         
                         // Add to acceptedList
-                        com.google.firebase.firestore.DocumentReference acceptedRef = 
+                        DocumentReference acceptedRef = 
                             db.collection("events").document(event.getDocumentId())
                                 .collection("acceptedList").document(deviceId);
                         batch.set(acceptedRef, acceptedData);
                         
                         // Remove from invitation_list
-                        com.google.firebase.firestore.DocumentReference invitationRef = 
+                        DocumentReference invitationRef = 
                             db.collection("events").document(event.getDocumentId())
                                 .collection("invitation_list").document(deviceId);
                         batch.delete(invitationRef);
@@ -809,7 +818,7 @@ public class EventDetails extends Fragment {
         if (event == null || event.getDocumentId() == null) return;
         
         // Confirm decline
-        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Decline Invitation?")
                 .setMessage("Are you sure you want to decline this invitation? This spot will be offered to someone else.")
                 .setNegativeButton("Cancel", null)
@@ -883,7 +892,7 @@ public class EventDetails extends Fragment {
     }
 
     private String getOrCreateDeviceId() {
-        SharedPreferences sp = requireActivity().getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE);
+        SharedPreferences sp = requireActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String deviceId = sp.getString("device_id", null);
         if (deviceId == null) {
             deviceId = UUID.randomUUID().toString();
