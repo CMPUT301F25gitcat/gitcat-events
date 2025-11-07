@@ -140,6 +140,11 @@ public class Event implements Serializable {
      * @return the maximum waitlist size of the event (can be null)
      */
     @Nullable
+    /**
+     * This gets the maximum waitlist size
+     * @return
+     * returns the maximum waitlist size, can be null
+     */
     public Integer getMaxWaitListSize() {
         return maxWaitListSize;
     }

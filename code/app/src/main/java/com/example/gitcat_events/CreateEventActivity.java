@@ -53,6 +53,7 @@ public class CreateEventActivity extends AppCompatActivity {
     private Button btnSelectPoster, btnSelectRegistrationStartDate, btnSelectEventDate, btnSelectRaffleDate, btnCreateEvent;
     private TextView tvRegistrationStartDateDisplay, tvEventDateDisplay, tvRaffleDateDisplay;
     private SwitchMaterial switchGeoLocation;
+    private android.widget.ImageButton btnBack;
 
     private Uri selectedPosterUri;
     private Calendar selectedRegistrationStartDate;
@@ -86,6 +87,7 @@ public class CreateEventActivity extends AppCompatActivity {
         etEventDescription = findViewById(R.id.etEventDescription);
         etCapacity = findViewById(R.id.etCapacity);
         etMaxWaitlist = findViewById(R.id.etMaxWaitlist);
+        etSelectionCriteria = findViewById(R.id.etSelectionCriteria);
         btnSelectPoster = findViewById(R.id.btnSelectPoster);
         btnSelectRegistrationStartDate = findViewById(R.id.btnSelectRegistrationStartDate);
         btnSelectEventDate = findViewById(R.id.btnSelectEventDate);
@@ -103,6 +105,12 @@ public class CreateEventActivity extends AppCompatActivity {
         btnSelectEventDate.setOnClickListener(v -> selectEventDate());
         btnSelectRaffleDate.setOnClickListener(v -> selectRaffleDate());
         btnCreateEvent.setOnClickListener(v -> createEvent());
+    }
+    
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        finish();
     }
 
     private void selectPoster() {
@@ -166,6 +174,9 @@ public class CreateEventActivity extends AppCompatActivity {
     }
 
     private void createEvent() {
+        // Disable button to prevent duplicate submissions
+        btnCreateEvent.setEnabled(false);
+        
         // Validate inputs
         String name = etEventName.getText().toString().trim();
         String description = etEventDescription.getText().toString().trim();
@@ -266,6 +277,12 @@ public class CreateEventActivity extends AppCompatActivity {
         }
 
         boolean geoLocationRequired = switchGeoLocation.isChecked();
+        String selectionCriteria = etSelectionCriteria.getText().toString().trim();
+        
+        // If no criteria provided, use default
+        if (selectionCriteria.isEmpty()) {
+            selectionCriteria = "Random selection from all registered participants. All entrants have an equal chance of being selected.";
+        }
 
         // Get organizer ID (current user's profile ID)
         SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
@@ -345,6 +362,7 @@ public class CreateEventActivity extends AppCompatActivity {
             data.put("poster", event.getPoster());
             data.put("organizer", event.getOrganizer());
             data.put("organizerDeviceId", event.getOrganizerDeviceId());
+            data.put("selectionCriteria", event.getSelectionCriteria());
             data.put("eventId", next);
 
             transaction.set(eventRef, data);
@@ -366,12 +384,15 @@ public class CreateEventActivity extends AppCompatActivity {
             progressDialog.dismiss();
             Toast.makeText(this, "Event created successfully!", Toast.LENGTH_LONG).show();
             
-            // Return to Create fragment
+            // Return to Create fragment (button stays disabled since we're leaving)
             finish();
         }).addOnFailureListener(e -> {
             progressDialog.dismiss();
             Log.e(TAG, "Failed to create event", e);
             Toast.makeText(this, "Failed to create event: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            
+            // Re-enable button on failure so user can try again
+            btnCreateEvent.setEnabled(true);
         });
     }
 

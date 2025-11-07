@@ -48,32 +48,111 @@
         app:layout_constraintTop_toBottomOf="@+id/ivEventPoster"
         tools:layout_editor_absoluteX="10dp">
 
-        <LinearLayout
+        <Button
+            android:id="@+id/eventDetailsBackBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:text="← Back"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Event"
+            android:textColor="#2260FF"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/eventDetailsBackBtn" />
+
+        <ImageView
+            android:id="@+id/ivEventPoster"
+            android:layout_width="227dp"
+            android:layout_height="210dp"
+            android:layout_marginTop="20dp"
+            android:scaleType="centerCrop"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/textView"
+            app:srcCompat="@drawable/ic_launcher_background" />
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardView"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_margin="10sp"
-            android:orientation="vertical">
+            android:layout_height="wrap_content"
+            android:layout_margin="20dp"
+            android:background="#CAD6FF"
+            app:cardBackgroundColor="#CAD6FF"
+            app:cardCornerRadius="10dp"
+            app:cardElevation="8dp"
+            app:layout_constraintTop_toBottomOf="@+id/ivEventPoster">
 
-            <TextView
-                android:id="@+id/eventDetailsName"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="TextView" />
+                android:layout_height="match_parent"
+                android:layout_margin="10sp"
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/eventDetailsDate"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="TextView" />
+                <TextView
+                    android:id="@+id/eventDetailsName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Event Name"
+                    android:textStyle="bold"
+                    android:textSize="18sp"
+                    android:layout_marginBottom="8dp"/>
 
-            <TextView
-                android:id="@+id/eventDetailsSpots"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="TextView" />
+                <TextView
+                    android:id="@+id/eventDetailsDate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Date"
+                    android:layout_marginBottom="8dp"/>
 
-            <TextView
-                android:id="@+id/eventDetailsDesc"
+                <TextView
+                    android:id="@+id/eventDetailsSpots"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Capacity"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:id="@+id/eventDetailsWaitinglist"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Waiting List: 0"
+                    android:textColor="#2260FF"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:id="@+id/eventDetailsDesc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Description"/>
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Selection Criteria Card -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/selectionCriteriaCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:layout_marginEnd="20dp"
+            android:layout_marginTop="16dp"
+            android:background="#E3F2FD"
+            app:cardBackgroundColor="#E3F2FD"
+            app:cardCornerRadius="10dp"
+            app:cardElevation="4dp"
+            app:layout_constraintTop_toBottomOf="@+id/cardView">
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="TextView" />
