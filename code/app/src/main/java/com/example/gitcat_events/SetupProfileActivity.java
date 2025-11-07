@@ -43,7 +43,7 @@ public class SetupProfileActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private ImageView ivSetupProfilePicture;
     private TextInputEditText etSetupName, etSetupEmail, etSetupPhone;
-    private Button btnSelectSetupProfilePicture, btnCreateProfile, btnSkip;
+    private Button btnSelectImage, btnCreateProfile, btnSkip;
     
     private Uri selectedImageUri;
     private String base64Image = null;
@@ -73,12 +73,12 @@ public class SetupProfileActivity extends AppCompatActivity {
         etSetupName = findViewById(R.id.etSetupName);
         etSetupEmail = findViewById(R.id.etSetupEmail);
         etSetupPhone = findViewById(R.id.etSetupPhone);
-        btnSelectSetupProfilePicture = findViewById(R.id.btnSelectSetupProfilePicture);
+        btnSelectImage = findViewById(R.id.btnSelectImage);
         btnCreateProfile = findViewById(R.id.btnCreateProfile);
         btnSkip = findViewById(R.id.btnSkip);
 
         // Setup image picker
-        btnSelectSetupProfilePicture.setOnClickListener(v -> {
+        btnSelectImage.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_PICK);
             intent.setType("image/*");
             imagePickerLauncher.launch(intent);
