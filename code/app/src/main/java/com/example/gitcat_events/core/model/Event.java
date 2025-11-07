@@ -2,11 +2,12 @@ package com.example.gitcat_events.core.model;
 
 import androidx.annotation.Nullable;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 
-public class Event {
+public class Event implements Serializable {
     //TODO: javadocs, waitlist functions, accepted list functions, tests
     //based off CRC card in wiki: https://github.com/CMPUT301F25gitcat/gitcat-events/wiki/Part-3:-CRC-Cards#event
     private String name;

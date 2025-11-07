@@ -40,7 +40,6 @@ public class EventArrayAdapter extends ArrayAdapter<Event> {
         TextView eventDescription = view.findViewById(R.id.eventCardSubtitleText);
         TextView eventDate = view.findViewById((R.id.eventCardDateText));
 
-
         eventName.setText(event.getName());
         eventDescription.setText(event.getDescription());
 
