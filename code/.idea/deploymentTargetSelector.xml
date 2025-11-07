@@ -8,9 +8,6 @@
       <SelectionState runConfigName="Tests in 'com.example.gitcat_events.classTests'">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="Tests in 'com.example.gitcat_events.organizerTests'">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
     </selectionStates>
   </component>
 </project>
