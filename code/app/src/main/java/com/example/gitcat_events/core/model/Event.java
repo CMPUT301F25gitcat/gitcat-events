@@ -3,6 +3,7 @@ package com.example.gitcat_events.core.model;
 import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 
 public class Event {
@@ -12,15 +13,16 @@ public class Event {
     private String description;
     private int capacity;   //refers to the size of the final list
     @Nullable private Integer maxWaitListSize;
-    private Date eventDate;
-    private Date raffleDate;
+    private Calendar eventDate;
+    private Calendar raffleDate;
+    private Boolean geoLocationRequired;
 
     //current plan is to store images as strings
     private String poster;
     //private QRCode qrCode; --QRCode class is not done yet
     private int organizer;
 
-    public Event(String name, String description, int capacity, @Nullable Integer maxWaitListSize, String poster,  Date raffleDate, Date eventDate) {
+    public Event(String name, String description, int capacity, @Nullable Integer maxWaitListSize, String poster,  Calendar raffleDate, Calendar eventDate, Boolean geoLocationRequired) {
         this.name = name;
         this.description = description;
         this.capacity = capacity;
@@ -28,6 +30,7 @@ public class Event {
         this.poster = poster;
         this.eventDate = eventDate;
         this.raffleDate = raffleDate;
+        this.geoLocationRequired = geoLocationRequired;
         //this.qrCode = new QRCode;  --QR code class not ready yet
     }
 
@@ -82,19 +85,19 @@ public class Event {
         this.poster = poster;
     }
 
-    public Date getEventDate() {
+    public Calendar getEventDate() {
         return eventDate;
     }
 
-    public Date getRaffleDate() {
+    public Calendar getRaffleDate() {
         return raffleDate;
     }
 
-    public void setEventDate(Date eventDate) {
+    public void setEventDate(Calendar eventDate) {
         this.eventDate = eventDate;
     }
 
-    public void setRaffleDate(Date raffleDate) {
+    public void setRaffleDate(Calendar raffleDate) {
         this.raffleDate = raffleDate;
     }
     /*public void setQRCode(QRCode qrCode) {  -- QR code class is not ready yet
