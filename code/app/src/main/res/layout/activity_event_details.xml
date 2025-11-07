@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".EventDetailsActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Event Poster -->
+        <ImageView
+            android:id="@+id/ivEventDetailsPoster"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:scaleType="centerCrop"
+            android:background="@android:color/darker_gray"
+            android:contentDescription="Event Poster"/>
+
+        <!-- Event Details Container -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <!-- Event Name -->
+            <TextView
+                android:id="@+id/tvEventDetailsName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Event Name"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorPrimary"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Event Description -->
+            <TextView
+                android:id="@+id/tvEventDetailsDescription"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Event description..."
+                android:textSize="16sp"
+                android:lineSpacingMultiplier="1.2"
+                android:layout_marginBottom="24dp"/>
+
+            <!-- Event Info Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Event Information"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp"/>
+
+            <!-- Event Date -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+                
+                <TextView
+                    android:layout_width="140dp"
+                    android:layout_height="wrap_content"
+                    android:text="Event Date:"
+                    android:textStyle="bold"
+                    android:textSize="14sp"/>
+                
+                <TextView
+                    android:id="@+id/tvEventDetailsDate"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Date"
+                    android:textSize="14sp"/>
+            </LinearLayout>
+
+            <!-- Registration Deadline -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+                
+                <TextView
+                    android:layout_width="140dp"
+                    android:layout_height="wrap_content"
+                    android:text="Registration Closes:"
+                    android:textStyle="bold"
+                    android:textSize="14sp"/>
+                
+                <TextView
+                    android:id="@+id/tvEventDetailsRaffleDate"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Date"
+                    android:textSize="14sp"/>
+            </LinearLayout>
+
+            <!-- Capacity -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+                
+                <TextView
+                    android:layout_width="140dp"
+                    android:layout_height="wrap_content"
+                    android:text="Capacity:"
+                    android:textStyle="bold"
+                    android:textSize="14sp"/>
+                
+                <TextView
+                    android:id="@+id/tvEventDetailsCapacity"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="100"
+                    android:textSize="14sp"/>
+            </LinearLayout>
+
+            <!-- Waiting List Count -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+                
+                <TextView
+                    android:layout_width="140dp"
+                    android:layout_height="wrap_content"
+                    android:text="Waiting List:"
+                    android:textStyle="bold"
+                    android:textSize="14sp"/>
+                
+                <TextView
+                    android:id="@+id/tvWaitingListCount"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="0"
+                    android:textSize="14sp"
+                    android:textColor="?attr/colorPrimary"/>
+            </LinearLayout>
+
+            <!-- Geolocation Required -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="24dp">
+                
+                <TextView
+                    android:layout_width="140dp"
+                    android:layout_height="wrap_content"
+                    android:text="Geolocation:"
+                    android:textStyle="bold"
+                    android:textSize="14sp"/>
+                
+                <TextView
+                    android:id="@+id/tvEventDetailsGeolocation"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Not required"
+                    android:textSize="14sp"/>
+            </LinearLayout>
+
+            <!-- Join Waiting List Button -->
+            <Button
+                android:id="@+id/btnJoinWaitingList"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="Join Waiting List"
+                android:textSize="18sp"
+                android:textColor="@android:color/white"/>
+
+            <!-- Status Message -->
+            <TextView
+                android:id="@+id/tvStatusMessage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textSize="14sp"
+                android:textColor="@android:color/holo_green_dark"
+                android:layout_marginTop="16dp"
+                android:visibility="gone"/>
+
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
+

@@ -22,6 +22,7 @@ public class Event implements Serializable {
     private String poster;
     //private QRCode qrCode; --QRCode class is not done yet
     private String organizerDeviceId; // Device ID of the organizer (permanent identifier)
+    private String documentId; // Firestore document ID (not stored in DB, set when loaded)
 
     // No-arg constructor for Firebase
     public Event() {
@@ -122,6 +123,15 @@ public class Event implements Serializable {
 
     public void setOrganizerDeviceId(String organizerDeviceId) {
         this.organizerDeviceId = organizerDeviceId;
+    }
+
+    // Document ID (Firestore)
+    public String getDocumentId() {
+        return documentId;
+    }
+
+    public void setDocumentId(String documentId) {
+        this.documentId = documentId;
     }
 
     /*public void setQRCode(QRCode qrCode) {  -- QR code class is not ready yet

@@ -107,6 +107,7 @@ public class CreateFragment extends Fragment {
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         try {
                             Event event = new Event();
+                            event.setDocumentId(document.getId()); // Store document ID
                             event.setName(document.getString("name"));
                             event.setDescription(document.getString("description"));
                             
@@ -228,10 +229,11 @@ public class CreateFragment extends Fragment {
                     ivEventThumbnail.setImageResource(R.drawable.ic_launcher_foreground);
                 }
 
-                // Click listener for event item (future: navigate to event details)
+                // Click listener for event item - navigate to event details
                 itemView.setOnClickListener(v -> {
-                    Toast.makeText(getContext(), "Event: " + event.getName(), Toast.LENGTH_SHORT).show();
-                    // TODO: Navigate to event details page
+                    Intent intent = new Intent(getContext(), EventDetailsActivity.class);
+                    intent.putExtra("eventId", event.getDocumentId());
+                    startActivity(intent);
                 });
             }
         }
