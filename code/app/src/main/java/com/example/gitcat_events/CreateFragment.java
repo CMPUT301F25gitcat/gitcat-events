@@ -1,5 +1,6 @@
 package com.example.gitcat_events;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -17,6 +18,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -95,7 +97,7 @@ public class CreateFragment extends Fragment {
     }
 
     private void loadUserEvents() {
-        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, getContext().MODE_PRIVATE);
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String profileIdStr = prefs.getString(KEY_PROFILE_ID, null);
         
         if (profileIdStr == null) {
@@ -212,7 +214,7 @@ public class CreateFragment extends Fragment {
         class EventViewHolder extends RecyclerView.ViewHolder {
             ImageView ivEventThumbnail;
             TextView tvEventName, tvEventDescription, tvEventDate, tvEventCapacity;
-            android.widget.ImageButton btnEditEvent;
+            ImageButton btnEditEvent;
 
             EventViewHolder(@NonNull View itemView) {
                 super(itemView);

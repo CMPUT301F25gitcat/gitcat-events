@@ -5,7 +5,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -42,7 +44,7 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
     private TextView tvAcceptedListEmpty;
     private TextView tvAcceptedListCount;
     private TextView tvCapacityInfo;
-    private android.widget.ImageButton btnBack;
+    private ImageButton btnBack;
     private Button btnExportCsv;
     
     private String eventId;
@@ -374,7 +376,7 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
 
         @NonNull
         @Override
-        public ViewHolder onCreateViewHolder(@NonNull android.view.ViewGroup parent, int viewType) {
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View view = getLayoutInflater().inflate(R.layout.item_accepted_entry, parent, false);
             return new ViewHolder(view);
         }

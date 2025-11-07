@@ -144,13 +144,13 @@ public class EntrantManagementTests {
         
         // All should be for the same event
         assertEquals("All entries should be for same event",
-                entry1.getEventID(), entry2.getEventID());
+                entry1.getEventId(), entry2.getEventId());
         assertEquals("All entries should be for same event",
-                entry2.getEventID(), entry3.getEventID());
+                entry2.getEventId(), entry3.getEventId());
         
         // But different users
         assertNotEquals("Should be different users", 
-                entry1.getUserDeviceID(), entry2.getUserDeviceID());
+                entry1.getUserDeviceId(), entry2.getUserDeviceId());
     }
 
     @Test
