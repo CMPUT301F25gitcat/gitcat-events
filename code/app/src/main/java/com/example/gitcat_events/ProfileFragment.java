@@ -167,39 +167,66 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
         
         new androidx.appcompat.app.AlertDialog.Builder(getContext())
                 .setTitle("Delete profile?")
-                .setMessage("This will permanently remove your profile from the database.")
+                .setMessage("This will permanently remove your profile and all your created events from the database.")
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Delete", (dialog, which) -> deleteProfileById(id))
                 .show();
     }
     
     private void deleteProfileById(String id) {
-        db.collection("profiles").document(id).delete()
-                .addOnSuccessListener(v -> {
-                    if (getContext() == null) return;
+        // First, delete all events created by this device
+        String deviceId = getOrCreateDeviceId();
+        
+        db.collection("events")
+                .whereEqualTo("organizerDeviceId", deviceId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    // Delete each event
+                    com.google.firebase.firestore.WriteBatch batch = db.batch();
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : querySnapshot) {
+                        batch.delete(doc.getReference());
+                    }
                     
-                    // Clear local state
-                    SharedPreferences sp = getActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-                    sp.edit().remove(KEY_PROFILE_ID).apply();
-                    
-                    // Clear current profile
-                    currentProfile = null;
-                    
-                    // Clear UI
-                    tvFragmentName.setText("No profile yet");
-                    tvFragmentEmail.setText("—");
-                    tvFragmentPhone.setText("—");
-                    ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
-                    
-                    Toast.makeText(getContext(), "Profile deleted successfully.", Toast.LENGTH_SHORT).show();
-                    
-                    // Redirect to setup page
-                    Intent intent = new Intent(getActivity(), SetupProfileActivity.class);
-                    startActivity(intent);
+                    // Execute batch delete of events
+                    batch.commit().addOnSuccessListener(v -> {
+                        // Now delete the profile
+                        db.collection("profiles").document(id).delete()
+                                .addOnSuccessListener(v2 -> {
+                                    if (getContext() == null) return;
+                                    
+                                    // Clear local state
+                                    SharedPreferences sp = getActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+                                    sp.edit().remove(KEY_PROFILE_ID).apply();
+                                    
+                                    // Clear current profile
+                                    currentProfile = null;
+                                    
+                                    // Clear UI
+                                    tvFragmentName.setText("No profile yet");
+                                    tvFragmentEmail.setText("—");
+                                    tvFragmentPhone.setText("—");
+                                    ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
+                                    
+                                    Toast.makeText(getContext(), "Profile and all events deleted successfully.", Toast.LENGTH_SHORT).show();
+                                    
+                                    // Redirect to setup page
+                                    Intent intent = new Intent(getActivity(), SetupProfileActivity.class);
+                                    startActivity(intent);
+                                })
+                                .addOnFailureListener(e -> {
+                                    if (getContext() != null) {
+                                        Toast.makeText(getContext(), "Failed to delete profile: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                    }
+                                });
+                    }).addOnFailureListener(e -> {
+                        if (getContext() != null) {
+                            Toast.makeText(getContext(), "Failed to delete events: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
                 })
                 .addOnFailureListener(e -> {
                     if (getContext() != null) {
-                        Toast.makeText(getContext(), "Delete failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(getContext(), "Failed to find events: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
     }

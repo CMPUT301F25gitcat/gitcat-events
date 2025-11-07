@@ -95,18 +95,11 @@ public class CreateFragment extends Fragment {
     }
 
     private void loadUserEvents() {
-        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, getContext().MODE_PRIVATE);
-        String profileIdStr = prefs.getString(KEY_PROFILE_ID, null);
-        
-        if (profileIdStr == null) {
-            Toast.makeText(getContext(), "Error: No user profile found", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        int organizerId = Integer.parseInt(profileIdStr);
+        // Get device ID (permanent organizer identifier)
+        String deviceId = getOrCreateDeviceId();
 
         db.collection("events")
-                .whereEqualTo("organizer", organizerId)
+                .whereEqualTo("organizerDeviceId", deviceId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     eventsList.clear();
@@ -125,8 +118,8 @@ public class CreateFragment extends Fragment {
                             
                             event.setPoster(document.getString("poster"));
                             
-                            Long organizer = document.getLong("organizer");
-                            event.setOrganizer(organizer != null ? organizer.intValue() : 0);
+                            String organizerDeviceId = document.getString("organizerDeviceId");
+                            event.setOrganizerDeviceId(organizerDeviceId);
                             
                             Boolean geoLocation = document.getBoolean("geoLocationRequired");
                             event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
@@ -257,5 +250,24 @@ public class CreateFragment extends Fragment {
             Log.e(TAG, "Failed to decode Base64 image", e);
             imageView.setImageResource(R.drawable.ic_launcher_foreground);
         }
+    }
+
+    private String getOrCreateDeviceId() {
+        SharedPreferences sp = requireContext().getSharedPreferences(PREFS, requireContext().MODE_PRIVATE);
+        String deviceId = sp.getString("device_id", null);
+
+        if (deviceId == null) {
+            try {
+                deviceId = android.provider.Settings.Secure.getString(requireContext().getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to get Android ID", e);
+            }
+
+            if (deviceId == null || deviceId.isEmpty()) {
+                deviceId = java.util.UUID.randomUUID().toString();
+            }
+            sp.edit().putString("device_id", deviceId).apply();
+        }
+        return deviceId;
     }
 }

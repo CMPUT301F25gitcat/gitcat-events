@@ -168,14 +168,8 @@ public class CreateEventActivity extends AppCompatActivity {
         Integer maxWaitlist = maxWaitlistStr.isEmpty() ? null : Integer.parseInt(maxWaitlistStr);
         boolean geoLocationRequired = switchGeoLocation.isChecked();
 
-        // Get organizer ID (current user's profile ID)
-        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-        String profileIdStr = prefs.getString(KEY_PROFILE_ID, null);
-        if (profileIdStr == null) {
-            Toast.makeText(this, "Error: No user profile found", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        int organizerId = Integer.parseInt(profileIdStr);
+        // Get organizer device ID (permanent identifier)
+        String organizerDeviceId = getOrCreateDeviceId();
 
         // Show progress dialog
         ProgressDialog progressDialog = new ProgressDialog(this);
@@ -205,7 +199,7 @@ public class CreateEventActivity extends AppCompatActivity {
                 selectedEventDate,
                 geoLocationRequired
         );
-        newEvent.setOrganizer(organizerId);
+        newEvent.setOrganizerDeviceId(organizerDeviceId);
 
         // Save to Firestore with auto-incrementing ID
         saveEventToFirestore(newEvent, progressDialog);
@@ -238,7 +232,7 @@ public class CreateEventActivity extends AppCompatActivity {
             data.put("raffleDate", event.getRaffleDate().getTime());
             data.put("geoLocationRequired", event.getGeoLocationRequired());
             data.put("poster", event.getPoster());
-            data.put("organizer", event.getOrganizer());
+            data.put("organizerDeviceId", event.getOrganizerDeviceId());
             data.put("eventId", next);
 
             transaction.set(eventRef, data);
@@ -300,6 +294,25 @@ public class CreateEventActivity extends AppCompatActivity {
         int newHeight = Math.round(height * ratio);
 
         return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true);
+    }
+
+    private String getOrCreateDeviceId() {
+        SharedPreferences sp = getSharedPreferences(PREFS, MODE_PRIVATE);
+        String deviceId = sp.getString("device_id", null);
+
+        if (deviceId == null) {
+            try {
+                deviceId = android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to get Android ID", e);
+            }
+
+            if (deviceId == null || deviceId.isEmpty()) {
+                deviceId = java.util.UUID.randomUUID().toString();
+            }
+            sp.edit().putString("device_id", deviceId).apply();
+        }
+        return deviceId;
     }
 }
 
