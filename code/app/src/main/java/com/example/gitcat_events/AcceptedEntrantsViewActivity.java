@@ -1,10 +1,15 @@
 package com.example.gitcat_events;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.core.content.FileProvider;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -15,6 +20,9 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -35,6 +43,7 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
     private TextView tvAcceptedListCount;
     private TextView tvCapacityInfo;
     private android.widget.ImageButton btnBack;
+    private Button btnExportCsv;
     
     private String eventId;
     private String eventName;
@@ -66,6 +75,7 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
         tvAcceptedListEmpty = findViewById(R.id.tvAcceptedListEmpty);
         tvAcceptedListCount = findViewById(R.id.tvAcceptedListCount);
         tvCapacityInfo = findViewById(R.id.tvCapacityInfo);
+        btnExportCsv = findViewById(R.id.btnExportCsv);
         TextView tvEventName = findViewById(R.id.tvEventName);
 
         // Set event name
@@ -83,6 +93,9 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
 
         // Setup back button
         btnBack.setOnClickListener(v -> finish());
+        
+        // Setup export CSV button
+        btnExportCsv.setOnClickListener(v -> exportToCsv());
 
         // Load accepted list
         loadAcceptedList();
@@ -223,6 +236,7 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
                 tvCapacityInfo.setVisibility(View.GONE);
             }
             
+            btnExportCsv.setEnabled(true);
             adapter.notifyDataSetChanged();
         }
     }
@@ -232,6 +246,110 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
         rvAcceptedList.setVisibility(View.GONE);
         tvAcceptedListCount.setText("Total Enrolled: 0");
         tvCapacityInfo.setVisibility(View.GONE);
+        btnExportCsv.setEnabled(false);
+    }
+    
+    private void exportToCsv() {
+        if (acceptedEntries == null || acceptedEntries.isEmpty()) {
+            Toast.makeText(this, "No enrolled entrants to export", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        try {
+            // Create CSV content
+            StringBuilder csvContent = new StringBuilder();
+            
+            // Add header
+            csvContent.append("Position,Name,Email,Phone,Draw Round,Invited Date,Accepted Date\n");
+            
+            // Add data rows
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+            for (int i = 0; i < acceptedEntries.size(); i++) {
+                AcceptedEntryDisplay entry = acceptedEntries.get(i);
+                
+                // Escape CSV fields (wrap in quotes and escape existing quotes)
+                String name = escapeCsvField(entry.name != null ? entry.name : "");
+                String email = escapeCsvField(entry.email != null ? entry.email : "");
+                String phone = escapeCsvField(entry.phone != null ? entry.phone : "");
+                String invitedDate = entry.invitedTimestamp != null ? 
+                        sdf.format(new Date(entry.invitedTimestamp)) : "";
+                String acceptedDate = entry.acceptedTimestamp != null ? 
+                        sdf.format(new Date(entry.acceptedTimestamp)) : "";
+                
+                csvContent.append(String.format("%d,%s,%s,%s,%d,%s,%s\n",
+                        i + 1,
+                        name,
+                        email,
+                        phone,
+                        entry.drawRound,
+                        invitedDate,
+                        acceptedDate
+                ));
+            }
+            
+            // Create file name with event name and timestamp
+            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
+                    .format(new Date());
+            String fileName = String.format("%s_enrolled_entrants_%s.csv",
+                    sanitizeFileName(eventName != null ? eventName : "Event"),
+                    timestamp);
+            
+            // Save file to cache directory (no permissions needed)
+            File cacheDir = getCacheDir();
+            File csvFile = new File(cacheDir, fileName);
+            
+            FileWriter writer = new FileWriter(csvFile);
+            writer.write(csvContent.toString());
+            writer.close();
+            
+            // Share the file
+            shareFile(csvFile);
+            
+        } catch (IOException e) {
+            Log.e(TAG, "Error creating CSV file", e);
+            Toast.makeText(this, "Failed to export CSV: " + e.getMessage(), 
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+    
+    private String escapeCsvField(String field) {
+        if (field == null) return "\"\"";
+        // Wrap in quotes and escape existing quotes by doubling them
+        return "\"" + field.replace("\"", "\"\"") + "\"";
+    }
+    
+    private String sanitizeFileName(String name) {
+        // Remove or replace characters that are invalid in file names
+        return name.replaceAll("[^a-zA-Z0-9\\-_]", "_");
+    }
+    
+    private void shareFile(File file) {
+        try {
+            // Use FileProvider to share the file
+            Uri fileUri = FileProvider.getUriForFile(
+                    this,
+                    getPackageName() + ".fileprovider",
+                    file
+            );
+            
+            // Create share intent
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            shareIntent.setType("text/csv");
+            shareIntent.putExtra(Intent.EXTRA_STREAM, fileUri);
+            shareIntent.putExtra(Intent.EXTRA_SUBJECT, 
+                    String.format("%s - Enrolled Entrants", eventName != null ? eventName : "Event"));
+            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            
+            // Show share dialog
+            startActivity(Intent.createChooser(shareIntent, "Export CSV via..."));
+            
+            Toast.makeText(this, "CSV file ready to share", Toast.LENGTH_SHORT).show();
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error sharing file", e);
+            Toast.makeText(this, "Failed to share file: " + e.getMessage(), 
+                    Toast.LENGTH_LONG).show();
+        }
     }
 
     // Data class for displaying accepted entries
