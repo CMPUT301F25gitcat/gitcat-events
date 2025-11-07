@@ -23,6 +23,7 @@ public class Event implements Serializable {
     //private QRCode qrCode; --QRCode class is not done yet
     private String organizerDeviceId; // Device ID of the organizer (permanent identifier)
     private String documentId; // Firestore document ID (not stored in DB, set when loaded)
+    @Nullable private String selectionCriteria; // Guidelines/criteria for lottery selection
 
     // No-arg constructor for Firebase
     public Event() {
@@ -132,6 +133,16 @@ public class Event implements Serializable {
 
     public void setDocumentId(String documentId) {
         this.documentId = documentId;
+    }
+
+    // Selection Criteria
+    @Nullable
+    public String getSelectionCriteria() {
+        return selectionCriteria;
+    }
+
+    public void setSelectionCriteria(@Nullable String selectionCriteria) {
+        this.selectionCriteria = selectionCriteria;
     }
 
     /*public void setQRCode(QRCode qrCode) {  -- QR code class is not ready yet
