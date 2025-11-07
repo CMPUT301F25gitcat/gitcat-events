@@ -44,7 +44,7 @@ public class EventDetails extends Fragment {
     private ImageView ivEventPoster;
     private TextView tvEventName, tvEventDate, tvEventSpots, tvEventDesc;
     private TextView tvWaitingListCount, tvStatusMessage, tvSelectionCriteria;
-    private Button btnJoinWaitingList, btnBack, btnRunRaffle;
+    private Button btnJoinWaitingList, btnBack, btnRunRaffle, btnViewWaitingList;
     private Button btnAcceptInvitation, btnDeclineInvitation;
     private android.view.ViewGroup invitationButtons;
 
@@ -83,6 +83,7 @@ public class EventDetails extends Fragment {
         tvSelectionCriteria = view.findViewById(R.id.tvSelectionCriteria);
         btnJoinWaitingList = view.findViewById(R.id.btnJoinWaitingList);
         btnRunRaffle = view.findViewById(R.id.btnRunRaffle);
+        btnViewWaitingList = view.findViewById(R.id.btnViewWaitingList);
         btnBack = view.findViewById(R.id.eventDetailsBackBtn);
         btnAcceptInvitation = view.findViewById(R.id.btnAcceptInvitation);
         btnDeclineInvitation = view.findViewById(R.id.btnDeclineInvitation);
@@ -102,6 +103,9 @@ public class EventDetails extends Fragment {
         
         // Set up raffle button (only visible to organizer)
         btnRunRaffle.setOnClickListener(v -> runRaffle());
+        
+        // Set up view waiting list button (only visible to organizer)
+        btnViewWaitingList.setOnClickListener(v -> viewWaitingList());
         
         // Set up invitation response buttons
         btnAcceptInvitation.setOnClickListener(v -> acceptInvitation());
@@ -162,14 +166,16 @@ public class EventDetails extends Fragment {
             btnJoinWaitingList.setVisibility(View.GONE);
             invitationButtons.setVisibility(View.GONE);
             btnRunRaffle.setVisibility(View.VISIBLE);
+            btnViewWaitingList.setVisibility(View.VISIBLE);
             
             // Show organizer status
             showOrganizerStatus();
             return;
         }
         
-        // Not organizer, hide raffle button
+        // Not organizer, hide organizer buttons
         btnRunRaffle.setVisibility(View.GONE);
+        btnViewWaitingList.setVisibility(View.GONE);
         
         // Check if user has a pending invitation
         checkInvitationStatus(deviceId);
@@ -412,6 +418,16 @@ public class EventDetails extends Fragment {
         
         // Calculate how many spots are available (for replacement draws)
         calculateAvailableSpots();
+    }
+    
+    private void viewWaitingList() {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Navigate to WaitlistViewActivity
+        android.content.Intent intent = new android.content.Intent(requireContext(), WaitlistViewActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
+        intent.putExtra("eventName", event.getName());
+        startActivity(intent);
     }
     
     private void calculateAvailableSpots() {

@@ -190,6 +190,23 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/tvStatusMessage" />
 
+        <!-- View Waiting List Button (for organizers) -->
+        <Button
+            android:id="@+id/btnViewWaitingList"
+            android:layout_width="0dp"
+            android:layout_height="60dp"
+            android:layout_marginStart="40dp"
+            android:layout_marginEnd="40dp"
+            android:layout_marginTop="12dp"
+            android:text="📋 View Waiting List"
+            android:textSize="16sp"
+            android:textColor="@android:color/white"
+            android:backgroundTint="@android:color/holo_blue_dark"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/btnRunRaffle" />
+
         <!-- Invitation Response Buttons (for invited entrants) -->
         <LinearLayout
             android:id="@+id/invitationButtons"
