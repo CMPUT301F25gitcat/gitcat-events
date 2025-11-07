@@ -148,11 +148,14 @@ public class EventSelectionCriteriaTests {
 
     // Helper method to create a test event
     private Event createTestEvent() {
-        Calendar eventDate = Calendar.getInstance();
-        eventDate.add(Calendar.DAY_OF_MONTH, 7);
+        Calendar registrationStartDate = Calendar.getInstance();
+        registrationStartDate.add(Calendar.DAY_OF_MONTH, 1);
         
         Calendar raffleDate = Calendar.getInstance();
         raffleDate.add(Calendar.DAY_OF_MONTH, 3);
+        
+        Calendar eventDate = Calendar.getInstance();
+        eventDate.add(Calendar.DAY_OF_MONTH, 7);
         
         Event event = new Event(
                 "Test Event",
@@ -160,6 +163,7 @@ public class EventSelectionCriteriaTests {
                 50,
                 100,
                 null,
+                registrationStartDate,
                 raffleDate,
                 eventDate,
                 false
