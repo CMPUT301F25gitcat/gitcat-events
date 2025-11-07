@@ -113,8 +113,20 @@ public class CreateFragment extends Fragment {
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     eventsList.clear();
                     
+                    // Use a Set to track document IDs and prevent duplicates
+                    java.util.Set<String> seenDocumentIds = new java.util.HashSet<>();
+                    
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         try {
+                            String docId = document.getId();
+                            
+                            // Skip if we've already seen this document ID
+                            if (seenDocumentIds.contains(docId)) {
+                                Log.w(TAG, "Duplicate event document ID found: " + docId + ", skipping");
+                                continue;
+                            }
+                            seenDocumentIds.add(docId);
+                            
                             Event event = new Event();
                             event.setName(document.getString("name"));
                             event.setDescription(document.getString("description"));
@@ -131,7 +143,7 @@ public class CreateFragment extends Fragment {
                             event.setOrganizer(organizer != null ? organizer.intValue() : 0);
                             
                             // Set document ID and organizer device ID
-                            event.setDocumentId(document.getId());
+                            event.setDocumentId(docId);
                             event.setOrganizerDeviceId(document.getString("organizerDeviceId"));
                             
                             Boolean geoLocation = document.getBoolean("geoLocationRequired");

@@ -207,15 +207,47 @@ public class CreateEventActivity extends AppCompatActivity {
         Integer maxWaitlist = maxWaitlistStr.isEmpty() ? null : Integer.parseInt(maxWaitlistStr);
 
         // Validate date order: registrationStart <= raffleDate <= eventDate
-        if (selectedRegistrationStartDate != null && selectedRaffleDate != null && 
-            selectedRegistrationStartDate.after(selectedRaffleDate)) {
-            Toast.makeText(this, "Registration start date must be before or equal to registration end date", Toast.LENGTH_LONG).show();
+        // Normalize dates to start of day for comparison (ignore time)
+        Calendar regStartNormalized = null;
+        Calendar raffleNormalized = null;
+        Calendar eventNormalized = null;
+        
+        if (selectedRegistrationStartDate != null) {
+            regStartNormalized = (Calendar) selectedRegistrationStartDate.clone();
+            regStartNormalized.set(Calendar.HOUR_OF_DAY, 0);
+            regStartNormalized.set(Calendar.MINUTE, 0);
+            regStartNormalized.set(Calendar.SECOND, 0);
+            regStartNormalized.set(Calendar.MILLISECOND, 0);
+        }
+        
+        if (selectedRaffleDate != null) {
+            raffleNormalized = (Calendar) selectedRaffleDate.clone();
+            raffleNormalized.set(Calendar.HOUR_OF_DAY, 0);
+            raffleNormalized.set(Calendar.MINUTE, 0);
+            raffleNormalized.set(Calendar.SECOND, 0);
+            raffleNormalized.set(Calendar.MILLISECOND, 0);
+        }
+        
+        if (selectedEventDate != null) {
+            eventNormalized = (Calendar) selectedEventDate.clone();
+            eventNormalized.set(Calendar.HOUR_OF_DAY, 0);
+            eventNormalized.set(Calendar.MINUTE, 0);
+            eventNormalized.set(Calendar.SECOND, 0);
+            eventNormalized.set(Calendar.MILLISECOND, 0);
+        }
+        
+        // Check: registrationStart <= raffleDate (allows equality)
+        if (regStartNormalized != null && raffleNormalized != null && 
+            regStartNormalized.after(raffleNormalized)) {
+            Toast.makeText(this, "Registration start date must be on or before final registration date", Toast.LENGTH_LONG).show();
             btnCreateEvent.setEnabled(true);
             return;
         }
-        if (selectedRaffleDate != null && selectedEventDate != null && 
-            selectedRaffleDate.after(selectedEventDate)) {
-            Toast.makeText(this, "Registration end date must be before or equal to event date", Toast.LENGTH_LONG).show();
+        
+        // Check: raffleDate <= eventDate (allows equality)
+        if (raffleNormalized != null && eventNormalized != null && 
+            raffleNormalized.after(eventNormalized)) {
+            Toast.makeText(this, "Final registration date must be on or before event date", Toast.LENGTH_LONG).show();
             btnCreateEvent.setEnabled(true);
             return;
         }
