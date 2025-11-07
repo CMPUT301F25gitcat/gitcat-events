@@ -102,11 +102,14 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
     private void loadProfile() {
         String profileId = getSavedDocId();
         if (profileId == null) {
-            // No profile yet, show default/empty state
+            // No profile yet, show creation dialog
             tvFragmentName.setText("No profile yet");
             tvFragmentEmail.setText("—");
             tvFragmentPhone.setText("—");
             ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
+            
+            // Auto-show profile creation dialog for first-time users
+            showProfileCreationDialog();
             return;
         }
 
@@ -177,6 +180,9 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                     SharedPreferences sp = getActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
                     sp.edit().remove(KEY_PROFILE_ID).apply();
                     
+                    // Clear current profile
+                    currentProfile = null;
+                    
                     // Clear UI
                     tvFragmentName.setText("No profile yet");
                     tvFragmentEmail.setText("—");
@@ -184,6 +190,9 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                     ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
                     
                     Toast.makeText(getContext(), "Profile deleted successfully.", Toast.LENGTH_SHORT).show();
+                    
+                    // Show profile creation dialog immediately
+                    showProfileCreationDialog();
                 })
                 .addOnFailureListener(e -> {
                     if (getContext() != null) {
@@ -321,6 +330,21 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
         } catch (Exception e) {
             Log.e(TAG, "Error loading Base64 image", e);
             imageView.setImageResource(R.drawable.ic_launcher_foreground);
+        }
+    }
+    
+    /**
+     * Show profile creation dialog
+     */
+    private void showProfileCreationDialog() {
+        // Show dialog after a short delay to ensure fragment is ready
+        if (getView() != null) {
+            getView().postDelayed(() -> {
+                if (isAdded() && getFragmentManager() != null) {
+                    ProfileDialogFragment.newInstance(null)
+                            .show(getChildFragmentManager(), "createProfile");
+                }
+            }, 300);
         }
     }
 }
