@@ -157,6 +157,16 @@ public class EventDetailsActivity extends AppCompatActivity {
         } else {
             ivEventDetailsPoster.setImageResource(R.drawable.ic_launcher_foreground);
         }
+        
+        // Check if user is the organizer
+        String currentDeviceId = getOrCreateDeviceId();
+        if (currentEvent.getOrganizerDeviceId() != null && 
+                currentEvent.getOrganizerDeviceId().equals(currentDeviceId)) {
+            // User is the organizer, disable join button
+            btnJoinWaitingList.setEnabled(false);
+            btnJoinWaitingList.setText("You're the Organizer");
+            showError("You cannot join your own event.");
+        }
     }
 
     private void setupWaitlistListener() {
@@ -186,14 +196,21 @@ public class EventDetailsActivity extends AppCompatActivity {
             return;
         }
 
+        String deviceId = getOrCreateDeviceId();
+        
+        // Check if user is the organizer
+        if (currentEvent.getOrganizerDeviceId() != null && 
+                currentEvent.getOrganizerDeviceId().equals(deviceId)) {
+            showError("You cannot join your own event.");
+            return;
+        }
+
         // Check if registration is still open (before raffle date)
         Calendar now = Calendar.getInstance();
         if (currentEvent.getRaffleDate() != null && now.after(currentEvent.getRaffleDate())) {
             showError("Registration is closed. The deadline has passed.");
             return;
         }
-
-        String deviceId = getOrCreateDeviceId();
 
         // Check if already joined
         db.collection("events").document(eventId)
