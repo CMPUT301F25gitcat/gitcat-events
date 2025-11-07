@@ -3,7 +3,11 @@ package com.example.gitcat_events;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.util.Base64;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -27,6 +31,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
  */
 public class ProfileFragment extends Fragment implements ProfileDialogFragment.OnSaveProfileListener {
 
+    private static final String TAG = "ProfileFragment";
     private static final String PREFS = "app_prefs";
     private static final String KEY_PROFILE_ID = "profile_doc_id";
 
@@ -132,14 +137,9 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
         String phone = profile.getPhone();
         tvFragmentPhone.setText((phone == null || phone.trim().isEmpty()) ? "—" : phone);
 
-        // Load profile picture with Glide
+        // Load profile picture from Base64
         if (profile.getProfilePictureUrl() != null && !profile.getProfilePictureUrl().isEmpty()) {
-            com.bumptech.glide.Glide.with(this)
-                .load(profile.getProfilePictureUrl())
-                .placeholder(R.drawable.ic_launcher_foreground)
-                .error(R.drawable.ic_launcher_foreground)
-                .circleCrop()
-                .into(ivFragmentProfilePicture);
+            loadBase64Image(profile.getProfilePictureUrl(), ivFragmentProfilePicture);
         } else {
             ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
         }
@@ -303,5 +303,24 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
         }
         
         return deviceId;
+    }
+    
+    /**
+     * Load Base64 image into ImageView
+     */
+    private void loadBase64Image(String base64String, ImageView imageView) {
+        try {
+            byte[] decodedBytes = Base64.decode(base64String, Base64.DEFAULT);
+            Bitmap bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length);
+            
+            if (bitmap != null) {
+                imageView.setImageBitmap(bitmap);
+            } else {
+                imageView.setImageResource(R.drawable.ic_launcher_foreground);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error loading Base64 image", e);
+            imageView.setImageResource(R.drawable.ic_launcher_foreground);
+        }
     }
 }

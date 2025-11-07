@@ -2,8 +2,11 @@ package com.example.gitcat_events.features.entrant.ui;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.util.Base64;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -142,14 +145,9 @@ public class ProfileActivity extends AppCompatActivity
         String ph = p.getPhone();
         tvPhone.setText((ph == null || ph.trim().isEmpty()) ? "—" : ph);
         
-        // Load profile picture from URL using Glide
+        // Load profile picture from Base64 string
         if (p.getProfilePictureUrl() != null && !p.getProfilePictureUrl().isEmpty()) {
-            com.bumptech.glide.Glide.with(this)
-                .load(p.getProfilePictureUrl())
-                .placeholder(R.drawable.ic_launcher_foreground)
-                .error(R.drawable.ic_launcher_foreground)
-                .circleCrop()
-                .into(ivProfilePicture);
+            loadBase64Image(p.getProfilePictureUrl(), ivProfilePicture);
         } else {
             ivProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
         }
@@ -306,5 +304,24 @@ public class ProfileActivity extends AppCompatActivity
         }
         
         return deviceId;
+    }
+    
+    /**
+     * Load Base64 image into ImageView
+     */
+    private void loadBase64Image(String base64String, ImageView imageView) {
+        try {
+            byte[] decodedBytes = Base64.decode(base64String, Base64.DEFAULT);
+            Bitmap bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length);
+            
+            if (bitmap != null) {
+                imageView.setImageBitmap(bitmap);
+            } else {
+                imageView.setImageResource(R.drawable.ic_launcher_foreground);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error loading Base64 image", e);
+            imageView.setImageResource(R.drawable.ic_launcher_foreground);
+        }
     }
 }

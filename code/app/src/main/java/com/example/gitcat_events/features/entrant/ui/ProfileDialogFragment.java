@@ -4,8 +4,12 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.util.Base64;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -24,10 +28,9 @@ import androidx.fragment.app.DialogFragment;
 import com.bumptech.glide.Glide;
 import com.example.gitcat_events.R;
 import com.example.gitcat_events.core.model.Profile;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
 
-import java.util.UUID;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 
 public class ProfileDialogFragment extends DialogFragment {
 
@@ -40,8 +43,7 @@ public class ProfileDialogFragment extends DialogFragment {
     private @Nullable Profile existingProfile;
     private @Nullable Uri selectedImageUri;
     private ImageView ivDialogProfilePicture;
-    private FirebaseStorage storage;
-    private String uploadedImageUrl = null;
+    private String base64Image = null;
 
     // Activity result launcher for image selection
     private final ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
@@ -58,9 +60,6 @@ public class ProfileDialogFragment extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
-        // Initialize Firebase Storage
-        storage = FirebaseStorage.getInstance();
-        
         // Inflate content view
         View v = getLayoutInflater().inflate(R.layout.dialog_profile, null);
         EditText etName  = v.findViewById(R.id.etName);
@@ -81,13 +80,8 @@ public class ProfileDialogFragment extends DialogFragment {
             
             // Load existing profile picture if available
             if (existingProfile.getProfilePictureUrl() != null && !existingProfile.getProfilePictureUrl().isEmpty()) {
-                uploadedImageUrl = existingProfile.getProfilePictureUrl();
-                Glide.with(this)
-                    .load(existingProfile.getProfilePictureUrl())
-                    .placeholder(R.drawable.ic_launcher_foreground)
-                    .error(R.drawable.ic_launcher_foreground)
-                    .circleCrop()
-                    .into(ivDialogProfilePicture);
+                base64Image = existingProfile.getProfilePictureUrl();
+                loadBase64Image(base64Image, ivDialogProfilePicture);
             }
         }
 
@@ -138,71 +132,68 @@ public class ProfileDialogFragment extends DialogFragment {
 
             String phone = phoneRaw.isEmpty() ? null : phoneRaw; // optional
             
-            // If user selected a new image, upload it first
+            // If user selected a new image, convert to Base64
             if (selectedImageUri != null) {
                 // Show progress dialog
                 ProgressDialog progressDialog = new ProgressDialog(requireContext());
-                progressDialog.setMessage("Uploading profile picture...");
+                progressDialog.setMessage("Processing image...");
                 progressDialog.setCancelable(false);
                 progressDialog.show();
                 
-                uploadImageToFirebase(selectedImageUri, new ImageUploadCallback() {
-                    @Override
-                    public void onSuccess(String imageUrl) {
-                        progressDialog.dismiss();
-                        // Create profile with uploaded image URL
-                        Profile p = new Profile(name, email, phone);
-                        p.setProfilePictureUrl(imageUrl);
+                // Convert image to Base64 in background
+                new Thread(() -> {
+                    try {
+                        String imageBase64 = convertImageToBase64(selectedImageUri);
                         
-                        // Preserve device ID if it exists
-                        if (existingProfile != null && existingProfile.getDeviceId() != null) {
-                            p.setDeviceId(existingProfile.getDeviceId());
-                        }
-                        
-                        saveProfile(p);
-                        dlg.dismiss();
+                        // Update UI on main thread
+                        requireActivity().runOnUiThread(() -> {
+                            progressDialog.dismiss();
+                            
+                            if (imageBase64 != null) {
+                                // Create profile with Base64 image
+                                Profile p = new Profile(name, email, phone);
+                                p.setProfilePictureUrl(imageBase64);
+                                
+                                // Preserve device ID if it exists
+                                if (existingProfile != null && existingProfile.getDeviceId() != null) {
+                                    p.setDeviceId(existingProfile.getDeviceId());
+                                }
+                                
+                                saveProfile(p);
+                                dlg.dismiss();
+                                Toast.makeText(requireContext(), "Profile picture saved!", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(requireContext(), "Failed to process image. Saving without picture.", Toast.LENGTH_SHORT).show();
+                                // Save without image
+                                Profile p = new Profile(name, email, phone);
+                                if (existingProfile != null && existingProfile.getDeviceId() != null) {
+                                    p.setDeviceId(existingProfile.getDeviceId());
+                                }
+                                saveProfile(p);
+                                dlg.dismiss();
+                            }
+                        });
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error converting image", e);
+                        requireActivity().runOnUiThread(() -> {
+                            progressDialog.dismiss();
+                            Toast.makeText(requireContext(), "Image error. Saving without picture.", Toast.LENGTH_SHORT).show();
+                            Profile p = new Profile(name, email, phone);
+                            if (existingProfile != null && existingProfile.getDeviceId() != null) {
+                                p.setDeviceId(existingProfile.getDeviceId());
+                            }
+                            saveProfile(p);
+                            dlg.dismiss();
+                        });
                     }
-
-                    @Override
-                    public void onFailure(String error) {
-                        progressDialog.dismiss();
-                        
-                        // Show helpful error message
-                        String userMessage = "Image upload failed.\n\n";
-                        if (error.contains("does not exist") || error.contains("Object does not exist")) {
-                            userMessage += "❌ Firebase Storage not configured!\n\n" +
-                                         "Fix: Go to Firebase Console → Storage → Rules\n" +
-                                         "Update rules to allow uploads.\n\n" +
-                                         "Saving profile without image...";
-                        } else if (error.contains("permission")) {
-                            userMessage += "❌ Permission denied!\n\n" +
-                                         "Fix: Update Storage Rules in Firebase Console\n\n" +
-                                         "Saving profile without image...";
-                        } else {
-                            userMessage += "Error: " + error + "\n\nSaving profile without image...";
-                        }
-                        
-                        Toast.makeText(requireContext(), userMessage, Toast.LENGTH_LONG).show();
-                        
-                        // Continue with save anyway, without image
-                        Profile p = new Profile(name, email, phone);
-                        if (existingProfile != null && existingProfile.getProfilePictureUrl() != null) {
-                            p.setProfilePictureUrl(existingProfile.getProfilePictureUrl());
-                        }
-                        if (existingProfile != null && existingProfile.getDeviceId() != null) {
-                            p.setDeviceId(existingProfile.getDeviceId());
-                        }
-                        saveProfile(p);
-                        dlg.dismiss();
-                    }
-                });
+                }).start();
             } else {
                 // No new image selected, just save profile
                 Profile p = new Profile(name, email, phone);
                 
-                // Keep existing profile picture URL if no new image selected
-                if (uploadedImageUrl != null) {
-                    p.setProfilePictureUrl(uploadedImageUrl);
+                // Keep existing profile picture if no new image selected
+                if (base64Image != null) {
+                    p.setProfilePictureUrl(base64Image);
                 } else if (existingProfile != null && existingProfile.getProfilePictureUrl() != null) {
                     p.setProfilePictureUrl(existingProfile.getProfilePictureUrl());
                 }
@@ -227,53 +218,84 @@ public class ProfileDialogFragment extends DialogFragment {
     }
     
     /**
-     * Upload image to Firebase Storage and get download URL
+     * Convert image URI to Base64 string
      */
-    private void uploadImageToFirebase(Uri imageUri, ImageUploadCallback callback) {
-        if (imageUri == null) {
-            callback.onFailure("No image selected");
-            return;
-        }
-        
+    private String convertImageToBase64(Uri imageUri) {
         try {
-            // Create a unique filename for the image
-            String filename = "profile_pictures/" + UUID.randomUUID().toString() + ".jpg";
-            StorageReference storageRef = storage.getReference().child(filename);
+            InputStream inputStream = requireContext().getContentResolver().openInputStream(imageUri);
+            if (inputStream == null) {
+                Log.e(TAG, "Failed to open input stream");
+                return null;
+            }
             
-            Log.d(TAG, "Attempting to upload image to: " + filename);
+            // Decode image to bitmap
+            Bitmap originalBitmap = BitmapFactory.decodeStream(inputStream);
+            inputStream.close();
             
-            // Upload the file
-            storageRef.putFile(imageUri)
-                .addOnSuccessListener(taskSnapshot -> {
-                    Log.d(TAG, "Image upload successful, getting download URL...");
-                    // Get the download URL
-                    storageRef.getDownloadUrl()
-                        .addOnSuccessListener(uri -> {
-                            Log.d(TAG, "Image uploaded successfully: " + uri.toString());
-                            callback.onSuccess(uri.toString());
-                        })
-                        .addOnFailureListener(e -> {
-                            Log.e(TAG, "Failed to get download URL", e);
-                            String errorMsg = e.getMessage() != null ? e.getMessage() : "Unknown error getting URL";
-                            callback.onFailure(errorMsg);
-                        });
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Image upload failed", e);
-                    String errorMsg = e.getMessage() != null ? e.getMessage() : "Unknown upload error";
-                    
-                    // Check for common errors and provide helpful messages
-                    if (errorMsg.contains("does not exist") || errorMsg.contains("Object does not exist")) {
-                        errorMsg = "Object does not exist at location - Firebase Storage not initialized or rules not configured";
-                    } else if (errorMsg.contains("permission")) {
-                        errorMsg = "Permission denied - Update Firebase Storage Rules to allow uploads";
-                    }
-                    
-                    callback.onFailure(errorMsg);
-                });
+            if (originalBitmap == null) {
+                Log.e(TAG, "Failed to decode bitmap");
+                return null;
+            }
+            
+            // Resize bitmap to reduce size (max 500px on longest side)
+            Bitmap resizedBitmap = resizeBitmap(originalBitmap, 500);
+            
+            // Convert to Base64
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream);
+            byte[] byteArray = byteArrayOutputStream.toByteArray();
+            
+            String base64Image = Base64.encodeToString(byteArray, Base64.DEFAULT);
+            
+            Log.d(TAG, "Image converted to Base64. Size: " + (base64Image.length() / 1024) + "KB");
+            
+            // Firestore has a 1MB limit per document, warn if close
+            if (base64Image.length() > 800000) {
+                Log.w(TAG, "Warning: Image size is large (" + (base64Image.length() / 1024) + "KB). May hit Firestore limit.");
+            }
+            
+            return base64Image;
+            
         } catch (Exception e) {
-            Log.e(TAG, "Exception during image upload", e);
-            callback.onFailure("Exception: " + e.getMessage());
+            Log.e(TAG, "Error converting image to Base64", e);
+            return null;
+        }
+    }
+    
+    /**
+     * Resize bitmap to fit within maxSize while maintaining aspect ratio
+     */
+    private Bitmap resizeBitmap(Bitmap bitmap, int maxSize) {
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        
+        float ratio = Math.min(
+            (float) maxSize / width,
+            (float) maxSize / height
+        );
+        
+        int newWidth = Math.round(width * ratio);
+        int newHeight = Math.round(height * ratio);
+        
+        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true);
+    }
+    
+    /**
+     * Load Base64 image into ImageView
+     */
+    private void loadBase64Image(String base64String, ImageView imageView) {
+        try {
+            byte[] decodedBytes = Base64.decode(base64String, Base64.DEFAULT);
+            Bitmap bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length);
+            
+            if (bitmap != null) {
+                imageView.setImageBitmap(bitmap);
+            } else {
+                imageView.setImageResource(R.drawable.ic_launcher_foreground);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error loading Base64 image", e);
+            imageView.setImageResource(R.drawable.ic_launcher_foreground);
         }
     }
     
@@ -290,13 +312,5 @@ public class ProfileDialogFragment extends DialogFragment {
         if (host != null) {
             host.onSaveProfile(profile);
         }
-    }
-    
-    /**
-     * Callback interface for image upload
-     */
-    private interface ImageUploadCallback {
-        void onSuccess(String imageUrl);
-        void onFailure(String error);
     }
 }

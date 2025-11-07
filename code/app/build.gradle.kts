@@ -46,7 +46,6 @@ dependencies {
     implementation(libs.constraintlayout)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
-    implementation("com.google.firebase:firebase-storage") // Firebase Storage for image upload
     implementation(libs.navigation.fragment)
     implementation(libs.navigation.ui)
     implementation(libs.cardview)
