@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal">
+
+        <!-- Header -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Welcome!"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black"
+            android:layout_marginTop="40dp"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Let's set up your profile"
+            android:textSize="16sp"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginBottom="32dp"/>
+
+        <!-- Profile Picture Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginBottom="24dp">
+
+            <ImageView
+                android:id="@+id/ivSetupProfilePicture"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:scaleType="centerCrop"
+                android:contentDescription="Profile Picture"
+                android:background="@android:color/darker_gray"
+                android:src="@drawable/ic_launcher_foreground"/>
+
+            <Button
+                android:id="@+id/btnSelectImage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Select Profile Picture"
+                android:layout_marginTop="16dp"
+                style="?attr/materialButtonOutlinedStyle"/>
+        </LinearLayout>
+
+        <!-- Name Field -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:hint="Name *"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etSetupName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPersonName"
+                android:maxLines="1"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Email Field -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:hint="Email *"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etSetupEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textEmailAddress"
+                android:maxLines="1"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Phone Field -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="32dp"
+            android:hint="Phone (Optional)"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etSetupPhone"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="phone"
+                android:maxLines="1"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Create Profile Button -->
+        <Button
+            android:id="@+id/btnCreateProfile"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Create Profile"
+            android:textSize="16sp"
+            android:backgroundTint="@color/purple_500"
+            android:layout_marginTop="16dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="* Required fields"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginTop="16dp"/>
+
+    </LinearLayout>
+</ScrollView>
+

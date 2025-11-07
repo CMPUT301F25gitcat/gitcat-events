@@ -102,14 +102,9 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
     private void loadProfile() {
         String profileId = getSavedDocId();
         if (profileId == null) {
-            // No profile yet, show creation dialog
-            tvFragmentName.setText("No profile yet");
-            tvFragmentEmail.setText("—");
-            tvFragmentPhone.setText("—");
-            ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
-            
-            // Auto-show profile creation dialog for first-time users
-            showProfileCreationDialog();
+            // No profile yet, redirect to setup page
+            Intent intent = new Intent(getActivity(), SetupProfileActivity.class);
+            startActivity(intent);
             return;
         }
 
@@ -191,8 +186,9 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                     
                     Toast.makeText(getContext(), "Profile deleted successfully.", Toast.LENGTH_SHORT).show();
                     
-                    // Show profile creation dialog immediately
-                    showProfileCreationDialog();
+                    // Redirect to setup page
+                    Intent intent = new Intent(getActivity(), SetupProfileActivity.class);
+                    startActivity(intent);
                 })
                 .addOnFailureListener(e -> {
                     if (getContext() != null) {
@@ -333,18 +329,4 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
         }
     }
     
-    /**
-     * Show profile creation dialog
-     */
-    private void showProfileCreationDialog() {
-        // Show dialog after a short delay to ensure fragment is ready
-        if (getView() != null) {
-            getView().postDelayed(() -> {
-                if (isAdded() && getFragmentManager() != null) {
-                    ProfileDialogFragment.newInstance(null)
-                            .show(getChildFragmentManager(), "createProfile");
-                }
-            }, 300);
-        }
-    }
 }
