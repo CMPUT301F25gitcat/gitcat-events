@@ -1,5 +1,15 @@
 package com.example.gitcat_events.core.model;
 
+/**
+ * Represetns an entry in the waitlist or accepted list for an event. 
+ * 
+ * @author Momoore Oshinaike 
+ * 
+ * @see AcceptedListEntry
+ * @see WaitListEntry
+ * 
+ */
+
 public abstract class Entry {
     //TODO: javadocs, tests
     private int eventID;
