@@ -59,6 +59,50 @@
                 android:orientation="vertical"
                 android:paddingBottom="16dp">
 
+                <!-- Pending Invitations -->
+                <LinearLayout
+                    android:id="@+id/PendingInvitationsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/textViewPendingInvitations"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="10dp"
+                        android:layout_marginBottom="5dp"
+                        android:text="🎉 Pending Invitations"
+                        android:textColor="#FF6B35"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/pendingInvitationsEmpty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="#FFE8E0"
+                        android:paddingTop="30dp"
+                        android:paddingBottom="30dp"
+                        android:text="No pending invitations"
+                        android:textAlignment="center"
+                        android:textColor="#77000000"
+                        android:textSize="16sp"
+                        android:textStyle="italic"
+                        android:visibility="gone" />
+
+                    <ListView
+                        android:id="@+id/pendingInvitationsList"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="#FFE8E0"
+                        android:divider="@null"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:scrollbars="none" />
+                </LinearLayout>
+
                 <!-- Entered Events -->
                 <LinearLayout
                     android:id="@+id/EnteredEventsContainer"
@@ -117,7 +161,7 @@
                         android:layout_marginLeft="10dp"
                         android:layout_marginTop="10dp"
                         android:layout_marginBottom="5dp"
-                        android:text="Available Events"
+                        android:text="Upcoming Events"
                         android:textColor="#2260FF"
                         android:textSize="20sp"
                         android:textStyle="bold" />
@@ -129,7 +173,7 @@
                         android:background="#cad6ff"
                         android:paddingTop="30dp"
                         android:paddingBottom="30dp"
-                        android:text="No Available Events"
+                        android:text="No Events Entered"
                         android:textAlignment="center"
                         android:textColor="#77000000"
                         android:textSize="16sp"

@@ -1,5 +1,6 @@
 package com.example.gitcat_events;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -17,6 +18,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -100,19 +102,37 @@ public class CreateFragment extends Fragment {
      * Shows empty state if no events are found
      */
     private void loadUserEvents() {
-        // Get device ID (permanent organizer identifier)
-        String deviceId = getOrCreateDeviceId();
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        String profileIdStr = prefs.getString(KEY_PROFILE_ID, null);
+        
+        if (profileIdStr == null) {
+            Toast.makeText(getContext(), "Error: No user profile found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        int organizerId = Integer.parseInt(profileIdStr);
 
         db.collection("events")
-                .whereEqualTo("organizerDeviceId", deviceId)
+                .whereEqualTo("organizer", organizerId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     eventsList.clear();
                     
+                    // Use a Set to track document IDs and prevent duplicates
+                    java.util.Set<String> seenDocumentIds = new java.util.HashSet<>();
+                    
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         try {
+                            String docId = document.getId();
+                            
+                            // Skip if we've already seen this document ID
+                            if (seenDocumentIds.contains(docId)) {
+                                Log.w(TAG, "Duplicate event document ID found: " + docId + ", skipping");
+                                continue;
+                            }
+                            seenDocumentIds.add(docId);
+                            
                             Event event = new Event();
-                            event.setDocumentId(document.getId()); // Store document ID
                             event.setName(document.getString("name"));
                             event.setDescription(document.getString("description"));
                             
@@ -124,13 +144,24 @@ public class CreateFragment extends Fragment {
                             
                             event.setPoster(document.getString("poster"));
                             
-                            String organizerDeviceId = document.getString("organizerDeviceId");
-                            event.setOrganizerDeviceId(organizerDeviceId);
+                            Long organizer = document.getLong("organizer");
+                            event.setOrganizer(organizer != null ? organizer.intValue() : 0);
+                            
+                            // Set document ID and organizer device ID
+                            event.setDocumentId(docId);
+                            event.setOrganizerDeviceId(document.getString("organizerDeviceId"));
                             
                             Boolean geoLocation = document.getBoolean("geoLocationRequired");
                             event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
                             
                             // Convert Date to Calendar
+                            Date registrationStartDate = document.getDate("registrationStartDate");
+                            if (registrationStartDate != null) {
+                                Calendar regStartCal = Calendar.getInstance();
+                                regStartCal.setTime(registrationStartDate);
+                                event.setRegistrationStartDate(regStartCal);
+                            }
+                            
                             Date eventDate = document.getDate("eventDate");
                             if (eventDate != null) {
                                 Calendar eventCal = Calendar.getInstance();
@@ -209,6 +240,7 @@ public class CreateFragment extends Fragment {
         class EventViewHolder extends RecyclerView.ViewHolder {
             ImageView ivEventThumbnail;
             TextView tvEventName, tvEventDescription, tvEventDate, tvEventCapacity;
+            ImageButton btnEditEvent;
 
             EventViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -217,6 +249,7 @@ public class CreateFragment extends Fragment {
                 tvEventDescription = itemView.findViewById(R.id.tvEventDescription);
                 tvEventDate = itemView.findViewById(R.id.tvEventDate);
                 tvEventCapacity = itemView.findViewById(R.id.tvEventCapacity);
+                btnEditEvent = itemView.findViewById(R.id.btnEditEvent);
             }
             /**
              * Binds event data to the ViewHolder views and sets up click listeners
@@ -245,7 +278,22 @@ public class CreateFragment extends Fragment {
 
                 // Click listener for event item - navigate to event details
                 itemView.setOnClickListener(v -> {
-                    Intent intent = new Intent(getContext(), EventDetailsActivity.class);
+                    // Navigate to EventDetails fragment to show organizer buttons
+                    EventDetails detailFragment = EventDetails.newInstance(event);
+                    if (getParentFragmentManager() != null) {
+                        getParentFragmentManager()
+                                .beginTransaction()
+                                .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.fade_out,
+                                        android.R.anim.fade_in, android.R.anim.fade_out)
+                                .add(R.id.frameLayout, detailFragment)
+                                .addToBackStack(null)
+                                .commit();
+                    }
+                });
+
+                // Click listener for edit button - navigate to edit event
+                btnEditEvent.setOnClickListener(v -> {
+                    Intent intent = new Intent(getContext(), EditEventActivity.class);
                     intent.putExtra("eventId", event.getDocumentId());
                     startActivity(intent);
                 });
@@ -272,28 +320,5 @@ public class CreateFragment extends Fragment {
             Log.e(TAG, "Failed to decode Base64 image", e);
             imageView.setImageResource(R.drawable.ic_launcher_foreground);
         }
-    }
-    /**
-     * Gets the device ID from shared preferences or creates a new one if it doesn't exist
-     * @return
-     * returns the unique device identifier
-     */
-    private String getOrCreateDeviceId() {
-        SharedPreferences sp = requireContext().getSharedPreferences(PREFS, requireContext().MODE_PRIVATE);
-        String deviceId = sp.getString("device_id", null);
-
-        if (deviceId == null) {
-            try {
-                deviceId = android.provider.Settings.Secure.getString(requireContext().getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to get Android ID", e);
-            }
-
-            if (deviceId == null || deviceId.isEmpty()) {
-                deviceId = java.util.UUID.randomUUID().toString();
-            }
-            sp.edit().putString("device_id", deviceId).apply();
-        }
-        return deviceId;
     }
 }

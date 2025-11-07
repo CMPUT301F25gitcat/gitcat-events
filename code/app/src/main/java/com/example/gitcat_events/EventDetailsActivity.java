@@ -8,12 +8,14 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Base64;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.gitcat_events.core.model.Event;
@@ -29,6 +31,23 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+
+
+/**
+ * this is the activity for displaying the details of an event.
+ * 
+ * 
+ * 
+ * @author ryan chattopadhyay
+ * 
+ * @see Event
+ * @see WaitListEntry
+ * @see DocumentSnapshot
+ * @see FirebaseFirestore
+ * @see ListenerRegistration
+ * 
+ * 
+ */
 
 public class EventDetailsActivity extends AppCompatActivity {
 
@@ -96,6 +115,12 @@ public class EventDetailsActivity extends AppCompatActivity {
         checkWaitlistStatus();
     }
 
+    /**
+     * this is a method for loading the event details from the firestore db 
+     * 
+     * 
+     */
+
     private void loadEventDetails() {
         db.collection("events").document(eventId).get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -111,6 +136,12 @@ public class EventDetailsActivity extends AppCompatActivity {
                     finish();
                 });
     }
+
+
+    /**
+     * 
+     * @param document
+     */
 
     private void parseAndDisplayEvent(DocumentSnapshot document) {
         currentEvent = new Event();
@@ -131,6 +162,13 @@ public class EventDetailsActivity extends AppCompatActivity {
         currentEvent.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
         
         // Convert Date to Calendar
+        Date registrationStartDate = document.getDate("registrationStartDate");
+        if (registrationStartDate != null) {
+            Calendar regStartCal = Calendar.getInstance();
+            regStartCal.setTime(registrationStartDate);
+            currentEvent.setRegistrationStartDate(regStartCal);
+        }
+        
         Date eventDate = document.getDate("eventDate");
         if (eventDate != null) {
             Calendar eventCal = Calendar.getInstance();
@@ -180,7 +218,7 @@ public class EventDetailsActivity extends AppCompatActivity {
             // User is the organizer, disable join button
             btnJoinWaitingList.setEnabled(false);
             btnJoinWaitingList.setText("You're the Organizer");
-            tvStatusMessage.setVisibility(android.view.View.VISIBLE);
+            tvStatusMessage.setVisibility(View.VISIBLE);
             tvStatusMessage.setText("You're the organizer of this event");
             tvStatusMessage.setTextColor(getResources().getColor(android.R.color.darker_gray));
         }
@@ -220,13 +258,13 @@ public class EventDetailsActivity extends AppCompatActivity {
         if (isOnWaitlist) {
             btnJoinWaitingList.setText("Leave Waiting List");
             btnJoinWaitingList.setBackgroundColor(getResources().getColor(android.R.color.holo_orange_dark));
-            tvStatusMessage.setVisibility(android.view.View.VISIBLE);
+            tvStatusMessage.setVisibility(View.VISIBLE);
             tvStatusMessage.setText("You're on the waiting list");
             tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
         } else {
             btnJoinWaitingList.setText("Join Waiting List");
             btnJoinWaitingList.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_dark));
-            tvStatusMessage.setVisibility(android.view.View.GONE);
+            tvStatusMessage.setVisibility(View.GONE);
         }
     }
     
@@ -239,7 +277,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     }
     
     private void confirmLeaveWaitlist() {
-        new androidx.appcompat.app.AlertDialog.Builder(this)
+        new AlertDialog.Builder(this)
                 .setTitle("Leave Waiting List?")
                 .setMessage("Are you sure you want to leave the waiting list for this event?")
                 .setNegativeButton("Cancel", null)
@@ -300,8 +338,18 @@ public class EventDetailsActivity extends AppCompatActivity {
             return;
         }
 
-        // Check if registration is still open (before raffle date)
+        // Check if registration window is open
         Calendar now = Calendar.getInstance();
+        
+        // Check if registration has started
+        if (currentEvent.getRegistrationStartDate() != null && now.before(currentEvent.getRegistrationStartDate())) {
+            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
+            String startDate = sdf.format(currentEvent.getRegistrationStartDate().getTime());
+            showError("Registration opens on " + startDate);
+            return;
+        }
+        
+        // Check if registration has closed
         if (currentEvent.getRaffleDate() != null && now.after(currentEvent.getRaffleDate())) {
             showError("Registration is closed. The deadline has passed.");
             return;

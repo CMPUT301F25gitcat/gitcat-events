@@ -1,5 +1,6 @@
 package com.example.gitcat_events;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.DatePickerDialog;
 import android.app.ProgressDialog;
@@ -19,6 +20,7 @@ import android.util.Base64;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -29,27 +31,32 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import android.provider.Settings;
+
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class CreateEventActivity extends AppCompatActivity {
 
     private static final String TAG = "CreateEventActivity";
     private static final String PREFS = "app_prefs";
     private static final String KEY_PROFILE_ID = "profile_doc_id";
+    private static final String KEY_DEVICE_ID = "device_id";
 
     private FirebaseFirestore db;
     private ImageView ivEventPoster;
     private EditText etEventName, etEventDescription, etCapacity, etMaxWaitlist, etSelectionCriteria;
-    private Button btnSelectPoster, btnSelectEventDate, btnSelectRaffleDate, btnCreateEvent;
-    private TextView tvEventDateDisplay, tvRaffleDateDisplay;
+    private Button btnSelectPoster, btnSelectRegistrationStartDate, btnSelectEventDate, btnSelectRaffleDate, btnCreateEvent;
+    private TextView tvRegistrationStartDateDisplay, tvEventDateDisplay, tvRaffleDateDisplay;
     private SwitchMaterial switchGeoLocation;
     private android.widget.ImageButton btnBack;
 
     private Uri selectedPosterUri;
+    private Calendar selectedRegistrationStartDate;
     private Calendar selectedEventDate;
     private Calendar selectedRaffleDate;
 
@@ -65,6 +72,7 @@ public class CreateEventActivity extends AppCompatActivity {
                 }
             });
 
+    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -73,6 +81,7 @@ public class CreateEventActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
 
         // Initialize views
+        ImageButton btnBack = findViewById(R.id.btnBack);
         ivEventPoster = findViewById(R.id.ivEventPoster);
         etEventName = findViewById(R.id.etEventName);
         etEventDescription = findViewById(R.id.etEventDescription);
@@ -80,16 +89,19 @@ public class CreateEventActivity extends AppCompatActivity {
         etMaxWaitlist = findViewById(R.id.etMaxWaitlist);
         etSelectionCriteria = findViewById(R.id.etSelectionCriteria);
         btnSelectPoster = findViewById(R.id.btnSelectPoster);
+        btnSelectRegistrationStartDate = findViewById(R.id.btnSelectRegistrationStartDate);
         btnSelectEventDate = findViewById(R.id.btnSelectEventDate);
         btnSelectRaffleDate = findViewById(R.id.btnSelectRaffleDate);
         btnCreateEvent = findViewById(R.id.btnCreateEvent);
+        tvRegistrationStartDateDisplay = findViewById(R.id.tvRegistrationStartDateDisplay);
         tvEventDateDisplay = findViewById(R.id.tvEventDateDisplay);
         tvRaffleDateDisplay = findViewById(R.id.tvRaffleDateDisplay);
         switchGeoLocation = findViewById(R.id.switchGeoLocation);
 
         // Set up click listeners
-        btnBack.setOnClickListener(v -> onBackPressed());
+        btnBack.setOnClickListener(v -> finish());
         btnSelectPoster.setOnClickListener(v -> selectPoster());
+        btnSelectRegistrationStartDate.setOnClickListener(v -> selectRegistrationStartDate());
         btnSelectEventDate.setOnClickListener(v -> selectEventDate());
         btnSelectRaffleDate.setOnClickListener(v -> selectRaffleDate());
         btnCreateEvent.setOnClickListener(v -> createEvent());
@@ -105,6 +117,24 @@ public class CreateEventActivity extends AppCompatActivity {
         Intent intent = new Intent(Intent.ACTION_PICK);
         intent.setType("image/*");
         posterPickerLauncher.launch(intent);
+    }
+
+    private void selectRegistrationStartDate() {
+        Calendar calendar = Calendar.getInstance();
+        DatePickerDialog datePickerDialog = new DatePickerDialog(
+                this,
+                (view, year, month, dayOfMonth) -> {
+                    selectedRegistrationStartDate = Calendar.getInstance();
+                    selectedRegistrationStartDate.set(year, month, dayOfMonth);
+                    tvRegistrationStartDateDisplay.setText(
+                            String.format("%02d/%02d/%d", dayOfMonth, month + 1, year)
+                    );
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+        );
+        datePickerDialog.show();
     }
 
     private void selectEventDate() {
@@ -166,12 +196,16 @@ public class CreateEventActivity extends AppCompatActivity {
             etCapacity.setError("Capacity required");
             ok = false;
         }
-        if (selectedEventDate == null) {
-            Toast.makeText(this, "Please select an event date", Toast.LENGTH_SHORT).show();
+        if (selectedRegistrationStartDate == null) {
+            Toast.makeText(this, "Please select a registration start date", Toast.LENGTH_SHORT).show();
             ok = false;
         }
         if (selectedRaffleDate == null) {
             Toast.makeText(this, "Please select a final registration date", Toast.LENGTH_SHORT).show();
+            ok = false;
+        }
+        if (selectedEventDate == null) {
+            Toast.makeText(this, "Please select an event date", Toast.LENGTH_SHORT).show();
             ok = false;
         }
         if (!ok) {
@@ -182,6 +216,66 @@ public class CreateEventActivity extends AppCompatActivity {
 
         int capacity = Integer.parseInt(capacityStr);
         Integer maxWaitlist = maxWaitlistStr.isEmpty() ? null : Integer.parseInt(maxWaitlistStr);
+
+        // Validate date order: registrationStart <= raffleDate <= eventDate
+        // Normalize dates to start of day for comparison (ignore time)
+        Calendar regStartNormalized = null;
+        Calendar raffleNormalized = null;
+        Calendar eventNormalized = null;
+        
+        if (selectedRegistrationStartDate != null) {
+            regStartNormalized = (Calendar) selectedRegistrationStartDate.clone();
+            regStartNormalized.set(Calendar.HOUR_OF_DAY, 0);
+            regStartNormalized.set(Calendar.MINUTE, 0);
+            regStartNormalized.set(Calendar.SECOND, 0);
+            regStartNormalized.set(Calendar.MILLISECOND, 0);
+        }
+        
+        if (selectedRaffleDate != null) {
+            raffleNormalized = (Calendar) selectedRaffleDate.clone();
+            raffleNormalized.set(Calendar.HOUR_OF_DAY, 0);
+            raffleNormalized.set(Calendar.MINUTE, 0);
+            raffleNormalized.set(Calendar.SECOND, 0);
+            raffleNormalized.set(Calendar.MILLISECOND, 0);
+        }
+        
+        if (selectedEventDate != null) {
+            eventNormalized = (Calendar) selectedEventDate.clone();
+            eventNormalized.set(Calendar.HOUR_OF_DAY, 0);
+            eventNormalized.set(Calendar.MINUTE, 0);
+            eventNormalized.set(Calendar.SECOND, 0);
+            eventNormalized.set(Calendar.MILLISECOND, 0);
+        }
+        
+        // Check: registrationStart <= raffleDate (allows equality)
+        if (regStartNormalized != null && raffleNormalized != null && 
+            regStartNormalized.after(raffleNormalized)) {
+            Toast.makeText(this, "Registration start date must be on or before final registration date", Toast.LENGTH_LONG).show();
+            btnCreateEvent.setEnabled(true);
+            return;
+        }
+        
+        // Check: raffleDate <= eventDate (allows equality)
+        if (raffleNormalized != null && eventNormalized != null && 
+            raffleNormalized.after(eventNormalized)) {
+            Toast.makeText(this, "Final registration date must be on or before event date", Toast.LENGTH_LONG).show();
+            btnCreateEvent.setEnabled(true);
+            return;
+        }
+
+        // Validate capacity vs waitlist
+        if (maxWaitlist != null && capacity > maxWaitlist) {
+            Toast.makeText(this, "Event capacity cannot exceed max waitlist size", Toast.LENGTH_LONG).show();
+            etCapacity.setError("Capacity too large");
+            btnCreateEvent.setEnabled(true);
+            return;
+        }
+        if (!ok) {
+            // Re-enable button if validation fails
+            btnCreateEvent.setEnabled(true);
+            return;
+        }
+
         boolean geoLocationRequired = switchGeoLocation.isChecked();
         String selectionCriteria = etSelectionCriteria.getText().toString().trim();
         
@@ -190,8 +284,14 @@ public class CreateEventActivity extends AppCompatActivity {
             selectionCriteria = "Random selection from all registered participants. All entrants have an equal chance of being selected.";
         }
 
-        // Get organizer device ID (permanent identifier)
-        String organizerDeviceId = getOrCreateDeviceId();
+        // Get organizer ID (current user's profile ID)
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        String profileIdStr = prefs.getString(KEY_PROFILE_ID, null);
+        if (profileIdStr == null) {
+            Toast.makeText(this, "Error: No user profile found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        int organizerId = Integer.parseInt(profileIdStr);
 
         // Show progress dialog
         ProgressDialog progressDialog = new ProgressDialog(this);
@@ -217,12 +317,16 @@ public class CreateEventActivity extends AppCompatActivity {
                 capacity,
                 maxWaitlist,
                 base64Poster,
+                selectedRegistrationStartDate,
                 selectedRaffleDate,
                 selectedEventDate,
                 geoLocationRequired
         );
-        newEvent.setOrganizerDeviceId(organizerDeviceId);
-        newEvent.setSelectionCriteria(selectionCriteria);
+        newEvent.setOrganizer(organizerId);
+        
+        // Set organizer device ID for organizer identification
+        String deviceId = getOrCreateDeviceId();
+        newEvent.setOrganizerDeviceId(deviceId);
 
         // Save to Firestore with auto-incrementing ID
         saveEventToFirestore(newEvent, progressDialog);
@@ -251,10 +355,12 @@ public class CreateEventActivity extends AppCompatActivity {
             data.put("description", event.getDescription());
             data.put("capacity", event.getCapacity());
             data.put("maxWaitListSize", event.getMaxWaitListSize());
+            data.put("registrationStartDate", event.getRegistrationStartDate().getTime());
             data.put("eventDate", event.getEventDate().getTime());
             data.put("raffleDate", event.getRaffleDate().getTime());
             data.put("geoLocationRequired", event.getGeoLocationRequired());
             data.put("poster", event.getPoster());
+            data.put("organizer", event.getOrganizer());
             data.put("organizerDeviceId", event.getOrganizerDeviceId());
             data.put("selectionCriteria", event.getSelectionCriteria());
             data.put("eventId", next);
@@ -270,6 +376,9 @@ public class CreateEventActivity extends AppCompatActivity {
                 transaction.set(counterRef, counterInit);
             }
 
+            // Set document ID on event object
+            event.setDocumentId(docId);
+            
             return docId;
         }).addOnSuccessListener(eventId -> {
             progressDialog.dismiss();
@@ -324,21 +433,24 @@ public class CreateEventActivity extends AppCompatActivity {
     }
 
     private String getOrCreateDeviceId() {
-        SharedPreferences sp = getSharedPreferences(PREFS, MODE_PRIVATE);
-        String deviceId = sp.getString("device_id", null);
-
-        if (deviceId == null) {
-            try {
-                deviceId = android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
-            } catch (Exception e) {
-                Log.w(TAG, "Failed to get Android ID", e);
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        String deviceId = prefs.getString(KEY_DEVICE_ID, null);
+        
+        if (deviceId == null || deviceId.isEmpty()) {
+            // Try to get Android ID first
+            String androidId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
+            if (androidId != null && !androidId.isEmpty() && !"9774d56d682e549c".equals(androidId)) {
+                // 9774d56d682e549c is a known problematic Android ID on some emulators
+                deviceId = androidId;
+            } else {
+                // Fallback to UUID
+                deviceId = UUID.randomUUID().toString();
             }
-
-            if (deviceId == null || deviceId.isEmpty()) {
-                deviceId = java.util.UUID.randomUUID().toString();
-            }
-            sp.edit().putString("device_id", deviceId).apply();
+            
+            // Save for future use
+            prefs.edit().putString(KEY_DEVICE_ID, deviceId).apply();
         }
+        
         return deviceId;
     }
 }

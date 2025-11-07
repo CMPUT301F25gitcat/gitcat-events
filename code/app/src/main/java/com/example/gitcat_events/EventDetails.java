@@ -1,10 +1,14 @@
 package com.example.gitcat_events;
 
+import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Handler;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
 import android.util.Base64;
@@ -13,18 +17,24 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.gitcat_events.core.model.Event;
 import com.example.gitcat_events.core.model.WaitListEntry;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.WriteBatch;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -37,6 +47,7 @@ public class EventDetails extends Fragment {
     private Event event;
     private FirebaseFirestore db;
     private ListenerRegistration waitlistListener;
+    private ListenerRegistration eventListener; // Real-time event update listener
     private boolean isOnWaitlist = false;
     private boolean isOrganizer = false;
     private boolean hasInvitation = false;
@@ -44,9 +55,10 @@ public class EventDetails extends Fragment {
     private ImageView ivEventPoster;
     private TextView tvEventName, tvEventDate, tvEventSpots, tvEventDesc;
     private TextView tvWaitingListCount, tvStatusMessage, tvSelectionCriteria;
-    private Button btnJoinWaitingList, btnBack, btnRunRaffle;
+    private Button btnJoinWaitingList, btnRunRaffle, btnViewWaitingList, btnViewInvitedEntrants, btnViewEnrolledEntrants, btnViewCancelledEntrants, btnEditEvent;
+    private ImageButton btnBack;
     private Button btnAcceptInvitation, btnDeclineInvitation;
-    private android.view.ViewGroup invitationButtons;
+    private ViewGroup invitationButtons;
 
     public EventDetails() {}
 
@@ -83,6 +95,11 @@ public class EventDetails extends Fragment {
         tvSelectionCriteria = view.findViewById(R.id.tvSelectionCriteria);
         btnJoinWaitingList = view.findViewById(R.id.btnJoinWaitingList);
         btnRunRaffle = view.findViewById(R.id.btnRunRaffle);
+        btnViewWaitingList = view.findViewById(R.id.btnViewWaitingList);
+        btnViewInvitedEntrants = view.findViewById(R.id.btnViewInvitedEntrants);
+        btnViewEnrolledEntrants = view.findViewById(R.id.btnViewEnrolledEntrants);
+        btnViewCancelledEntrants = view.findViewById(R.id.btnViewCancelledEntrants);
+        btnEditEvent = view.findViewById(R.id.btnEditEvent);
         btnBack = view.findViewById(R.id.eventDetailsBackBtn);
         btnAcceptInvitation = view.findViewById(R.id.btnAcceptInvitation);
         btnDeclineInvitation = view.findViewById(R.id.btnDeclineInvitation);
@@ -90,6 +107,9 @@ public class EventDetails extends Fragment {
 
         // Display event details
         displayEvent();
+        
+        // Set up real-time event update listener (to prevent crashes when event is edited)
+        setupEventListener();
         
         // Set up real-time waiting list count listener
         setupWaitlistListener();
@@ -103,12 +123,28 @@ public class EventDetails extends Fragment {
         // Set up raffle button (only visible to organizer)
         btnRunRaffle.setOnClickListener(v -> runRaffle());
         
+        // Set up view waiting list button (only visible to organizer)
+        btnViewWaitingList.setOnClickListener(v -> viewWaitingList());
+        
+        // Set up view invited entrants button (only visible to organizer)
+        btnViewInvitedEntrants.setOnClickListener(v -> viewInvitedEntrants());
+        
+        // Set up view enrolled entrants button (only visible to organizer)
+        btnViewEnrolledEntrants.setOnClickListener(v -> viewEnrolledEntrants());
+        
+        // Set up view cancelled entrants button (only visible to organizer)
+        btnViewCancelledEntrants.setOnClickListener(v -> viewCancelledEntrants());
+        
+        // Set up edit event button (only visible to organizer)
+        btnEditEvent.setOnClickListener(v -> editEvent());
+
         // Set up invitation response buttons
         btnAcceptInvitation.setOnClickListener(v -> acceptInvitation());
         btnDeclineInvitation.setOnClickListener(v -> declineInvitation());
 
         // Set up back button
         btnBack.setOnClickListener(v -> {
+            // Remove this fragment and go back
             requireActivity()
                     .getSupportFragmentManager()
                     .beginTransaction()
@@ -118,87 +154,139 @@ public class EventDetails extends Fragment {
                     )
                     .remove(EventDetails.this)
                     .commit();
+            
+            // Notify HomeFragment to refresh (it will reload in onResume)
         });
 
         return view;
     }
 
     private void displayEvent() {
-        if (event == null) return;
+        if (event == null || getView() == null) return;
         
-        tvEventName.setText(event.getName());
-        tvEventDesc.setText(event.getDescription() != null ? event.getDescription() : "No description");
-        
-        // Format and display dates
-        SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
-        if (event.getEventDate() != null) {
-            tvEventDate.setText("Event: " + dateFormat.format(event.getEventDate().getTime()));
-        }
-        
-        tvEventSpots.setText("Capacity: " + event.getCapacity());
-        
-        // Display selection criteria
-        if (event.getSelectionCriteria() != null && !event.getSelectionCriteria().isEmpty()) {
-            tvSelectionCriteria.setText(event.getSelectionCriteria());
-        } else {
-            tvSelectionCriteria.setText("Random selection from all registered participants. All entrants have an equal chance of being selected.");
-        }
-        
-        // Load poster image
-        if (event.getPoster() != null && !event.getPoster().isEmpty()) {
-            loadBase64Image(event.getPoster(), ivEventPoster);
+        try {
+            tvEventName.setText(event.getName() != null ? event.getName() : "Unnamed Event");
+            tvEventDesc.setText(event.getDescription() != null ? event.getDescription() : "No description");
+            
+            // Format and display dates
+            SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
+            if (event.getEventDate() != null) {
+                tvEventDate.setText("Event: " + dateFormat.format(event.getEventDate().getTime()));
+            } else {
+                tvEventDate.setText("Event: Date TBD");
+            }
+            
+            tvEventSpots.setText("Capacity: " + event.getCapacity());
+            
+            // Display selection criteria
+            if (event.getSelectionCriteria() != null && !event.getSelectionCriteria().isEmpty()) {
+                tvSelectionCriteria.setText(event.getSelectionCriteria());
+            } else {
+                tvSelectionCriteria.setText("Random selection from all registered participants. All entrants have an equal chance of being selected.");
+            }
+            
+            // Load poster image
+            if (event.getPoster() != null && !event.getPoster().isEmpty()) {
+                loadBase64Image(event.getPoster(), ivEventPoster);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error displaying event", e);
         }
     }
     
     private void checkUserStatus() {
-        if (event == null || event.getDocumentId() == null) return;
+        if (event == null || event.getDocumentId() == null || getView() == null) return;
         
-        String deviceId = getOrCreateDeviceId();
-        
-        // Check if user is the organizer
-        if (event.getOrganizerDeviceId() != null && 
-                event.getOrganizerDeviceId().equals(deviceId)) {
-            isOrganizer = true;
-            btnJoinWaitingList.setVisibility(View.GONE);
-            invitationButtons.setVisibility(View.GONE);
-            btnRunRaffle.setVisibility(View.VISIBLE);
+        try {
+            String deviceId = getOrCreateDeviceId();
+            Log.d(TAG, "Checking user status - Device ID: " + deviceId + ", Event organizer: " + event.getOrganizerDeviceId());
             
-            // Show organizer status
-            showOrganizerStatus();
-            return;
+            // Check if user is the organizer
+            if (event.getOrganizerDeviceId() != null && 
+                    event.getOrganizerDeviceId().equals(deviceId)) {
+                isOrganizer = true;
+                Log.d(TAG, "User is organizer - showing organizer buttons");
+                if (btnJoinWaitingList != null) {
+                    btnJoinWaitingList.setVisibility(View.GONE);
+                }
+                if (invitationButtons != null) {
+                    invitationButtons.setVisibility(View.GONE);
+                }
+                // Show all organizer buttons
+                if (btnRunRaffle != null) {
+                    btnRunRaffle.setVisibility(View.VISIBLE);
+                    Log.d(TAG, "Run Raffle button visible: " + (btnRunRaffle.getVisibility() == View.VISIBLE));
+                }
+                if (btnViewWaitingList != null) {
+                    btnViewWaitingList.setVisibility(View.VISIBLE);
+                    Log.d(TAG, "View Waiting List button visible: " + (btnViewWaitingList.getVisibility() == View.VISIBLE));
+                }
+                if (btnViewInvitedEntrants != null) {
+                    btnViewInvitedEntrants.setVisibility(View.VISIBLE);
+                    Log.d(TAG, "View Invited Entrants button visible: " + (btnViewInvitedEntrants.getVisibility() == View.VISIBLE));
+                }
+                if (btnViewEnrolledEntrants != null) {
+                    btnViewEnrolledEntrants.setVisibility(View.VISIBLE);
+                    Log.d(TAG, "View Enrolled Entrants button visible: " + (btnViewEnrolledEntrants.getVisibility() == View.VISIBLE));
+                }
+                if (btnViewCancelledEntrants != null) {
+                    btnViewCancelledEntrants.setVisibility(View.VISIBLE);
+                    Log.d(TAG, "View Cancelled Entrants button visible: " + (btnViewCancelledEntrants.getVisibility() == View.VISIBLE));
+                }
+                if (btnEditEvent != null) {
+                    btnEditEvent.setVisibility(View.VISIBLE);
+                    Log.d(TAG, "Edit Event button visible: " + (btnEditEvent.getVisibility() == View.VISIBLE));
+                }
+                
+                // Show organizer status
+                showOrganizerStatus();
+                return;
+            }
+            
+            // Not organizer, hide organizer buttons
+            isOrganizer = false;
+            if (btnRunRaffle != null) btnRunRaffle.setVisibility(View.GONE);
+            if (btnViewWaitingList != null) btnViewWaitingList.setVisibility(View.GONE);
+            if (btnViewInvitedEntrants != null) btnViewInvitedEntrants.setVisibility(View.GONE);
+            if (btnViewEnrolledEntrants != null) btnViewEnrolledEntrants.setVisibility(View.GONE);
+            if (btnViewCancelledEntrants != null) btnViewCancelledEntrants.setVisibility(View.GONE);
+            if (btnEditEvent != null) btnEditEvent.setVisibility(View.GONE);
+            
+            // Show join button by default (will be hidden if user has invitation)
+            if (btnJoinWaitingList != null) btnJoinWaitingList.setVisibility(View.VISIBLE);
+            
+            // Check if user has a pending invitation
+            checkInvitationStatus(deviceId);
+            
+            // Check waitlist status with real-time listener
+            db.collection("events").document(event.getDocumentId())
+                    .collection("waitlist")
+                    .document(deviceId)
+                    .addSnapshotListener((documentSnapshot, error) -> {
+                        if (error != null) {
+                            Log.e(TAG, "Error checking waitlist status", error);
+                            return;
+                        }
+                        
+                        if (getView() == null) return; // Fragment view detached
+                        
+                        // Update waitlist status immediately
+                        boolean wasOnWaitlist = isOnWaitlist;
+                        isOnWaitlist = (documentSnapshot != null && documentSnapshot.exists());
+                        
+                        // Update button if status changed or if no invitation
+                        if (wasOnWaitlist != isOnWaitlist || !hasInvitation) {
+                            updateButtonForWaitlistStatus();
+                        }
+                    });
+        } catch (Exception e) {
+            Log.e(TAG, "Error in checkUserStatus", e);
         }
-        
-        // Not organizer, hide raffle button
-        btnRunRaffle.setVisibility(View.GONE);
-        
-        // Check if user has a pending invitation
-        checkInvitationStatus(deviceId);
-        
-        // Check waitlist status
-        db.collection("events").document(event.getDocumentId())
-                .collection("waitlist")
-                .document(deviceId)
-                .addSnapshotListener((documentSnapshot, error) -> {
-                    if (error != null) {
-                        Log.e(TAG, "Error checking waitlist status", error);
-                        return;
-                    }
-                    
-                    if (documentSnapshot != null && documentSnapshot.exists()) {
-                        isOnWaitlist = true;
-                        if (!hasInvitation) {
-                            updateButtonForWaitlistStatus();
-                        }
-                    } else {
-                        isOnWaitlist = false;
-                        if (!hasInvitation) {
-                            updateButtonForWaitlistStatus();
-                        }
-                    }
-                });
     }
     
     private void checkInvitationStatus(String deviceId) {
+        if (event == null || event.getDocumentId() == null) return;
+        
         db.collection("events").document(event.getDocumentId())
                 .collection("invitation_list")
                 .document(deviceId)
@@ -207,6 +295,8 @@ public class EventDetails extends Fragment {
                         Log.e(TAG, "Error checking invitation status", error);
                         return;
                     }
+                    
+                    if (getView() == null) return; // Fragment view detached
                     
                     if (documentSnapshot != null && documentSnapshot.exists()) {
                         String status = documentSnapshot.getString("status");
@@ -225,56 +315,67 @@ public class EventDetails extends Fragment {
     }
     
     private void showInvitationButtons() {
-        btnJoinWaitingList.setVisibility(View.GONE);
-        invitationButtons.setVisibility(View.VISIBLE);
-        if (tvStatusMessage != null) {
-            tvStatusMessage.setVisibility(View.VISIBLE);
-            tvStatusMessage.setText("🎉 Congratulations! You've been selected for this event!");
-            tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_orange_dark));
+        if (getView() == null) return;
+        
+        try {
+            if (btnJoinWaitingList != null) btnJoinWaitingList.setVisibility(View.GONE);
+            if (invitationButtons != null) invitationButtons.setVisibility(View.VISIBLE);
+            if (tvStatusMessage != null) {
+                tvStatusMessage.setVisibility(View.VISIBLE);
+                tvStatusMessage.setText("🎉 Congratulations! You've been selected for this event!");
+                tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_orange_dark));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error showing invitation buttons", e);
         }
     }
     
     private void hideInvitationButtons() {
-        invitationButtons.setVisibility(View.GONE);
-        if (!hasInvitation) {
-            btnJoinWaitingList.setVisibility(View.VISIBLE);
-            updateButtonForWaitlistStatus();
+        if (getView() == null) return;
+        
+        try {
+            if (invitationButtons != null) invitationButtons.setVisibility(View.GONE);
+            if (!hasInvitation && btnJoinWaitingList != null) {
+                btnJoinWaitingList.setVisibility(View.VISIBLE);
+                updateButtonForWaitlistStatus();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error hiding invitation buttons", e);
         }
     }
     
     private void updateButtonForWaitlistStatus() {
-        if (isOnWaitlist) {
-            btnJoinWaitingList.setText("Leave Waiting List");
-            btnJoinWaitingList.setBackgroundColor(getResources().getColor(android.R.color.holo_orange_dark));
-            if (tvStatusMessage != null) {
-                tvStatusMessage.setVisibility(View.VISIBLE);
-                tvStatusMessage.setText("You're on the waiting list");
-                tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+        if (getView() == null || btnJoinWaitingList == null) return;
+        
+        try {
+            // Simple toggle: Join or Leave based on waitlist status
+            if (isOnWaitlist) {
+                btnJoinWaitingList.setText("Leave Waiting List");
+                btnJoinWaitingList.setBackgroundTintList(getResources().getColorStateList(android.R.color.holo_orange_dark));
+                if (tvStatusMessage != null) {
+                    tvStatusMessage.setVisibility(View.VISIBLE);
+                    tvStatusMessage.setText("You're on the waiting list");
+                    tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+                }
+            } else {
+                btnJoinWaitingList.setText("Join Waiting List");
+                btnJoinWaitingList.setBackgroundTintList(getResources().getColorStateList(android.R.color.holo_blue_dark));
+                if (tvStatusMessage != null) {
+                    tvStatusMessage.setVisibility(View.GONE);
+                }
             }
-        } else {
-            btnJoinWaitingList.setText("Join Waiting List");
-            btnJoinWaitingList.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_dark));
-            if (tvStatusMessage != null) {
-                tvStatusMessage.setVisibility(View.GONE);
-            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error updating button for waitlist status", e);
         }
     }
     
     private void handleWaitlistAction() {
+        // Simple toggle: if on waitlist, leave; if not, join
         if (isOnWaitlist) {
-            confirmLeaveWaitlist();
+            leaveWaitingList();
         } else {
             joinWaitingList();
         }
-    }
-    
-    private void confirmLeaveWaitlist() {
-        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
-                .setTitle("Leave Waiting List?")
-                .setMessage("Are you sure you want to leave the waiting list for this event?")
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Leave", (dialog, which) -> leaveWaitingList())
-                .show();
     }
     
     private void leaveWaitingList() {
@@ -296,6 +397,97 @@ public class EventDetails extends Fragment {
                 });
     }
 
+    private void setupEventListener() {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Listen for real-time updates to the event document
+        // This prevents crashes when someone edits the event while another user is viewing it
+        eventListener = db.collection("events").document(event.getDocumentId())
+                .addSnapshotListener((documentSnapshot, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Error listening to event updates", error);
+                        return;
+                    }
+                    
+                    if (documentSnapshot != null && documentSnapshot.exists() && getView() != null) {
+                        try {
+                            // Parse and update the event
+                            Event updatedEvent = parseEvent(documentSnapshot);
+                            if (updatedEvent != null) {
+                                event = updatedEvent;
+                                // Update the UI with new event data
+                                displayEvent();
+                                // Re-check user status in case organizer changed or other updates
+                                checkUserStatus();
+                                Log.d(TAG, "Event updated from Firestore");
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error parsing updated event", e);
+                        }
+                    } else if (documentSnapshot != null && !documentSnapshot.exists()) {
+                        // Event was deleted
+                        if (getView() != null) {
+                            Toast.makeText(requireContext(), "This event has been deleted", Toast.LENGTH_LONG).show();
+                            // Go back to home
+                            requireActivity().getSupportFragmentManager().popBackStack();
+                        }
+                    }
+                });
+    }
+    
+    private Event parseEvent(com.google.firebase.firestore.DocumentSnapshot document) {
+        if (document == null || !document.exists()) {
+            return null;
+        }
+        
+        try {
+            Event event = new Event();
+            event.setDocumentId(document.getId());
+            event.setName(document.getString("name"));
+            event.setDescription(document.getString("description"));
+
+            Long capacity = document.getLong("capacity");
+            event.setCapacity(capacity != null ? capacity.intValue() : 0);
+
+            Long maxWaitlist = document.getLong("maxWaitListSize");
+            event.setMaxWaitListSize(maxWaitlist != null ? maxWaitlist.intValue() : null);
+
+            event.setPoster(document.getString("poster"));
+            event.setOrganizerDeviceId(document.getString("organizerDeviceId"));
+            event.setSelectionCriteria(document.getString("selectionCriteria"));
+
+            Boolean geoLocation = document.getBoolean("geoLocationRequired");
+            event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
+
+            // Convert Date to Calendar
+            java.util.Date registrationStartDate = document.getDate("registrationStartDate");
+            if (registrationStartDate != null) {
+                Calendar regStartCal = Calendar.getInstance();
+                regStartCal.setTime(registrationStartDate);
+                event.setRegistrationStartDate(regStartCal);
+            }
+
+            java.util.Date eventDate = document.getDate("eventDate");
+            if (eventDate != null) {
+                Calendar eventCal = Calendar.getInstance();
+                eventCal.setTime(eventDate);
+                event.setEventDate(eventCal);
+            }
+
+            java.util.Date raffleDate = document.getDate("raffleDate");
+            if (raffleDate != null) {
+                Calendar raffleCal = Calendar.getInstance();
+                raffleCal.setTime(raffleDate);
+                event.setRaffleDate(raffleCal);
+            }
+
+            return event;
+        } catch (Exception e) {
+            Log.e(TAG, "Error parsing event document: " + document.getId(), e);
+            return null;
+        }
+    }
+
     private void setupWaitlistListener() {
         if (event == null || event.getDocumentId() == null) return;
         
@@ -307,7 +499,7 @@ public class EventDetails extends Fragment {
                         return;
                     }
                     
-                    if (querySnapshot != null) {
+                    if (querySnapshot != null && event != null) {
                         int count = querySnapshot.size();
                         if (event.getMaxWaitListSize() != null) {
                             tvWaitingListCount.setText("Waiting List: " + count + " / " + event.getMaxWaitListSize());
@@ -323,13 +515,21 @@ public class EventDetails extends Fragment {
         
         String deviceId = getOrCreateDeviceId();
         
-        // Check if registration is still open
-        if (event.getRaffleDate() != null) {
-            Calendar now = Calendar.getInstance();
-            if (now.after(event.getRaffleDate())) {
-                showError("Registration has closed for this event.");
-                return;
-            }
+        // Check if registration window is open
+        Calendar now = Calendar.getInstance();
+        
+        // Check if registration has started
+        if (event.getRegistrationStartDate() != null && now.before(event.getRegistrationStartDate())) {
+            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
+            String startDate = sdf.format(event.getRegistrationStartDate().getTime());
+            showError("Registration opens on " + startDate);
+            return;
+        }
+        
+        // Check if registration has closed
+        if (event.getRaffleDate() != null && now.after(event.getRaffleDate())) {
+            showError("Registration has closed for this event.");
+            return;
         }
         
         // Check if already on waitlist
@@ -406,6 +606,56 @@ public class EventDetails extends Fragment {
         calculateAvailableSpots();
     }
     
+    private void viewWaitingList() {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Navigate to WaitlistViewActivity
+        Intent intent = new Intent(requireContext(), WaitlistViewActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
+        intent.putExtra("eventName", event.getName());
+        startActivity(intent);
+    }
+    
+    private void viewInvitedEntrants() {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Navigate to InvitationListViewActivity
+        Intent intent = new Intent(requireContext(), InvitationListViewActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
+        intent.putExtra("eventName", event.getName());
+        startActivity(intent);
+    }
+    
+    private void viewEnrolledEntrants() {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Navigate to AcceptedEntrantsViewActivity
+        Intent intent = new Intent(requireContext(), AcceptedEntrantsViewActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
+        intent.putExtra("eventName", event.getName());
+        intent.putExtra("eventCapacity", event.getCapacity());
+        startActivity(intent);
+    }
+    
+    private void viewCancelledEntrants() {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Navigate to CancelledEntrantsViewActivity
+        Intent intent = new Intent(requireContext(), CancelledEntrantsViewActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
+        intent.putExtra("eventName", event.getName());
+        startActivity(intent);
+    }
+    
+    private void editEvent() {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Navigate to EditEventActivity
+        Intent intent = new Intent(requireContext(), EditEventActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
+        startActivity(intent);
+    }
+    
     private void calculateAvailableSpots() {
         String eventId = event.getDocumentId();
         final int[] acceptedCount = {0};
@@ -467,7 +717,7 @@ public class EventDetails extends Fragment {
             return;
         }
         
-        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Run Raffle?")
                 .setMessage(message)
                 .setNegativeButton("Cancel", null)
@@ -489,7 +739,7 @@ public class EventDetails extends Fragment {
                     }
                     
                     // Get list of all user device IDs on waitlist
-                    java.util.List<String> waitlistUserIds = new java.util.ArrayList<>();
+                    List<String> waitlistUserIds = new ArrayList<>();
                     querySnapshot.forEach(doc -> {
                         waitlistUserIds.add(doc.getId());
                     });
@@ -505,8 +755,8 @@ public class EventDetails extends Fragment {
                     }
                     
                     // Randomly shuffle and select
-                    java.util.Collections.shuffle(waitlistUserIds);
-                    java.util.List<String> selectedUsers = waitlistUserIds.subList(0, numToSelect);
+                    Collections.shuffle(waitlistUserIds);
+                    List<String> selectedUsers = waitlistUserIds.subList(0, numToSelect);
                     
                     // Move selected users to invitation list
                     moveToInvitationList(selectedUsers, waitlistSize, numToSelect);
@@ -516,7 +766,7 @@ public class EventDetails extends Fragment {
                 });
     }
 
-    private void moveToInvitationList(java.util.List<String> selectedUsers, int totalWaitlist, int numSelected) {
+    private void moveToInvitationList(List<String> selectedUsers, int totalWaitlist, int numSelected) {
         if (event == null || event.getDocumentId() == null) return;
         
         // Get current draw round number
@@ -527,11 +777,11 @@ public class EventDetails extends Fragment {
                     int drawRound = (currentRound != null ? currentRound.intValue() : 0) + 1;
                     
                     // Batch write to move users to invitation_list
-                    com.google.firebase.firestore.WriteBatch batch = db.batch();
+                    WriteBatch batch = db.batch();
                     
                     for (String userId : selectedUsers) {
                         // Add to invitation_list (pending acceptance)
-                        com.google.firebase.firestore.DocumentReference invitationRef = 
+                        DocumentReference invitationRef = 
                             db.collection("events").document(event.getDocumentId())
                                 .collection("invitation_list").document(userId);
                         
@@ -545,14 +795,14 @@ public class EventDetails extends Fragment {
                         batch.set(invitationRef, invitationData);
                         
                         // Remove from waitlist
-                        com.google.firebase.firestore.DocumentReference waitlistRef = 
+                        DocumentReference waitlistRef = 
                             db.collection("events").document(event.getDocumentId())
                                 .collection("waitlist").document(userId);
                         batch.delete(waitlistRef);
                     }
                     
                     // Update draw round in event document
-                    com.google.firebase.firestore.DocumentReference eventRef = 
+                    DocumentReference eventRef = 
                         db.collection("events").document(event.getDocumentId());
                     batch.update(eventRef, "drawRound", drawRound);
                     batch.update(eventRef, "lastDrawTimestamp", System.currentTimeMillis());
@@ -569,7 +819,7 @@ public class EventDetails extends Fragment {
                                 // Refresh organizer status if organizer
                                 if (isOrganizer) {
                                     // Slight delay to allow Firestore to update
-                                    new android.os.Handler().postDelayed(() -> {
+                                    new Handler().postDelayed(() -> {
                                         showOrganizerStatus();
                                     }, 1000);
                                 }
@@ -699,16 +949,16 @@ public class EventDetails extends Fragment {
                         acceptedData.put("acceptedAt", System.currentTimeMillis());
                         
                         // Batch operation: add to acceptedList and remove from invitation_list
-                        com.google.firebase.firestore.WriteBatch batch = db.batch();
+                        WriteBatch batch = db.batch();
                         
                         // Add to acceptedList
-                        com.google.firebase.firestore.DocumentReference acceptedRef = 
+                        DocumentReference acceptedRef = 
                             db.collection("events").document(event.getDocumentId())
                                 .collection("acceptedList").document(deviceId);
                         batch.set(acceptedRef, acceptedData);
                         
                         // Remove from invitation_list
-                        com.google.firebase.firestore.DocumentReference invitationRef = 
+                        DocumentReference invitationRef = 
                             db.collection("events").document(event.getDocumentId())
                                 .collection("invitation_list").document(deviceId);
                         batch.delete(invitationRef);
@@ -736,7 +986,7 @@ public class EventDetails extends Fragment {
         if (event == null || event.getDocumentId() == null) return;
         
         // Confirm decline
-        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Decline Invitation?")
                 .setMessage("Are you sure you want to decline this invitation? This spot will be offered to someone else.")
                 .setNegativeButton("Cancel", null)
@@ -746,32 +996,54 @@ public class EventDetails extends Fragment {
     
     private void performDecline() {
         String deviceId = getOrCreateDeviceId();
+        String eventDocId = event.getDocumentId();
         
-        // Update status to declined in invitation_list, then remove
-        db.collection("events").document(event.getDocumentId())
+        // Get the invitation data first
+        db.collection("events").document(eventDocId)
                 .collection("invitation_list")
                 .document(deviceId)
-                .update("status", "declined", "declinedAt", System.currentTimeMillis())
-                .addOnSuccessListener(v -> {
-                    // Remove from invitation_list after marking as declined
-                    db.collection("events").document(event.getDocumentId())
-                            .collection("invitation_list")
-                            .document(deviceId)
-                            .delete()
-                            .addOnSuccessListener(v2 -> {
-                                showSuccess("Invitation declined. Spot will be offered to another participant.");
-                                hasInvitation = false;
-                                hideInvitationButtons();
-                                
-                                // Organizer will see updated status automatically when they view their event
-                            })
-                            .addOnFailureListener(e -> {
-                                showError("Failed to process decline. Please try again.");
-                            });
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        Map<String, Object> invitationData = doc.getData();
+                        
+                        // Create cancelled entry data
+                        Map<String, Object> cancelledData = new HashMap<>(invitationData);
+                        cancelledData.put("status", "declined");
+                        cancelledData.put("declinedAt", System.currentTimeMillis());
+                        
+                        // Move to cancelled_list collection
+                        db.collection("events").document(eventDocId)
+                                .collection("cancelled_list")
+                                .document(deviceId)
+                                .set(cancelledData)
+                                .addOnSuccessListener(v -> {
+                                    // Now delete from invitation_list
+                                    db.collection("events").document(eventDocId)
+                                            .collection("invitation_list")
+                                            .document(deviceId)
+                                            .delete()
+                                            .addOnSuccessListener(v2 -> {
+                                                showSuccess("Invitation declined. Spot will be offered to another participant.");
+                                                hasInvitation = false;
+                                                hideInvitationButtons();
+                                            })
+                                            .addOnFailureListener(e -> {
+                                                showError("Failed to process decline. Please try again.");
+                                                Log.e(TAG, "Error removing from invitation list", e);
+                                            });
+                                })
+                                .addOnFailureListener(e -> {
+                                    showError("Failed to decline invitation. Please try again.");
+                                    Log.e(TAG, "Error adding to cancelled list", e);
+                                });
+                    } else {
+                        showError("Invitation not found.");
+                    }
                 })
                 .addOnFailureListener(e -> {
                     showError("Failed to decline invitation. Please try again.");
-                    Log.e(TAG, "Error declining invitation", e);
+                    Log.e(TAG, "Error loading invitation", e);
                 });
     }
 
@@ -788,7 +1060,7 @@ public class EventDetails extends Fragment {
     }
 
     private String getOrCreateDeviceId() {
-        SharedPreferences sp = requireActivity().getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE);
+        SharedPreferences sp = requireActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String deviceId = sp.getString("device_id", null);
         if (deviceId == null) {
             deviceId = UUID.randomUUID().toString();
@@ -802,6 +1074,11 @@ public class EventDetails extends Fragment {
         super.onDestroyView();
         if (waitlistListener != null) {
             waitlistListener.remove();
+            waitlistListener = null;
+        }
+        if (eventListener != null) {
+            eventListener.remove();
+            eventListener = null;
         }
     }
 }

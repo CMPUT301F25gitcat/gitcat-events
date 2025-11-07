@@ -4,17 +4,32 @@ package com.example.gitcat_events.core.model;
 This class models the user accepting or declining an event.
  **/
 public class AcceptedListEntry extends Entry {
-    //TODO: tests
+    /**
+    * Represents an entry in the accepted list of participants for an event.
+    * This class extends the Entry to represent if anything a user who is accepted to the event.
+    * The status of the entry can be "pending", "accepted", or "declined".
+    * @author Momoore Oshinaike 
+    * @see Entry 
+    * 
+    */
     
     private String status; // "pending", "accepted", "declined"
     private int drawRound;
     private long timestamp;
     
-    // No-arg constructor for Firebase
+    /**
+     * No-arg constructor for Firebase
+     */
     public AcceptedListEntry() {
         super();
     }
     
+
+    /**
+     * Constructing a new AcceptedListEntry with a specified event ID and user device ID 
+     * @param eventId identifier for every single event uniquely in the database 
+     * @param userDeviceId identifier for every single user uniquely in the database 
+     */
     public AcceptedListEntry(String eventId, String userDeviceId){
         super(eventId, userDeviceId);
         this.status = "pending";
@@ -22,6 +37,12 @@ public class AcceptedListEntry extends Entry {
         this.timestamp = System.currentTimeMillis();
     }
     
+    /**
+     * Constructing a new AcceptedListEntry with a specified event ID, user device ID, and draw round
+     * @param eventId identifier for every single event uniquely in the database 
+     * @param userDeviceId identifier for every single user uniquely in the database 
+     * @param drawRound the round number for the draw
+     */
     public AcceptedListEntry(String eventId, String userDeviceId, int drawRound){
         super(eventId, userDeviceId);
         this.status = "pending";
@@ -31,27 +52,24 @@ public class AcceptedListEntry extends Entry {
     
     // Getters and Setters
     /**
-     * This gets the status of the event
-     * @return
-     * returns "accepted" if the user accepted the event, "declined" if the user declined the event, "pending" otherwise
+     * Gets the status of this accepted list entry
+     * @return the status ("pending", "accepted", "declined")
      */
     public String getStatus() {
         return status;
     }
 
-    /**
-     * This sets the status of the event
-     * @param status
-     * the new status of the event
+     /**
+     * Sets the status of this accepted list entry
+     * @param status the status ("pending", "accepted", "declined")
      */
     public void setStatus(String status) {
         this.status = status;
     }
 
     /**
-     * This gets the draw round of the event
-     * @return
-     * returns the draw round
+     * Gets the draw round for this entry
+     * @return the draw round number
      */
     public int getDrawRound() {
         return drawRound;
