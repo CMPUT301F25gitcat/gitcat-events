@@ -3,9 +3,11 @@ package com.example.gitcat_events.core.model;
 import androidx.annotation.Nullable;
 
 import java.io.Serializable;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 
 public class Event implements Serializable {
     //TODO: javadocs, waitlist functions, accepted list functions, tests
@@ -22,9 +24,7 @@ public class Event implements Serializable {
     //current plan is to store images as strings
     private String poster;
     //private QRCode qrCode; --QRCode class is not done yet
-    private String organizerDeviceId; // Device ID of the organizer (permanent identifier)
-    private String documentId; // Firestore document ID (not stored in DB, set when loaded)
-    @Nullable private String selectionCriteria; // Guidelines/criteria for lottery selection
+    private int organizer;
 
     // No-arg constructor for Firebase
     public Event() {
@@ -128,32 +128,23 @@ public class Event implements Serializable {
         this.poster = poster;
     }
 
-    // Organizer Device ID
-    public String getOrganizerDeviceId() {
-        return organizerDeviceId;
+    // Organizer
+    public int getOrganizer() {
+        return organizer;
     }
 
-    public void setOrganizerDeviceId(String organizerDeviceId) {
-        this.organizerDeviceId = organizerDeviceId;
+    public void setOrganizer(int organizer) {
+        this.organizer = organizer;
     }
 
-    // Document ID (Firestore)
-    public String getDocumentId() {
-        return documentId;
+    public String getRaffleDateString(){
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        return formatter.format(this.raffleDate);
     }
 
-    public void setDocumentId(String documentId) {
-        this.documentId = documentId;
-    }
-
-    // Selection Criteria
-    @Nullable
-    public String getSelectionCriteria() {
-        return selectionCriteria;
-    }
-
-    public void setSelectionCriteria(@Nullable String selectionCriteria) {
-        this.selectionCriteria = selectionCriteria;
+    public String getEventDateString(){
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        return formatter.format(this.eventDate);
     }
 
     /*public void setQRCode(QRCode qrCode) {  -- QR code class is not ready yet
