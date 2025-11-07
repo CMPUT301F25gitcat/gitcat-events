@@ -44,7 +44,7 @@ public class EventDetails extends Fragment {
     private ImageView ivEventPoster;
     private TextView tvEventName, tvEventDate, tvEventSpots, tvEventDesc;
     private TextView tvWaitingListCount, tvStatusMessage, tvSelectionCriteria;
-    private Button btnJoinWaitingList, btnBack, btnRunRaffle, btnViewWaitingList, btnViewInvitedEntrants, btnViewCancelledEntrants;
+    private Button btnJoinWaitingList, btnBack, btnRunRaffle, btnViewWaitingList, btnViewInvitedEntrants, btnViewEnrolledEntrants, btnViewCancelledEntrants;
     private Button btnAcceptInvitation, btnDeclineInvitation;
     private android.view.ViewGroup invitationButtons;
 
@@ -85,6 +85,7 @@ public class EventDetails extends Fragment {
         btnRunRaffle = view.findViewById(R.id.btnRunRaffle);
         btnViewWaitingList = view.findViewById(R.id.btnViewWaitingList);
         btnViewInvitedEntrants = view.findViewById(R.id.btnViewInvitedEntrants);
+        btnViewEnrolledEntrants = view.findViewById(R.id.btnViewEnrolledEntrants);
         btnViewCancelledEntrants = view.findViewById(R.id.btnViewCancelledEntrants);
         btnBack = view.findViewById(R.id.eventDetailsBackBtn);
         btnAcceptInvitation = view.findViewById(R.id.btnAcceptInvitation);
@@ -111,6 +112,9 @@ public class EventDetails extends Fragment {
         
         // Set up view invited entrants button (only visible to organizer)
         btnViewInvitedEntrants.setOnClickListener(v -> viewInvitedEntrants());
+        
+        // Set up view enrolled entrants button (only visible to organizer)
+        btnViewEnrolledEntrants.setOnClickListener(v -> viewEnrolledEntrants());
         
         // Set up view cancelled entrants button (only visible to organizer)
         btnViewCancelledEntrants.setOnClickListener(v -> viewCancelledEntrants());
@@ -176,6 +180,7 @@ public class EventDetails extends Fragment {
             btnRunRaffle.setVisibility(View.VISIBLE);
             btnViewWaitingList.setVisibility(View.VISIBLE);
             btnViewInvitedEntrants.setVisibility(View.VISIBLE);
+            btnViewEnrolledEntrants.setVisibility(View.VISIBLE);
             btnViewCancelledEntrants.setVisibility(View.VISIBLE);
             
             // Show organizer status
@@ -187,6 +192,7 @@ public class EventDetails extends Fragment {
         btnRunRaffle.setVisibility(View.GONE);
         btnViewWaitingList.setVisibility(View.GONE);
         btnViewInvitedEntrants.setVisibility(View.GONE);
+        btnViewEnrolledEntrants.setVisibility(View.GONE);
         btnViewCancelledEntrants.setVisibility(View.GONE);
         
         // Check if user has a pending invitation
@@ -449,6 +455,17 @@ public class EventDetails extends Fragment {
         android.content.Intent intent = new android.content.Intent(requireContext(), InvitationListViewActivity.class);
         intent.putExtra("eventId", event.getDocumentId());
         intent.putExtra("eventName", event.getName());
+        startActivity(intent);
+    }
+    
+    private void viewEnrolledEntrants() {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Navigate to AcceptedEntrantsViewActivity
+        android.content.Intent intent = new android.content.Intent(requireContext(), AcceptedEntrantsViewActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
+        intent.putExtra("eventName", event.getName());
+        intent.putExtra("eventCapacity", event.getCapacity());
         startActivity(intent);
     }
     
