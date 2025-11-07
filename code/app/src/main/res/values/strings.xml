@@ -5,4 +5,13 @@
     <string name="phone">Phone</string>
     <string name="edit">Edit</string>
     <string name="delete_profile">Delete profile</string>
+    <string name="create_event_title_text">Create Event</string>
+    <string name="create_event_edit_poster_button_text">Edit Poster</string>
+    <string name="event_name_hint">Event Name</string>
+    <string name="description_hint">Description</string>
+    <string name="slots_available_hint">Slots Available</string>
+    <string name="limit_entrants_hint">Limit Entrants to: (optional)</string>
+    <string name="require_geo_location_text">Require Geo Location (optional)</string>
+    <string name="create_event_button_text">Create Event</string>
+    <string name="create_event_cancel_button_text">Cancel</string>
 </resources>
