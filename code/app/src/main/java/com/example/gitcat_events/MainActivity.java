@@ -16,6 +16,19 @@ import androidx.navigation.ui.NavigationUI;
 
 import com.example.gitcat_events.databinding.ActivityMainBinding;
 
+
+/**
+ * the main activity of the app.
+ * 
+ * @author finlay soehn
+ * @see AppCompatActivity
+ * @see FragmentManager
+ * @see FragmentTransaction
+ * @see NavController
+ * @see Navigation
+ * @see AppBarConfiguration
+ * @see NavigationUI
+ */
 public class MainActivity extends AppCompatActivity {
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
@@ -91,12 +104,22 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * on support navigate up.
+     * this method is used to navigate up the activity.
+     * @return true if the activity is navigated up, false otherwise.
+     */
     public boolean onSupportNavigateUp() {
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         return NavigationUI.navigateUp(navController, appBarConfiguration)
                 || super.onSupportNavigateUp();
     }
 
+    /**
+     * replace a fragment with another fragment in the frame layout.
+     *
+     * @param fragment the fragment to replace the current fragment with.
+     */
     private void replaceFragment(Fragment fragment){
         FragmentManager fm = getSupportFragmentManager();
         FragmentTransaction ft = fm.beginTransaction();

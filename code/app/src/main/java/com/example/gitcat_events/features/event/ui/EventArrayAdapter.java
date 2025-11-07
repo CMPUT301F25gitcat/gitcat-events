@@ -24,6 +24,13 @@ import java.util.Calendar;
 import java.util.Locale;
 import java.text.SimpleDateFormat;
 
+/**
+ * custom array adapter for displaying Event objects in a ListView.
+ * 
+ * @author finlay soehn 
+ * @see Event
+ * @see ArrayAdapter
+ */
 
 public class EventArrayAdapter extends ArrayAdapter<Event> {
     public EventArrayAdapter(Context context, ArrayList<Event> events) {
@@ -62,6 +69,14 @@ public class EventArrayAdapter extends ArrayAdapter<Event> {
 
         return view;
     }
+
+    /**
+     * loading base64 Image into ImageView. 
+     * 
+     * this method is used to load a base64 string into an ImageView.
+     * @param base64String
+     * @param imageView
+     */
 
     private void loadBase64Image(String base64String, ImageView imageView) {
         try {
