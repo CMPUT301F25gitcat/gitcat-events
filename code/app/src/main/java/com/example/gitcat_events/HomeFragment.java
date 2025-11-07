@@ -342,8 +342,11 @@ public class HomeFragment extends Fragment {
                     Log.d(TAG, "Loaded " + (queryDocumentSnapshots != null ? queryDocumentSnapshots.size() : 0) + " events from Firestore");
                     upcomingEvents.clear();
 
-                    // First, collect all event IDs where user is already involved
-                    Set<String> involvedEventIds = new HashSet<>();
+                    // Separate tracking: waitlist events should still show in upcoming events
+                    // Only filter out events where user is invited or accepted
+                    Set<String> waitlistEventIds = new HashSet<>(); // Keep these visible
+                    Set<String> invitedEventIds = new HashSet<>(); // Filter these out
+                    Set<String> acceptedEventIds = new HashSet<>(); // Filter these out
                     
                     // Use counters to track completion of all async operations
                     final int[] completedQueries = {0};
@@ -353,11 +356,14 @@ public class HomeFragment extends Fragment {
                     Runnable checkAndFilter = () -> {
                         synchronized (this) {
                             completedQueries[0]++;
-                            Log.d(TAG, "Query completed: " + completedQueries[0] + "/" + totalQueries + ", involved events: " + involvedEventIds.size());
+                            Log.d(TAG, "Query completed: " + completedQueries[0] + "/" + totalQueries + 
+                                      " - Waitlist: " + waitlistEventIds.size() + 
+                                      ", Invited: " + invitedEventIds.size() + 
+                                      ", Accepted: " + acceptedEventIds.size());
                             if (completedQueries[0] == totalQueries) {
                                 if (getView() != null) {
                                     Log.d(TAG, "All queries complete, filtering events. Total events: " + queryDocumentSnapshots.size());
-                                    filterUpcomingEvents(queryDocumentSnapshots, currentDeviceId, involvedEventIds);
+                                    filterUpcomingEvents(queryDocumentSnapshots, currentDeviceId, waitlistEventIds, invitedEventIds, acceptedEventIds);
                                 } else {
                                     Log.w(TAG, "View is null when trying to filter events");
                                 }
@@ -365,7 +371,7 @@ public class HomeFragment extends Fragment {
                         }
                     };
                     
-                    // Check waitlist
+                    // Check waitlist (keep these visible in upcoming events)
                     db.collectionGroup("waitlist")
                             .whereEqualTo("userDeviceId", currentDeviceId)
                             .get()
@@ -374,9 +380,10 @@ public class HomeFragment extends Fragment {
                                     for (QueryDocumentSnapshot doc : waitlistSnapshot) {
                                         String eventId = doc.getString("eventId");
                                         if (eventId != null) {
-                                            involvedEventIds.add(eventId);
+                                            waitlistEventIds.add(eventId);
                                         }
                                     }
+                                    Log.d(TAG, "Found " + waitlistEventIds.size() + " events on waitlist");
                                 } catch (Exception e) {
                                     Log.e(TAG, "Error processing waitlist snapshot", e);
                                 }
@@ -387,7 +394,7 @@ public class HomeFragment extends Fragment {
                                 checkAndFilter.run();
                             });
                     
-                    // Check invitation_list
+                    // Check invitation_list (filter these out from upcoming)
                     db.collectionGroup("invitation_list")
                             .whereEqualTo("userDeviceId", currentDeviceId)
                             .get()
@@ -396,9 +403,10 @@ public class HomeFragment extends Fragment {
                                     for (QueryDocumentSnapshot doc : invitationSnapshot) {
                                         String eventId = doc.getString("eventId");
                                         if (eventId != null) {
-                                            involvedEventIds.add(eventId);
+                                            invitedEventIds.add(eventId);
                                         }
                                     }
+                                    Log.d(TAG, "Found " + invitedEventIds.size() + " events with invitations");
                                 } catch (Exception e) {
                                     Log.e(TAG, "Error processing invitation_list snapshot", e);
                                 }
@@ -409,7 +417,7 @@ public class HomeFragment extends Fragment {
                                 checkAndFilter.run();
                             });
                     
-                    // Check acceptedList
+                    // Check acceptedList (filter these out from upcoming)
                     db.collectionGroup("acceptedList")
                             .whereEqualTo("userDeviceId", currentDeviceId)
                             .get()
@@ -418,9 +426,10 @@ public class HomeFragment extends Fragment {
                                     for (QueryDocumentSnapshot doc : acceptedSnapshot) {
                                         String eventId = doc.getString("eventId");
                                         if (eventId != null) {
-                                            involvedEventIds.add(eventId);
+                                            acceptedEventIds.add(eventId);
                                         }
                                     }
+                                    Log.d(TAG, "Found " + acceptedEventIds.size() + " accepted events");
                                 } catch (Exception e) {
                                     Log.e(TAG, "Error processing acceptedList snapshot", e);
                                 }
@@ -441,7 +450,10 @@ public class HomeFragment extends Fragment {
     }
     
     private void filterUpcomingEvents(com.google.firebase.firestore.QuerySnapshot queryDocumentSnapshots, 
-                                      String currentDeviceId, Set<String> involvedEventIds) {
+                                      String currentDeviceId, 
+                                      Set<String> waitlistEventIds,
+                                      Set<String> invitedEventIds,
+                                      Set<String> acceptedEventIds) {
         if (getView() == null) {
             Log.w(TAG, "Fragment view is null, skipping filterUpcomingEvents");
             return;
@@ -482,9 +494,27 @@ public class HomeFragment extends Fragment {
                     continue;
                 }
 
-                // Don't show events where user is already involved (waitlist, invited, or accepted)
-                if (involvedEventIds.contains(eventId)) {
+                // Filter logic:
+                // - Show events user is on waitlist for (they can see their status)
+                // - Don't show events where user has been invited (show in pending invitations instead)
+                // - Don't show events where user has accepted (show in entered events instead)
+                // - Don't show events organized by this user
+                
+                if (invitedEventIds.contains(eventId)) {
+                    // User has a pending invitation - don't show in upcoming (it's in pending invitations)
+                    Log.d(TAG, "Filtering out event with invitation: " + event.getName());
                     continue;
+                }
+                
+                if (acceptedEventIds.contains(eventId)) {
+                    // User has accepted - don't show in upcoming (it's in entered events)
+                    Log.d(TAG, "Filtering out accepted event: " + event.getName());
+                    continue;
+                }
+                
+                // Note: Events on waitlist are kept visible (waitlistEventIds.contains(eventId) is OK)
+                if (waitlistEventIds.contains(eventId)) {
+                    Log.d(TAG, "Keeping waitlist event visible: " + event.getName());
                 }
 
                 // Check if registration is currently open
@@ -542,7 +572,9 @@ public class HomeFragment extends Fragment {
                 // For debugging: Log all events before filtering to see what we have
                 Log.d(TAG, "Event details - Name: " + event.getName() + ", Organizer: " + event.getOrganizerDeviceId() + 
                           ", Is organizer? " + (event.getOrganizerDeviceId() != null && event.getOrganizerDeviceId().equals(currentDeviceId)) +
-                          ", Is involved? " + involvedEventIds.contains(eventId));
+                          ", On waitlist? " + waitlistEventIds.contains(eventId) +
+                          ", Invited? " + invitedEventIds.contains(eventId) +
+                          ", Accepted? " + acceptedEventIds.contains(eventId));
 
                 if (registrationStarted && registrationOpen) {
                     upcomingEvents.add(event);

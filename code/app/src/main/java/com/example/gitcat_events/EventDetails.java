@@ -144,6 +144,7 @@ public class EventDetails extends Fragment {
 
         // Set up back button
         btnBack.setOnClickListener(v -> {
+            // Remove this fragment and go back
             requireActivity()
                     .getSupportFragmentManager()
                     .beginTransaction()
@@ -153,6 +154,8 @@ public class EventDetails extends Fragment {
                     )
                     .remove(EventDetails.this)
                     .commit();
+            
+            // Notify HomeFragment to refresh (it will reload in onResume)
         });
 
         return view;
@@ -196,19 +199,44 @@ public class EventDetails extends Fragment {
         
         try {
             String deviceId = getOrCreateDeviceId();
+            Log.d(TAG, "Checking user status - Device ID: " + deviceId + ", Event organizer: " + event.getOrganizerDeviceId());
             
             // Check if user is the organizer
             if (event.getOrganizerDeviceId() != null && 
                     event.getOrganizerDeviceId().equals(deviceId)) {
                 isOrganizer = true;
-                if (btnJoinWaitingList != null) btnJoinWaitingList.setVisibility(View.GONE);
-                if (invitationButtons != null) invitationButtons.setVisibility(View.GONE);
-                if (btnRunRaffle != null) btnRunRaffle.setVisibility(View.VISIBLE);
-                if (btnViewWaitingList != null) btnViewWaitingList.setVisibility(View.VISIBLE);
-                if (btnViewInvitedEntrants != null) btnViewInvitedEntrants.setVisibility(View.VISIBLE);
-                if (btnViewEnrolledEntrants != null) btnViewEnrolledEntrants.setVisibility(View.VISIBLE);
-                if (btnViewCancelledEntrants != null) btnViewCancelledEntrants.setVisibility(View.VISIBLE);
-                if (btnEditEvent != null) btnEditEvent.setVisibility(View.VISIBLE);
+                Log.d(TAG, "User is organizer - showing organizer buttons");
+                if (btnJoinWaitingList != null) {
+                    btnJoinWaitingList.setVisibility(View.GONE);
+                }
+                if (invitationButtons != null) {
+                    invitationButtons.setVisibility(View.GONE);
+                }
+                // Show all organizer buttons
+                if (btnRunRaffle != null) {
+                    btnRunRaffle.setVisibility(View.VISIBLE);
+                    Log.d(TAG, "Run Raffle button visible: " + (btnRunRaffle.getVisibility() == View.VISIBLE));
+                }
+                if (btnViewWaitingList != null) {
+                    btnViewWaitingList.setVisibility(View.VISIBLE);
+                    Log.d(TAG, "View Waiting List button visible: " + (btnViewWaitingList.getVisibility() == View.VISIBLE));
+                }
+                if (btnViewInvitedEntrants != null) {
+                    btnViewInvitedEntrants.setVisibility(View.VISIBLE);
+                    Log.d(TAG, "View Invited Entrants button visible: " + (btnViewInvitedEntrants.getVisibility() == View.VISIBLE));
+                }
+                if (btnViewEnrolledEntrants != null) {
+                    btnViewEnrolledEntrants.setVisibility(View.VISIBLE);
+                    Log.d(TAG, "View Enrolled Entrants button visible: " + (btnViewEnrolledEntrants.getVisibility() == View.VISIBLE));
+                }
+                if (btnViewCancelledEntrants != null) {
+                    btnViewCancelledEntrants.setVisibility(View.VISIBLE);
+                    Log.d(TAG, "View Cancelled Entrants button visible: " + (btnViewCancelledEntrants.getVisibility() == View.VISIBLE));
+                }
+                if (btnEditEvent != null) {
+                    btnEditEvent.setVisibility(View.VISIBLE);
+                    Log.d(TAG, "Edit Event button visible: " + (btnEditEvent.getVisibility() == View.VISIBLE));
+                }
                 
                 // Show organizer status
                 showOrganizerStatus();
@@ -230,7 +258,7 @@ public class EventDetails extends Fragment {
             // Check if user has a pending invitation
             checkInvitationStatus(deviceId);
             
-            // Check waitlist status
+            // Check waitlist status with real-time listener
             db.collection("events").document(event.getDocumentId())
                     .collection("waitlist")
                     .document(deviceId)
@@ -242,16 +270,13 @@ public class EventDetails extends Fragment {
                         
                         if (getView() == null) return; // Fragment view detached
                         
-                        if (documentSnapshot != null && documentSnapshot.exists()) {
-                            isOnWaitlist = true;
-                            if (!hasInvitation) {
-                                updateButtonForWaitlistStatus();
-                            }
-                        } else {
-                            isOnWaitlist = false;
-                            if (!hasInvitation) {
-                                updateButtonForWaitlistStatus();
-                            }
+                        // Update waitlist status immediately
+                        boolean wasOnWaitlist = isOnWaitlist;
+                        isOnWaitlist = (documentSnapshot != null && documentSnapshot.exists());
+                        
+                        // Update button if status changed or if no invitation
+                        if (wasOnWaitlist != isOnWaitlist || !hasInvitation) {
+                            updateButtonForWaitlistStatus();
                         }
                     });
         } catch (Exception e) {
@@ -323,9 +348,10 @@ public class EventDetails extends Fragment {
         if (getView() == null || btnJoinWaitingList == null) return;
         
         try {
+            // Simple toggle: Join or Leave based on waitlist status
             if (isOnWaitlist) {
                 btnJoinWaitingList.setText("Leave Waiting List");
-                btnJoinWaitingList.setBackgroundColor(getResources().getColor(android.R.color.holo_orange_dark));
+                btnJoinWaitingList.setBackgroundTintList(getResources().getColorStateList(android.R.color.holo_orange_dark));
                 if (tvStatusMessage != null) {
                     tvStatusMessage.setVisibility(View.VISIBLE);
                     tvStatusMessage.setText("You're on the waiting list");
@@ -333,7 +359,7 @@ public class EventDetails extends Fragment {
                 }
             } else {
                 btnJoinWaitingList.setText("Join Waiting List");
-                btnJoinWaitingList.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_dark));
+                btnJoinWaitingList.setBackgroundTintList(getResources().getColorStateList(android.R.color.holo_blue_dark));
                 if (tvStatusMessage != null) {
                     tvStatusMessage.setVisibility(View.GONE);
                 }
@@ -344,20 +370,12 @@ public class EventDetails extends Fragment {
     }
     
     private void handleWaitlistAction() {
+        // Simple toggle: if on waitlist, leave; if not, join
         if (isOnWaitlist) {
-            confirmLeaveWaitlist();
+            leaveWaitingList();
         } else {
             joinWaitingList();
         }
-    }
-    
-    private void confirmLeaveWaitlist() {
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Leave Waiting List?")
-                .setMessage("Are you sure you want to leave the waiting list for this event?")
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Leave", (dialog, which) -> leaveWaitingList())
-                .show();
     }
     
     private void leaveWaitingList() {
