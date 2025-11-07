@@ -1,8 +1,12 @@
 package com.example.gitcat_events;
 
+import android.content.ContentValues;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,8 +27,10 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -296,22 +302,77 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
                     sanitizeFileName(eventName != null ? eventName : "Event"),
                     timestamp);
             
-            // Save file to cache directory (no permissions needed)
-            File cacheDir = getCacheDir();
-            File csvFile = new File(cacheDir, fileName);
+            // Save file to Downloads folder
+            boolean saved = saveToDownloads(fileName, csvContent.toString());
             
-            FileWriter writer = new FileWriter(csvFile);
-            writer.write(csvContent.toString());
-            writer.close();
-            
-            // Share the file
-            shareFile(csvFile);
+            if (saved) {
+                Toast.makeText(this, "CSV file saved to Downloads: " + fileName, 
+                        Toast.LENGTH_LONG).show();
+            } else {
+                // Fallback to cache directory if Downloads folder is not accessible
+                File cacheDir = getCacheDir();
+                File csvFile = new File(cacheDir, fileName);
+                
+                FileWriter writer = new FileWriter(csvFile);
+                writer.write(csvContent.toString());
+                writer.close();
+                
+                // Share the file as fallback
+                shareFile(csvFile);
+            }
             
         } catch (IOException e) {
             Log.e(TAG, "Error creating CSV file", e);
             Toast.makeText(this, "Failed to export CSV: " + e.getMessage(), 
                     Toast.LENGTH_LONG).show();
         }
+    }
+    
+    private boolean saveToDownloads(String fileName, String content) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Android 10+ (API 29+) - Use MediaStore
+                ContentValues contentValues = new ContentValues();
+                contentValues.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
+                contentValues.put(MediaStore.Downloads.MIME_TYPE, "text/csv");
+                contentValues.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+                
+                Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues);
+                
+                if (uri != null) {
+                    try (OutputStream outputStream = getContentResolver().openOutputStream(uri)) {
+                        if (outputStream != null) {
+                            outputStream.write(content.getBytes());
+                            outputStream.flush();
+                            return true;
+                        }
+                    }
+                }
+            } else {
+                // Android 9 and below - Use direct file access
+                File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                if (!downloadsDir.exists()) {
+                    downloadsDir.mkdirs();
+                }
+                
+                File csvFile = new File(downloadsDir, fileName);
+                FileWriter writer = new FileWriter(csvFile);
+                writer.write(content);
+                writer.close();
+                
+                // Notify MediaStore to scan the file
+                Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+                Uri fileUri = Uri.fromFile(csvFile);
+                mediaScanIntent.setData(fileUri);
+                sendBroadcast(mediaScanIntent);
+                
+                return true;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error saving to Downloads folder", e);
+            return false;
+        }
+        return false;
     }
     
     private String escapeCsvField(String field) {
