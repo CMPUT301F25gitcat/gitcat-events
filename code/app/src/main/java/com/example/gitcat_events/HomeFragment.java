@@ -14,6 +14,7 @@ import com.example.gitcat_events.core.model.Event;
 import com.example.gitcat_events.features.event.ui.EventArrayAdapter;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 public class HomeFragment extends Fragment {
     private ArrayList<Event> upcomingEvents;
@@ -42,8 +43,8 @@ public class HomeFragment extends Fragment {
         enteredEventsList = view.findViewById(R.id.enteredEventsList);
         upcomingEventsList = view.findViewById(R.id.upcomingEventsList);
 
-        Event eventOne = new Event("Event 1", "This is a description", "Oct 2, 2025");
-        Event eventTwo = new Event("Event 2", "This is a description", "Oct 20, 2025");
+        Event eventOne = new Event("Event 1", "This is a description", 1,10, "user1", new Date(), new Date());
+        Event eventTwo = new Event("Event 2", "This is a description",1,10,"user2", new Date(), new Date());
 
         enteredEvents = new ArrayList<>();
         upcomingEvents = new ArrayList<>();
