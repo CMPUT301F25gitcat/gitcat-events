@@ -1,25 +1,26 @@
 package com.example.gitcat_events.core.model;
 
-public class AcceptedListEntry extends Entry {
+public class InvitationListEntry extends Entry {
     //TODO: javadocs, tests
     
     private String status; // "pending", "accepted", "declined"
     private int drawRound;
     private long timestamp;
+    private long expiresAt; // Optional expiration time
     
     // No-arg constructor for Firebase
-    public AcceptedListEntry() {
+    public InvitationListEntry() {
         super();
     }
     
-    public AcceptedListEntry(String eventId, String userDeviceId){
+    public InvitationListEntry(String eventId, String userDeviceId){
         super(eventId, userDeviceId);
         this.status = "pending";
         this.drawRound = 1;
         this.timestamp = System.currentTimeMillis();
     }
     
-    public AcceptedListEntry(String eventId, String userDeviceId, int drawRound){
+    public InvitationListEntry(String eventId, String userDeviceId, int drawRound){
         super(eventId, userDeviceId);
         this.status = "pending";
         this.drawRound = drawRound;
@@ -50,4 +51,13 @@ public class AcceptedListEntry extends Entry {
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
     }
+    
+    public long getExpiresAt() {
+        return expiresAt;
+    }
+    
+    public void setExpiresAt(long expiresAt) {
+        this.expiresAt = expiresAt;
+    }
 }
+
