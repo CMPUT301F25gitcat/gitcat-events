@@ -79,6 +79,21 @@ public class HomeFragment extends Fragment {
         setListViewHeightBasedOnChildren(enteredEventsList);
         setListViewHeightBasedOnChildren(upcomingEventsList);
 
+        upcomingEventsList.setOnItemClickListener((parent, tmpView, position, id) -> {
+            Event selectedEvent = upcomingEvents.get(position);
+            System.out.println(selectedEvent);
+            EventDetails detailFragment = EventDetails.newInstance(selectedEvent);
+
+            getParentFragmentManager()
+                    .beginTransaction()
+                    .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.fade_out,
+                            android.R.anim.fade_in, android.R.anim.fade_out)
+                    .add(R.id.frameLayout, detailFragment)
+                    .addToBackStack(null)
+                    .commit();
+        });
+
+
         return view;
     }
 
