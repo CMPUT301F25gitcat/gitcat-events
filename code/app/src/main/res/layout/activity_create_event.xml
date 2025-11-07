@@ -264,6 +264,43 @@
                     android:text="* Required fields"
                     android:textColor="#85000000"
                     android:textSize="12sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Lottery Selection Guidelines"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Explain how participants will be selected (optional)"
+                    android:textColor="#85000000"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp"
+                    android:hint="Selection Criteria (Optional)"
+                    app:boxStrokeColor="#6850a4"
+                    app:boxStrokeWidth="2dp"
+                    app:boxStrokeWidthFocused="3dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etSelectionCriteria"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="top"
+                        android:hint="e.g., Random selection from all registered participants. All entrants have equal chance of being selected."
+                        android:inputType="textMultiLine"
+                        android:maxLines="5"
+                        android:minLines="3" />
+                </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
 
         </androidx.cardview.widget.CardView>
@@ -281,38 +318,6 @@
         <!-- Geolocation Toggle -->
 
         <!-- Selection Criteria/Guidelines -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Lottery Selection Guidelines"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Explain how participants will be selected (optional)"
-            android:textSize="12sp"
-            android:textColor="@android:color/darker_gray"
-            android:layout_marginBottom="8dp"/>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Selection Criteria (Optional)"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_marginBottom="24dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etSelectionCriteria"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textMultiLine"
-                android:minLines="3"
-                android:maxLines="5"
-                android:gravity="top"
-                android:hint="e.g., Random selection from all registered participants. All entrants have equal chance of being selected."/>
-        </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Required Fields Note -->
 
