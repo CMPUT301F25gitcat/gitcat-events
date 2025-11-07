@@ -3,6 +3,9 @@ package com.example.gitcat_events;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -18,8 +21,10 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Activity to display the invitation list for an event (organizer only)
@@ -33,7 +38,7 @@ public class InvitationListViewActivity extends AppCompatActivity {
     private RecyclerView rvInvitationList;
     private TextView tvInvitationListEmpty;
     private TextView tvInvitationListCount;
-    private android.widget.ImageButton btnBack;
+    private ImageButton btnBack;
     
     private String eventId;
     private String eventName;
@@ -231,10 +236,10 @@ public class InvitationListViewActivity extends AppCompatActivity {
                 .get()
                 .addOnSuccessListener(doc -> {
                     if (doc.exists()) {
-                        java.util.Map<String, Object> invitationData = doc.getData();
+                        Map<String, Object> invitationData = doc.getData();
                         
                         // Create cancelled entry data
-                        java.util.Map<String, Object> cancelledData = new java.util.HashMap<>(invitationData);
+                        Map<String, Object> cancelledData = new HashMap<>(invitationData);
                         cancelledData.put("status", "cancelled_by_organizer");
                         cancelledData.put("cancelledAt", System.currentTimeMillis());
                         
@@ -294,7 +299,7 @@ public class InvitationListViewActivity extends AppCompatActivity {
 
         @NonNull
         @Override
-        public ViewHolder onCreateViewHolder(@NonNull android.view.ViewGroup parent, int viewType) {
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View view = getLayoutInflater().inflate(R.layout.item_invitation_entry, parent, false);
             return new ViewHolder(view);
         }
@@ -318,7 +323,7 @@ public class InvitationListViewActivity extends AppCompatActivity {
             TextView tvStatus;
             TextView tvDrawRound;
             TextView tvInvitedDate;
-            android.widget.Button btnCancelInvitation;
+            Button btnCancelInvitation;
 
             ViewHolder(@NonNull View itemView) {
                 super(itemView);

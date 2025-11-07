@@ -29,8 +29,13 @@ import com.bumptech.glide.Glide;
 import com.example.gitcat_events.R;
 import com.example.gitcat_events.core.model.Profile;
 
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.provider.Settings;
+
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.UUID;
 
 public class ProfileDialogFragment extends DialogFragment {
 
@@ -296,20 +301,20 @@ public class ProfileDialogFragment extends DialogFragment {
     }
     
     private String getOrCreateDeviceId() {
-        if (getContext() == null) return java.util.UUID.randomUUID().toString();
+        if (getContext() == null) return UUID.randomUUID().toString();
         
-        android.content.SharedPreferences sp = getContext().getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE);
+        SharedPreferences sp = getContext().getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
         String deviceId = sp.getString("device_id", null);
 
         if (deviceId == null) {
             try {
-                deviceId = android.provider.Settings.Secure.getString(getContext().getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+                deviceId = Settings.Secure.getString(getContext().getContentResolver(), Settings.Secure.ANDROID_ID);
             } catch (Exception e) {
                 Log.w(TAG, "Failed to get Android ID", e);
             }
 
             if (deviceId == null || deviceId.isEmpty()) {
-                deviceId = java.util.UUID.randomUUID().toString();
+                deviceId = UUID.randomUUID().toString();
             }
             sp.edit().putString("device_id", deviceId).apply();
         }

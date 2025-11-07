@@ -12,6 +12,7 @@ import android.util.Base64;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -47,7 +48,7 @@ public class EditEventActivity extends AppCompatActivity {
     private Button btnSelectPoster, btnSelectRegistrationStartDate, btnSelectEventDate, btnSelectRaffleDate, btnUpdateEvent;
     private TextView tvRegistrationStartDateDisplay, tvEventDateDisplay, tvRaffleDateDisplay;
     private SwitchMaterial switchGeoLocation;
-    private android.widget.ImageButton btnBack;
+    private ImageButton btnBack;
 
     private Uri selectedPosterUri;
     private String existingPosterBase64; // Keep existing poster if not changed
