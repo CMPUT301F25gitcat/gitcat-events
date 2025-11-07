@@ -4,11 +4,14 @@ import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
 
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ListAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import com.example.gitcat_events.core.model.Event;
 import com.example.gitcat_events.features.event.ui.EventArrayAdapter;
@@ -49,15 +52,63 @@ public class HomeFragment extends Fragment {
 
         enteredEvents = new ArrayList<>();
         upcomingEvents = new ArrayList<>();
-        enteredEvents.add(eventTwo);
+//        enteredEvents.add(eventTwo);
+//        enteredEvents.add(eventTwo);
+//        enteredEvents.add(eventTwo);
+        upcomingEvents.add(eventOne);
+        upcomingEvents.add(eventOne);
+        upcomingEvents.add(eventOne);
         upcomingEvents.add(eventOne);
 
         enteredEventsAdapter = new EventArrayAdapter(getContext(), enteredEvents);
         upcomingEventsAdapter = new EventArrayAdapter(getContext(), upcomingEvents);
 
+
+        // show placeholders if there is no events
+        if(enteredEvents.size() == 0){
+            view.findViewById(R.id.EnteredEventsEmpty).setVisibility(View.VISIBLE);;
+        }
+
+        if(upcomingEvents.size() == 0){
+            view.findViewById(R.id.upcomingEventsEmpty).setVisibility(View.VISIBLE);;
+        }
+
         enteredEventsList.setAdapter(enteredEventsAdapter);
         upcomingEventsList.setAdapter(upcomingEventsAdapter);
 
+        setListViewHeightBasedOnChildren(enteredEventsList);
+        setListViewHeightBasedOnChildren(upcomingEventsList);
+
+        upcomingEventsList.setOnItemClickListener((parent, tmpView, position, id) -> {
+            Event selectedEvent = upcomingEvents.get(position);
+            System.out.println(selectedEvent);
+            EventDetails detailFragment = EventDetails.newInstance(selectedEvent);
+
+            getParentFragmentManager()
+                    .beginTransaction()
+                    .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.fade_out,
+                            android.R.anim.fade_in, android.R.anim.fade_out)
+                    .add(R.id.frameLayout, detailFragment)
+                    .addToBackStack(null)
+                    .commit();
+        });
+
+
         return view;
     }
+
+    public static void setListViewHeightBasedOnChildren(ListView listView) {
+        ListAdapter listAdapter = listView.getAdapter();
+        if (listAdapter == null) return;
+
+        int totalHeight = (130 * listAdapter.getCount());
+        float dpHeight = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, totalHeight, listView.getContext().getResources().getDisplayMetrics());
+
+        ViewGroup.LayoutParams params = listView.getLayoutParams();
+        params.height = (int) dpHeight;
+        listView.setLayoutParams(params);
+        listView.requestLayout();
+    }
+
+
 }

@@ -1,9 +1,15 @@
 package com.example.gitcat_events.features.entrant.ui;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.provider.Settings;
+import android.util.Base64;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -11,14 +17,22 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.gitcat_events.CreateFragment;
+import com.example.gitcat_events.HomeFragment;
+import com.example.gitcat_events.MainActivity;
+import com.example.gitcat_events.NotifsFragment;
+import com.example.gitcat_events.ProfileFragment;
 import com.example.gitcat_events.R;
+import com.example.gitcat_events.SetupProfileActivity;
 import com.example.gitcat_events.core.model.Profile;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class ProfileActivity extends AppCompatActivity
         implements ProfileDialogFragment.OnSaveProfileListener {
@@ -26,9 +40,11 @@ public class ProfileActivity extends AppCompatActivity
     private FirebaseFirestore db;
     String TAG = "FirestoreSmoke";
     private TextView tvName, tvEmail, tvPhone;
+    private ImageView ivProfilePicture;
 
     private static final String PREFS = "app_prefs";
     private static final String KEY_PROFILE_ID = "profile_doc_id"; // we'll store the numeric id as a String
+    private static final String KEY_DEVICE_ID = "device_id"; // unique device identifier
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -52,6 +68,7 @@ public class ProfileActivity extends AppCompatActivity
         tvName  = findViewById(R.id.tvName);
         tvEmail = findViewById(R.id.tvEmail);
         tvPhone = findViewById(R.id.tvPhone);
+        ivProfilePicture = findViewById(R.id.ivProfilePicture);
         Button btnEdit = findViewById(R.id.btnEdit);
 
         loadProfile();
@@ -61,6 +78,39 @@ public class ProfileActivity extends AppCompatActivity
                         .show(getSupportFragmentManager(), "editProfile"));
         Button btnDelete = findViewById(R.id.btnDelete);
         btnDelete.setOnClickListener(v -> confirmAndDelete());
+        
+        // Setup bottom navigation
+        BottomNavigationView bottomNav = findViewById(R.id.bottomNavigationView);
+        bottomNav.setSelectedItemId(R.id.profile); // Highlight profile tab
+        bottomNav.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            
+            if (id == R.id.home) {
+                // Go back to MainActivity with Home fragment
+                Intent intent = new Intent(this, MainActivity.class);
+                intent.putExtra("fragment", "home");
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+                return true;
+            } else if (id == R.id.notifs) {
+                Intent intent = new Intent(this, MainActivity.class);
+                intent.putExtra("fragment", "notifs");
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+                return true;
+            } else if (id == R.id.create) {
+                Intent intent = new Intent(this, MainActivity.class);
+                intent.putExtra("fragment", "create");
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+                return true;
+            } else if (id == R.id.profile) {
+                // Already on profile, do nothing
+                return true;
+            }
+            
+            return false;
+        });
     }
 
     private Profile currentProfile;
@@ -95,17 +145,37 @@ public class ProfileActivity extends AppCompatActivity
         tvEmail.setText(p.getEmail());
         String ph = p.getPhone();
         tvPhone.setText((ph == null || ph.trim().isEmpty()) ? "—" : ph);
+        
+        // Load profile picture from Base64 string
+        if (p.getProfilePictureUrl() != null && !p.getProfilePictureUrl().isEmpty()) {
+            loadBase64Image(p.getProfilePictureUrl(), ivProfilePicture);
+        } else {
+            ivProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
+        }
     }
 
     /** Called when dialog presses Save */
     @Override
     public void onSaveProfile(Profile profile) {
+        // Ensure device ID is set
+        if (profile.getDeviceId() == null || profile.getDeviceId().isEmpty()) {
+            profile.setDeviceId(getOrCreateDeviceId());
+        }
+        
         String existingId = getSavedDocId();
         if (existingId == null) {
             // Create new profile with sequential numeric id (0,1,2,...) via transaction
             createProfileWithAutoId(profile);
         } else {
-            // Update existing
+            // Update existing - preserve deviceId and profilePictureUrl if not changed
+            if (currentProfile != null) {
+                if (profile.getDeviceId() == null) {
+                    profile.setDeviceId(currentProfile.getDeviceId());
+                }
+                if (profile.getProfilePictureUrl() == null) {
+                    profile.setProfilePictureUrl(currentProfile.getProfilePictureUrl());
+                }
+            }
             db.collection("profiles").document(existingId).set(profile)
                     .addOnSuccessListener(v -> {
                         currentProfile = profile;
@@ -140,6 +210,8 @@ public class ProfileActivity extends AppCompatActivity
             data.put("name", profile.getName());
             data.put("email", profile.getEmail());
             data.put("phone", profile.getPhone()); // may be null
+            data.put("deviceId", profile.getDeviceId()); // device identifier
+            data.put("profilePictureUrl", profile.getProfilePictureUrl()); // profile picture URL
             data.put("uid", next);
             transaction.set(profileRef, data);
 
@@ -192,11 +264,14 @@ public class ProfileActivity extends AppCompatActivity
                     tvName.setText("—");
                     tvEmail.setText("—");
                     tvPhone.setText("—");
-                    Toast.makeText(this, "Profile deleted.", Toast.LENGTH_SHORT).show();
+                    ivProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
+                    Toast.makeText(this, "Profile deleted successfully.", Toast.LENGTH_SHORT).show();
 
-                    // Prompt to create a new one (optional)
-                    ProfileDialogFragment.newInstance(null)
-                            .show(getSupportFragmentManager(), "createProfile");
+                    // Redirect to setup page
+                    Intent intent = new Intent(this, SetupProfileActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                    finish();
                 })
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Delete failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
@@ -204,5 +279,52 @@ public class ProfileActivity extends AppCompatActivity
     }
     private void saveDocId(String id) {
         getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(KEY_PROFILE_ID, id).apply();
+    }
+    
+    /**
+     * Get or create a unique device identifier.
+     * First tries Android ID, falls back to UUID stored in SharedPreferences.
+     */
+    private String getOrCreateDeviceId() {
+        SharedPreferences sp = getSharedPreferences(PREFS, MODE_PRIVATE);
+        String deviceId = sp.getString(KEY_DEVICE_ID, null);
+        
+        if (deviceId == null) {
+            // Try to get Android ID (unique per device and app installation)
+            try {
+                deviceId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to get Android ID", e);
+            }
+            
+            // Fallback to UUID if Android ID is not available
+            if (deviceId == null || deviceId.isEmpty()) {
+                deviceId = UUID.randomUUID().toString();
+            }
+            
+            // Save for future use
+            sp.edit().putString(KEY_DEVICE_ID, deviceId).apply();
+        }
+        
+        return deviceId;
+    }
+    
+    /**
+     * Load Base64 image into ImageView
+     */
+    private void loadBase64Image(String base64String, ImageView imageView) {
+        try {
+            byte[] decodedBytes = Base64.decode(base64String, Base64.DEFAULT);
+            Bitmap bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length);
+            
+            if (bitmap != null) {
+                imageView.setImageBitmap(bitmap);
+            } else {
+                imageView.setImageResource(R.drawable.ic_launcher_foreground);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error loading Base64 image", e);
+            imageView.setImageResource(R.drawable.ic_launcher_foreground);
+        }
     }
 }

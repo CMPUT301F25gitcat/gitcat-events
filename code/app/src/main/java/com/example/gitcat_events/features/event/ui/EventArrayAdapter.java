@@ -13,7 +13,12 @@ import androidx.annotation.Nullable;
 
 import com.example.gitcat_events.core.model.Event;
 
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Locale;
+import java.text.SimpleDateFormat;
+
 
 public class EventArrayAdapter extends ArrayAdapter<Event> {
     public EventArrayAdapter(Context context, ArrayList<Event> events) {
@@ -37,7 +42,10 @@ public class EventArrayAdapter extends ArrayAdapter<Event> {
 
         eventName.setText(event.getName());
         eventDescription.setText(event.getDescription());
-        eventDate.setText(event.getEventDate().toString());
+
+        Calendar calendar = event.getEventDate();
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        eventDate.setText(formatter.format(calendar.getTime()));
 
         return view;
     }
