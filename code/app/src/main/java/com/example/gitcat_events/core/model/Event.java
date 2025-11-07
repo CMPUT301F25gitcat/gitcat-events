@@ -25,6 +25,11 @@ public class Event implements Serializable {
     private String poster;
     //private QRCode qrCode; --QRCode class is not done yet
     private int organizer;
+    
+    // Additional fields for Firestore integration and enhanced functionality
+    @Nullable private String documentId; // Firestore document ID
+    @Nullable private String organizerDeviceId; // Device ID of the organizer
+    @Nullable private String selectionCriteria; // Raffle selection criteria description
 
     // No-arg constructor for Firebase
     public Event() {
@@ -135,6 +140,36 @@ public class Event implements Serializable {
 
     public void setOrganizer(int organizer) {
         this.organizer = organizer;
+    }
+
+    // Document ID (Firestore)
+    @Nullable
+    public String getDocumentId() {
+        return documentId;
+    }
+
+    public void setDocumentId(@Nullable String documentId) {
+        this.documentId = documentId;
+    }
+
+    // Organizer Device ID
+    @Nullable
+    public String getOrganizerDeviceId() {
+        return organizerDeviceId;
+    }
+
+    public void setOrganizerDeviceId(@Nullable String organizerDeviceId) {
+        this.organizerDeviceId = organizerDeviceId;
+    }
+
+    // Selection Criteria
+    @Nullable
+    public String getSelectionCriteria() {
+        return selectionCriteria;
+    }
+
+    public void setSelectionCriteria(@Nullable String selectionCriteria) {
+        this.selectionCriteria = selectionCriteria;
     }
 
     public String getRaffleDateString(){
