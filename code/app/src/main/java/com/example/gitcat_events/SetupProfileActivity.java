@@ -287,6 +287,7 @@ public class SetupProfileActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         // Prevent going back - user must create profile
+        super.onBackPressed();
         Toast.makeText(this, "Please create your profile to continue", Toast.LENGTH_SHORT).show();
     }
 }
