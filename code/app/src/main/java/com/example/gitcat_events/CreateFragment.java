@@ -33,9 +33,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-/**
- * This fragment displays events created by the current user and provides functionality to create new events via a floating action button.
- */
+
 public class CreateFragment extends Fragment {
 
     private static final String TAG = "CreateFragment";
@@ -95,16 +93,20 @@ public class CreateFragment extends Fragment {
         // Reload events when returning to this fragment
         loadUserEvents();
     }
-    /**
-     * Loads and displays events created by the current user from Firestore
-     * Shows empty state if no events are found
-     */
+
     private void loadUserEvents() {
-        // Get device ID (permanent organizer identifier)
-        String deviceId = getOrCreateDeviceId();
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, getContext().MODE_PRIVATE);
+        String profileIdStr = prefs.getString(KEY_PROFILE_ID, null);
+        
+        if (profileIdStr == null) {
+            Toast.makeText(getContext(), "Error: No user profile found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        int organizerId = Integer.parseInt(profileIdStr);
 
         db.collection("events")
-                .whereEqualTo("organizerDeviceId", deviceId)
+                .whereEqualTo("organizer", organizerId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     eventsList.clear();
@@ -112,7 +114,6 @@ public class CreateFragment extends Fragment {
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         try {
                             Event event = new Event();
-                            event.setDocumentId(document.getId()); // Store document ID
                             event.setName(document.getString("name"));
                             event.setDescription(document.getString("description"));
                             
@@ -124,8 +125,8 @@ public class CreateFragment extends Fragment {
                             
                             event.setPoster(document.getString("poster"));
                             
-                            String organizerDeviceId = document.getString("organizerDeviceId");
-                            event.setOrganizerDeviceId(organizerDeviceId);
+                            Long organizer = document.getLong("organizer");
+                            event.setOrganizer(organizer != null ? organizer.intValue() : 0);
                             
                             Boolean geoLocation = document.getBoolean("geoLocationRequired");
                             event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
@@ -175,9 +176,6 @@ public class CreateFragment extends Fragment {
     }
 
     // RecyclerView Adapter
-    /**
-     * RecyclerView adapter for displaying created events in a list
-     */
     private class EventsAdapter extends RecyclerView.Adapter<EventsAdapter.EventViewHolder> {
         private List<Event> events;
 
@@ -203,9 +201,7 @@ public class CreateFragment extends Fragment {
         public int getItemCount() {
             return events.size();
         }
-        /**
-         * ViewHolder for displaying individual event items in the RecyclerView
-         */
+
         class EventViewHolder extends RecyclerView.ViewHolder {
             ImageView ivEventThumbnail;
             TextView tvEventName, tvEventDescription, tvEventDate, tvEventCapacity;
@@ -218,11 +214,7 @@ public class CreateFragment extends Fragment {
                 tvEventDate = itemView.findViewById(R.id.tvEventDate);
                 tvEventCapacity = itemView.findViewById(R.id.tvEventCapacity);
             }
-            /**
-             * Binds event data to the ViewHolder views and sets up click listeners
-             * @param event
-             * the event to bind to the view
-             */
+
             void bind(Event event) {
                 tvEventName.setText(event.getName());
                 tvEventDescription.setText(event.getDescription());
@@ -243,22 +235,15 @@ public class CreateFragment extends Fragment {
                     ivEventThumbnail.setImageResource(R.drawable.ic_launcher_foreground);
                 }
 
-                // Click listener for event item - navigate to event details
+                // Click listener for event item (future: navigate to event details)
                 itemView.setOnClickListener(v -> {
-                    Intent intent = new Intent(getContext(), EventDetailsActivity.class);
-                    intent.putExtra("eventId", event.getDocumentId());
-                    startActivity(intent);
+                    Toast.makeText(getContext(), "Event: " + event.getName(), Toast.LENGTH_SHORT).show();
+                    // TODO: Navigate to event details page
                 });
             }
         }
     }
-    /**
-     * Loads and displays a Base64 encoded image in an ImageView
-     * @param base64String
-     * the Base64 encoded image string
-     * @param imageView
-     * the ImageView to display the image in
-     */
+
     private void loadBase64Image(String base64String, ImageView imageView) {
         try {
             byte[] decodedBytes = Base64.decode(base64String, Base64.DEFAULT);
@@ -272,28 +257,5 @@ public class CreateFragment extends Fragment {
             Log.e(TAG, "Failed to decode Base64 image", e);
             imageView.setImageResource(R.drawable.ic_launcher_foreground);
         }
-    }
-    /**
-     * Gets the device ID from shared preferences or creates a new one if it doesn't exist
-     * @return
-     * returns the unique device identifier
-     */
-    private String getOrCreateDeviceId() {
-        SharedPreferences sp = requireContext().getSharedPreferences(PREFS, requireContext().MODE_PRIVATE);
-        String deviceId = sp.getString("device_id", null);
-
-        if (deviceId == null) {
-            try {
-                deviceId = android.provider.Settings.Secure.getString(requireContext().getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to get Android ID", e);
-            }
-
-            if (deviceId == null || deviceId.isEmpty()) {
-                deviceId = java.util.UUID.randomUUID().toString();
-            }
-            sp.edit().putString("device_id", deviceId).apply();
-        }
-        return deviceId;
     }
 }

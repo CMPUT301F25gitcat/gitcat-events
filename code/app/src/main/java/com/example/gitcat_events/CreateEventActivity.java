@@ -43,11 +43,10 @@ public class CreateEventActivity extends AppCompatActivity {
 
     private FirebaseFirestore db;
     private ImageView ivEventPoster;
-    private EditText etEventName, etEventDescription, etCapacity, etMaxWaitlist, etSelectionCriteria;
+    private EditText etEventName, etEventDescription, etCapacity, etMaxWaitlist;
     private Button btnSelectPoster, btnSelectEventDate, btnSelectRaffleDate, btnCreateEvent;
     private TextView tvEventDateDisplay, tvRaffleDateDisplay;
     private SwitchMaterial switchGeoLocation;
-    private android.widget.ImageButton btnBack;
 
     private Uri selectedPosterUri;
     private Calendar selectedEventDate;
@@ -78,7 +77,6 @@ public class CreateEventActivity extends AppCompatActivity {
         etEventDescription = findViewById(R.id.etEventDescription);
         etCapacity = findViewById(R.id.etCapacity);
         etMaxWaitlist = findViewById(R.id.etMaxWaitlist);
-        etSelectionCriteria = findViewById(R.id.etSelectionCriteria);
         btnSelectPoster = findViewById(R.id.btnSelectPoster);
         btnSelectEventDate = findViewById(R.id.btnSelectEventDate);
         btnSelectRaffleDate = findViewById(R.id.btnSelectRaffleDate);
@@ -88,17 +86,10 @@ public class CreateEventActivity extends AppCompatActivity {
         switchGeoLocation = findViewById(R.id.switchGeoLocation);
 
         // Set up click listeners
-        btnBack.setOnClickListener(v -> onBackPressed());
         btnSelectPoster.setOnClickListener(v -> selectPoster());
         btnSelectEventDate.setOnClickListener(v -> selectEventDate());
         btnSelectRaffleDate.setOnClickListener(v -> selectRaffleDate());
         btnCreateEvent.setOnClickListener(v -> createEvent());
-    }
-    
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-        finish();
     }
 
     private void selectPoster() {
@@ -144,9 +135,6 @@ public class CreateEventActivity extends AppCompatActivity {
     }
 
     private void createEvent() {
-        // Disable button to prevent duplicate submissions
-        btnCreateEvent.setEnabled(false);
-        
         // Validate inputs
         String name = etEventName.getText().toString().trim();
         String description = etEventDescription.getText().toString().trim();
@@ -174,24 +162,20 @@ public class CreateEventActivity extends AppCompatActivity {
             Toast.makeText(this, "Please select a final registration date", Toast.LENGTH_SHORT).show();
             ok = false;
         }
-        if (!ok) {
-            // Re-enable button if validation fails
-            btnCreateEvent.setEnabled(true);
-            return;
-        }
+        if (!ok) return;
 
         int capacity = Integer.parseInt(capacityStr);
         Integer maxWaitlist = maxWaitlistStr.isEmpty() ? null : Integer.parseInt(maxWaitlistStr);
         boolean geoLocationRequired = switchGeoLocation.isChecked();
-        String selectionCriteria = etSelectionCriteria.getText().toString().trim();
-        
-        // If no criteria provided, use default
-        if (selectionCriteria.isEmpty()) {
-            selectionCriteria = "Random selection from all registered participants. All entrants have an equal chance of being selected.";
-        }
 
-        // Get organizer device ID (permanent identifier)
-        String organizerDeviceId = getOrCreateDeviceId();
+        // Get organizer ID (current user's profile ID)
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        String profileIdStr = prefs.getString(KEY_PROFILE_ID, null);
+        if (profileIdStr == null) {
+            Toast.makeText(this, "Error: No user profile found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        int organizerId = Integer.parseInt(profileIdStr);
 
         // Show progress dialog
         ProgressDialog progressDialog = new ProgressDialog(this);
@@ -221,8 +205,7 @@ public class CreateEventActivity extends AppCompatActivity {
                 selectedEventDate,
                 geoLocationRequired
         );
-        newEvent.setOrganizerDeviceId(organizerDeviceId);
-        newEvent.setSelectionCriteria(selectionCriteria);
+        newEvent.setOrganizer(organizerId);
 
         // Save to Firestore with auto-incrementing ID
         saveEventToFirestore(newEvent, progressDialog);
@@ -255,8 +238,7 @@ public class CreateEventActivity extends AppCompatActivity {
             data.put("raffleDate", event.getRaffleDate().getTime());
             data.put("geoLocationRequired", event.getGeoLocationRequired());
             data.put("poster", event.getPoster());
-            data.put("organizerDeviceId", event.getOrganizerDeviceId());
-            data.put("selectionCriteria", event.getSelectionCriteria());
+            data.put("organizer", event.getOrganizer());
             data.put("eventId", next);
 
             transaction.set(eventRef, data);
@@ -275,15 +257,12 @@ public class CreateEventActivity extends AppCompatActivity {
             progressDialog.dismiss();
             Toast.makeText(this, "Event created successfully!", Toast.LENGTH_LONG).show();
             
-            // Return to Create fragment (button stays disabled since we're leaving)
+            // Return to Create fragment
             finish();
         }).addOnFailureListener(e -> {
             progressDialog.dismiss();
             Log.e(TAG, "Failed to create event", e);
             Toast.makeText(this, "Failed to create event: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            
-            // Re-enable button on failure so user can try again
-            btnCreateEvent.setEnabled(true);
         });
     }
 
@@ -321,25 +300,6 @@ public class CreateEventActivity extends AppCompatActivity {
         int newHeight = Math.round(height * ratio);
 
         return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true);
-    }
-
-    private String getOrCreateDeviceId() {
-        SharedPreferences sp = getSharedPreferences(PREFS, MODE_PRIVATE);
-        String deviceId = sp.getString("device_id", null);
-
-        if (deviceId == null) {
-            try {
-                deviceId = android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
-            } catch (Exception e) {
-                Log.w(TAG, "Failed to get Android ID", e);
-            }
-
-            if (deviceId == null || deviceId.isEmpty()) {
-                deviceId = java.util.UUID.randomUUID().toString();
-            }
-            sp.edit().putString("device_id", deviceId).apply();
-        }
-        return deviceId;
     }
 }
 
