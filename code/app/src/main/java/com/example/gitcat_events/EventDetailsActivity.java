@@ -29,7 +29,9 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-
+/**
+ * This activity displays detailed information about an event and allows users to join or leave the waiting list. It provides real-time updates on waitlist status.
+ */
 public class EventDetailsActivity extends AppCompatActivity {
 
     private static final String TAG = "EventDetailsActivity";
@@ -95,7 +97,9 @@ public class EventDetailsActivity extends AppCompatActivity {
         // Check if user is already on the waiting list
         checkWaitlistStatus();
     }
-
+    /**
+     * Loads and displays the event details from Firestore using the provided event ID
+     */
     private void loadEventDetails() {
         db.collection("events").document(eventId).get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -111,7 +115,11 @@ public class EventDetailsActivity extends AppCompatActivity {
                     finish();
                 });
     }
-
+    /**
+     * Parses the Firestore document and creates an Event object, then displays it
+     * @param document
+     * the Firestore document snapshot containing event data
+     */
     private void parseAndDisplayEvent(DocumentSnapshot document) {
         currentEvent = new Event();
         currentEvent.setName(document.getString("name"));
@@ -148,7 +156,9 @@ public class EventDetailsActivity extends AppCompatActivity {
         // Display event details
         displayEvent();
     }
-
+    /**
+     * Displays the parsed event data in the activity's views
+     */
     private void displayEvent() {
         tvEventDetailsName.setText(currentEvent.getName());
         tvEventDetailsDescription.setText(currentEvent.getDescription());
@@ -185,7 +195,9 @@ public class EventDetailsActivity extends AppCompatActivity {
             tvStatusMessage.setTextColor(getResources().getColor(android.R.color.darker_gray));
         }
     }
-    
+    /**
+     * Checks if the current user is on the event's waiting list and updates UI accordingly
+     */
     private void checkWaitlistStatus() {
         String deviceId = getOrCreateDeviceId();
         
@@ -209,7 +221,9 @@ public class EventDetailsActivity extends AppCompatActivity {
                     }
                 });
     }
-    
+    /**
+     * Updates the join/leave button and status message based on current waitlist status
+     */
     private void updateButtonForWaitlistStatus() {
         // Don't update if user is the organizer
         if (currentEvent != null && currentEvent.getOrganizerDeviceId() != null && 
@@ -229,7 +243,9 @@ public class EventDetailsActivity extends AppCompatActivity {
             tvStatusMessage.setVisibility(android.view.View.GONE);
         }
     }
-    
+    /**
+     * Handles the waitlist action (join or leave) based on current user status
+     */
     private void handleWaitlistAction() {
         if (isOnWaitlist) {
             confirmLeaveWaitlist();
@@ -237,7 +253,9 @@ public class EventDetailsActivity extends AppCompatActivity {
             joinWaitingList();
         }
     }
-    
+    /**
+     * Shows a confirmation dialog before leaving the waiting list
+     */
     private void confirmLeaveWaitlist() {
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Leave Waiting List?")
@@ -246,7 +264,9 @@ public class EventDetailsActivity extends AppCompatActivity {
                 .setPositiveButton("Leave", (dialog, which) -> leaveWaitingList())
                 .show();
     }
-    
+    /**
+     * Removes the current user from the event's waiting list
+     */
     private void leaveWaitingList() {
         String deviceId = getOrCreateDeviceId();
         
@@ -263,7 +283,9 @@ public class EventDetailsActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to leave: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
-
+    /**
+     * Sets up a real-time listener to track changes in the waitlist count
+     */
     private void setupWaitlistListener() {
         waitlistListener = db.collection("events").document(eventId)
                 .collection("waitlist")
@@ -284,7 +306,9 @@ public class EventDetailsActivity extends AppCompatActivity {
                     }
                 });
     }
-
+    /**
+     * Adds the current user to the event's waiting list after validation checks
+     */
     private void joinWaitingList() {
         if (currentEvent == null) {
             Toast.makeText(this, "Event data not loaded", Toast.LENGTH_SHORT).show();
@@ -341,7 +365,11 @@ public class EventDetailsActivity extends AppCompatActivity {
                     Toast.makeText(this, "Error checking waitlist: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
-
+    /**
+     * Performs the actual addition of user to the waitlist after all validations pass
+     * @param deviceId
+     * the user's device identifier
+     */
     private void addToWaitlist(String deviceId) {
         WaitListEntry entry = new WaitListEntry(eventId, deviceId);
         
@@ -363,21 +391,35 @@ public class EventDetailsActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to join: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
     }
-
+    /**
+     * Displays an error message in the status area and as a toast
+     * @param message
+     * the error message to display
+     */
     private void showError(String message) {
         tvStatusMessage.setText(message);
         tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
         tvStatusMessage.setVisibility(android.view.View.VISIBLE);
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
-
+    /**
+     * Displays a success message in the status area and as a toast
+     * @param message
+     * the success message to display
+     */
     private void showSuccess(String message) {
         tvStatusMessage.setText(message);
         tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
         tvStatusMessage.setVisibility(android.view.View.VISIBLE);
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
-
+    /**
+     * Loads and displays a Base64 encoded image in an ImageView
+     * @param base64String
+     * the Base64 encoded image string
+     * @param imageView
+     * the ImageView to display the image in
+     */
     private void loadBase64Image(String base64String, ImageView imageView) {
         try {
             byte[] decodedBytes = Base64.decode(base64String, Base64.DEFAULT);
@@ -392,7 +434,11 @@ public class EventDetailsActivity extends AppCompatActivity {
             imageView.setImageResource(R.drawable.ic_launcher_foreground);
         }
     }
-
+    /**
+     * Gets the device ID from shared preferences or creates a new one if it doesn't exist
+     * @return
+     * returns the unique device identifier
+     */
     private String getOrCreateDeviceId() {
         SharedPreferences sp = getSharedPreferences(PREFS, MODE_PRIVATE);
         String deviceId = sp.getString("device_id", null);

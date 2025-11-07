@@ -29,7 +29,9 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.UUID;
-
+/**
+ * This fragment displays the home screen with two sections: upcoming events available for registration and events that the user has already entered (waitlisted or accepted).
+ */
 public class HomeFragment extends Fragment {
     private static final String TAG = "HomeFragment";
     private static final String PREFS = "app_prefs";
@@ -121,7 +123,9 @@ public class HomeFragment extends Fragment {
             loadEvents();
         }
     }
-    
+    /**
+     * Loads both upcoming events and events the user has entered
+     */
     private void loadEvents() {
         String deviceId = getOrCreateDeviceId();
         
@@ -131,7 +135,9 @@ public class HomeFragment extends Fragment {
         // Load events user has entered (waitlisted)
         loadEnteredEvents(deviceId);
     }
-    
+    /**
+     * Loads all upcoming events that are still open for registration and not organized by the current user
+     */
     private void loadUpcomingEvents() {
         String currentDeviceId = getOrCreateDeviceId();
         
@@ -176,7 +182,11 @@ public class HomeFragment extends Fragment {
                     }
                 });
     }
-    
+    /**
+     * Loads events that the user has entered (either waitlisted or accepted)
+     * @param deviceId
+     * the user's device identifier
+     */
     private void loadEnteredEvents(String deviceId) {
         enteredEvents.clear();
         java.util.Set<String> eventIds = new java.util.HashSet<>();
@@ -235,7 +245,11 @@ public class HomeFragment extends Fragment {
                     }
                 });
     }
-    
+    /**
+     * Loads detailed event information for the collected event IDs
+     * @param eventIds
+     * set of event IDs to load details for
+     */
     private void loadEventDetails(java.util.Set<String> eventIds) {
         if (eventIds.isEmpty()) {
             updateEnteredEventsUI();
@@ -267,7 +281,13 @@ public class HomeFragment extends Fragment {
                     });
         }
     }
-    
+    /**
+     * Parses a Firestore document into an Event object
+     * @param document
+     * the Firestore document snapshot containing event data
+     * @return
+     * returns the parsed Event object
+     */
     private Event parseEvent(com.google.firebase.firestore.DocumentSnapshot document) {
         Event event = new Event();
         event.setDocumentId(document.getId());
@@ -303,7 +323,9 @@ public class HomeFragment extends Fragment {
         
         return event;
     }
-    
+    /**
+     * Updates the UI for the upcoming events section based on data availability
+     */
     private void updateUpcomingEventsUI() {
         if (upcomingEvents.isEmpty()) {
             upcomingEventsEmpty.setVisibility(View.VISIBLE);
@@ -315,7 +337,9 @@ public class HomeFragment extends Fragment {
             setListViewHeightBasedOnChildren(upcomingEventsList);
         }
     }
-    
+    /**
+     * Updates the UI for the entered events section based on data availability
+     */
     private void updateEnteredEventsUI() {
         if (enteredEvents.isEmpty()) {
             enteredEventsEmpty.setVisibility(View.VISIBLE);
@@ -327,7 +351,11 @@ public class HomeFragment extends Fragment {
             setListViewHeightBasedOnChildren(enteredEventsList);
         }
     }
-    
+    /**
+     * Gets the device ID from shared preferences or creates a new one if it doesn't exist
+     * @return
+     * returns the unique device identifier
+     */
     private String getOrCreateDeviceId() {
         if (getContext() == null) return UUID.randomUUID().toString();
         
@@ -348,7 +376,11 @@ public class HomeFragment extends Fragment {
         }
         return deviceId;
     }
-
+    /**
+     * Dynamically sets the height of a ListView based on its content
+     * @param listView
+     * the ListView to adjust height for
+     */
     public static void setListViewHeightBasedOnChildren(ListView listView) {
         ListAdapter listAdapter = listView.getAdapter();
         if (listAdapter == null) return;

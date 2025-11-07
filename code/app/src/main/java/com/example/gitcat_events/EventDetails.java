@@ -28,7 +28,9 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-
+/**
+ * This fragment displays detailed information about an event and provides different functionality based on user role (organizer, waitlisted, invited, or general user).
+ */
 public class EventDetails extends Fragment {
 
     private static final String TAG = "EventDetailsFragment";
@@ -49,7 +51,13 @@ public class EventDetails extends Fragment {
     private android.view.ViewGroup invitationButtons;
 
     public EventDetails() {}
-
+    /**
+     * Creates a new instance of EventDetails fragment with the specified event
+     * @param event
+     * the event to display details for
+     * @return
+     * returns a new EventDetails fragment instance
+     */
     public static EventDetails newInstance(Event event) {
         EventDetails fragment = new EventDetails();
         Bundle args = new Bundle();
@@ -122,7 +130,9 @@ public class EventDetails extends Fragment {
 
         return view;
     }
-
+    /**
+     * Displays the event details including name, description, dates, capacity, and poster image
+     */
     private void displayEvent() {
         if (event == null) return;
         
@@ -149,7 +159,9 @@ public class EventDetails extends Fragment {
             loadBase64Image(event.getPoster(), ivEventPoster);
         }
     }
-    
+    /**
+     * Checks and updates the user's status (organizer, waitlisted, invited) and shows appropriate UI
+     */
     private void checkUserStatus() {
         if (event == null || event.getDocumentId() == null) return;
         
@@ -197,7 +209,11 @@ public class EventDetails extends Fragment {
                     }
                 });
     }
-    
+    /**
+     * Checks if the user has a pending invitation for this event
+     * @param deviceId
+     * the user's device identifier
+     */
     private void checkInvitationStatus(String deviceId) {
         db.collection("events").document(event.getDocumentId())
                 .collection("invitation_list")
@@ -223,7 +239,9 @@ public class EventDetails extends Fragment {
                     }
                 });
     }
-    
+    /**
+     * Shows the invitation acceptance/decline buttons when user has a pending invitation
+     */
     private void showInvitationButtons() {
         btnJoinWaitingList.setVisibility(View.GONE);
         invitationButtons.setVisibility(View.VISIBLE);
@@ -233,7 +251,9 @@ public class EventDetails extends Fragment {
             tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_orange_dark));
         }
     }
-    
+    /**
+     * Hides the invitation buttons and shows appropriate waitlist button
+     */
     private void hideInvitationButtons() {
         invitationButtons.setVisibility(View.GONE);
         if (!hasInvitation) {
@@ -241,7 +261,9 @@ public class EventDetails extends Fragment {
             updateButtonForWaitlistStatus();
         }
     }
-    
+    /**
+     * Hides the invitation buttons and shows appropriate waitlist button
+     */
     private void updateButtonForWaitlistStatus() {
         if (isOnWaitlist) {
             btnJoinWaitingList.setText("Leave Waiting List");
@@ -259,7 +281,9 @@ public class EventDetails extends Fragment {
             }
         }
     }
-    
+    /**
+     * Handles the waitlist action (join or leave) based on current status
+     */
     private void handleWaitlistAction() {
         if (isOnWaitlist) {
             confirmLeaveWaitlist();
@@ -267,7 +291,9 @@ public class EventDetails extends Fragment {
             joinWaitingList();
         }
     }
-    
+    /**
+     * Shows a confirmation dialog before leaving the waitlist
+     */
     private void confirmLeaveWaitlist() {
         new androidx.appcompat.app.AlertDialog.Builder(requireContext())
                 .setTitle("Leave Waiting List?")
@@ -276,7 +302,9 @@ public class EventDetails extends Fragment {
                 .setPositiveButton("Leave", (dialog, which) -> leaveWaitingList())
                 .show();
     }
-    
+    /**
+     * Removes the user from the event's waitlist
+     */
     private void leaveWaitingList() {
         if (event == null || event.getDocumentId() == null) return;
         
@@ -295,7 +323,9 @@ public class EventDetails extends Fragment {
                     Toast.makeText(requireContext(), "Failed to leave: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
-
+    /**
+     * Sets up a real-time listener to track waitlist count changes
+     */
     private void setupWaitlistListener() {
         if (event == null || event.getDocumentId() == null) return;
         
@@ -317,7 +347,9 @@ public class EventDetails extends Fragment {
                     }
                 });
     }
-
+    /**
+     * Adds the user to the event's waitlist after validation checks
+     */
     private void joinWaitingList() {
         if (event == null || event.getDocumentId() == null) return;
         
@@ -354,7 +386,11 @@ public class EventDetails extends Fragment {
                     Toast.makeText(requireContext(), "Error checking waitlist: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
-
+    /**
+     * Checks if the waitlist has available capacity before joining
+     * @param deviceId
+     * the user's device identifier
+     */
     private void checkWaitlistCapacityAndJoin(String deviceId) {
         if (event == null || event.getDocumentId() == null) return;
         
@@ -374,7 +410,11 @@ public class EventDetails extends Fragment {
                     Toast.makeText(requireContext(), "Error checking capacity: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
-
+    /**
+     * Adds the user to the waitlist after passing capacity checks
+     * @param deviceId
+     * the user's device identifier
+     */
     private void addToWaitlist(String deviceId) {
         if (event == null || event.getDocumentId() == null) return;
         
@@ -398,14 +438,18 @@ public class EventDetails extends Fragment {
                     Toast.makeText(requireContext(), "Failed to join: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
-
+    /**
+     * Initiates the raffle process to select participants from the waitlist
+     */
     private void runRaffle() {
         if (event == null || event.getDocumentId() == null) return;
         
         // Calculate how many spots are available (for replacement draws)
         calculateAvailableSpots();
     }
-    
+    /**
+     * Calculates available spots by checking accepted and pending invitation counts
+     */
     private void calculateAvailableSpots() {
         String eventId = event.getDocumentId();
         final int[] acceptedCount = {0};
@@ -436,7 +480,13 @@ public class EventDetails extends Fragment {
                     }
                 });
     }
-    
+    /**
+     * Shows confirmation dialog with raffle details before proceeding
+     * @param acceptedCount
+     * number of users who have accepted invitations
+     * @param pendingInvitations
+     * number of pending invitations
+     */
     private void showRaffleConfirmation(int acceptedCount, int pendingInvitations) {
         int capacity = event.getCapacity();
         int occupiedSpots = acceptedCount + pendingInvitations;
@@ -474,7 +524,11 @@ public class EventDetails extends Fragment {
                 .setPositiveButton("Run Raffle", (dialog, which) -> performRaffleSelection(availableSpots))
                 .show();
     }
-
+    /**
+     * Performs the random selection of participants from the waitlist
+     * @param spotsToFill
+     * number of spots available to fill
+     */
     private void performRaffleSelection(int spotsToFill) {
         if (event == null || event.getDocumentId() == null) return;
         
@@ -515,7 +569,15 @@ public class EventDetails extends Fragment {
                     Toast.makeText(requireContext(), "Error running raffle: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
-
+    /**
+     * Moves selected users from waitlist to invitation list and updates draw round
+     * @param selectedUsers
+     * list of user device IDs selected in the raffle
+     * @param totalWaitlist
+     * total number of users on the waitlist
+     * @param numSelected
+     * number of users selected in this draw
+     */
     private void moveToInvitationList(java.util.List<String> selectedUsers, int totalWaitlist, int numSelected) {
         if (event == null || event.getDocumentId() == null) return;
         
@@ -579,7 +641,15 @@ public class EventDetails extends Fragment {
                             });
                 });
     }
-
+    /**
+     * Records the raffle draw in the event's history for tracking purposes
+     * @param drawRound
+     * the current draw round number
+     * @param numSelected
+     * number of users selected in this draw
+     * @param totalWaitlist
+     * total number of users on the waitlist
+     */
     private void recordDrawHistory(int drawRound, int numSelected, int totalWaitlist) {
         if (event == null || event.getDocumentId() == null) return;
         
@@ -602,7 +672,11 @@ public class EventDetails extends Fragment {
                     Log.e(TAG, "Failed to record draw history", e);
                 });
     }
-
+    /**
+     * Displays an error message in the status area and as a toast
+     * @param message
+     * the error message to display
+     */
     private void showError(String message) {
         if (tvStatusMessage != null) {
             tvStatusMessage.setText(message);
@@ -611,7 +685,11 @@ public class EventDetails extends Fragment {
         }
         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
     }
-
+    /**
+     * Displays a success message in the status area and as a toast
+     * @param message
+     * the success message to display
+     */
     private void showSuccess(String message) {
         if (tvStatusMessage != null) {
             tvStatusMessage.setText(message);
@@ -620,7 +698,9 @@ public class EventDetails extends Fragment {
         }
         Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
     }
-    
+    /**
+     * Shows organizer-specific status information including capacity and invitation counts
+     */
     private void showOrganizerStatus() {
         if (event == null || event.getDocumentId() == null) return;
         
@@ -653,7 +733,13 @@ public class EventDetails extends Fragment {
                     }
                 });
     }
-    
+    /**
+     * Displays organizer view with current event statistics and suggestions
+     * @param acceptedCount
+     * number of accepted participants
+     * @param pendingCount
+     * number of pending invitations
+     */
     private void displayOrganizerStatus(int acceptedCount, int pendingCount) {
         int capacity = event.getCapacity();
         int availableSpots = capacity - acceptedCount - pendingCount;
@@ -678,7 +764,9 @@ public class EventDetails extends Fragment {
             tvStatusMessage.setVisibility(View.VISIBLE);
         }
     }
-
+    /**
+     * Accepts the user's invitation and moves them from invitation list to accepted list
+     */
     private void acceptInvitation() {
         if (event == null || event.getDocumentId() == null) return;
         
@@ -731,7 +819,9 @@ public class EventDetails extends Fragment {
                     Log.e(TAG, "Error loading invitation", e);
                 });
     }
-    
+    /**
+     * Declines the user's invitation and removes them from the invitation list
+     */
     private void declineInvitation() {
         if (event == null || event.getDocumentId() == null) return;
         
@@ -743,7 +833,9 @@ public class EventDetails extends Fragment {
                 .setPositiveButton("Decline", (dialog, which) -> performDecline())
                 .show();
     }
-    
+    /**
+     * Performs the actual decline operation after confirmation
+     */
     private void performDecline() {
         String deviceId = getOrCreateDeviceId();
         
@@ -774,7 +866,13 @@ public class EventDetails extends Fragment {
                     Log.e(TAG, "Error declining invitation", e);
                 });
     }
-
+    /**
+     * Loads and displays a Base64 encoded image in an ImageView
+     * @param base64String
+     * the Base64 encoded image string
+     * @param imageView
+     * the ImageView to display the image in
+     */
     private void loadBase64Image(String base64String, ImageView imageView) {
         try {
             byte[] decodedBytes = Base64.decode(base64String, Base64.DEFAULT);
@@ -786,7 +884,11 @@ public class EventDetails extends Fragment {
             Log.e(TAG, "Error decoding Base64 image", e);
         }
     }
-
+    /**
+     * Gets the device ID from shared preferences or creates a new one if it doesn't exist
+     * @return
+     * returns the unique device identifier
+     */
     private String getOrCreateDeviceId() {
         SharedPreferences sp = requireActivity().getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE);
         String deviceId = sp.getString("device_id", null);
