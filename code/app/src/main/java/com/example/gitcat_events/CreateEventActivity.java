@@ -73,7 +73,6 @@ public class CreateEventActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
 
         // Initialize views
-        btnBack = findViewById(R.id.btnBack);
         ivEventPoster = findViewById(R.id.ivEventPoster);
         etEventName = findViewById(R.id.etEventName);
         etEventDescription = findViewById(R.id.etEventDescription);
