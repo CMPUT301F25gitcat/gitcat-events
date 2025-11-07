@@ -377,7 +377,9 @@ public class HomeFragment extends Fragment {
         return deviceId;
     }
 
-    public static void setListViewHeightBasedOnChildren(ListView listView) {
+    private static void setListViewHeightBasedOnChildren(ListView listView) {
+        if (listView == null) return;
+        
         ListAdapter listAdapter = listView.getAdapter();
         if (listAdapter == null) return;
 
