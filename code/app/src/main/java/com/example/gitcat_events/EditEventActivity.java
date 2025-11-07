@@ -128,17 +128,23 @@ public class EditEventActivity extends AppCompatActivity {
                     progressDialog.dismiss();
                     
                     if (documentSnapshot.exists()) {
+                        Log.d(TAG, "Event document exists, parsing manually (not using toObject)");
                         try {
+                            // CRITICAL: Do NOT use toObject() - it can't convert Timestamp to Calendar
+                            // Use manual parsing instead
                             currentEvent = parseEvent(documentSnapshot);
                             if (currentEvent != null) {
+                                Log.d(TAG, "Event parsed successfully: " + currentEvent.getName());
                                 currentEvent.setDocumentId(eventId);
                                 populateForm();
                             } else {
+                                Log.e(TAG, "parseEvent returned null");
                                 Toast.makeText(this, "Failed to parse event data", Toast.LENGTH_SHORT).show();
                                 finish();
                             }
                         } catch (Exception e) {
                             Log.e(TAG, "Error parsing event", e);
+                            e.printStackTrace();
                             Toast.makeText(this, "Failed to parse event: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                             finish();
                         }
@@ -156,14 +162,18 @@ public class EditEventActivity extends AppCompatActivity {
     }
     
     private Event parseEvent(com.google.firebase.firestore.DocumentSnapshot document) {
+        Log.d(TAG, "parseEvent called for document: " + (document != null ? document.getId() : "null"));
         if (document == null || !document.exists()) {
+            Log.w(TAG, "Document is null or doesn't exist");
             return null;
         }
         
         try {
             Event event = new Event();
             event.setDocumentId(document.getId());
-            event.setName(document.getString("name"));
+            String eventName = document.getString("name");
+            event.setName(eventName);
+            Log.d(TAG, "Parsing event: " + eventName);
             event.setDescription(document.getString("description"));
 
             Long capacity = document.getLong("capacity");
@@ -180,30 +190,48 @@ public class EditEventActivity extends AppCompatActivity {
             event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
 
             // Convert Date/Timestamp to Calendar
-            java.util.Date registrationStartDate = document.getDate("registrationStartDate");
-            if (registrationStartDate != null) {
-                Calendar regStartCal = Calendar.getInstance();
-                regStartCal.setTime(registrationStartDate);
-                event.setRegistrationStartDate(regStartCal);
-            } else {
+            // Handle registrationStartDate
+            try {
+                java.util.Date registrationStartDate = document.getDate("registrationStartDate");
+                if (registrationStartDate != null) {
+                    Calendar regStartCal = Calendar.getInstance();
+                    regStartCal.setTime(registrationStartDate);
+                    event.setRegistrationStartDate(regStartCal);
+                } else {
+                    event.setRegistrationStartDate(null);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error parsing registrationStartDate", e);
                 event.setRegistrationStartDate(null);
             }
 
-            java.util.Date eventDate = document.getDate("eventDate");
-            if (eventDate != null) {
-                Calendar eventCal = Calendar.getInstance();
-                eventCal.setTime(eventDate);
-                event.setEventDate(eventCal);
-            } else {
+            // Handle eventDate
+            try {
+                java.util.Date eventDate = document.getDate("eventDate");
+                if (eventDate != null) {
+                    Calendar eventCal = Calendar.getInstance();
+                    eventCal.setTime(eventDate);
+                    event.setEventDate(eventCal);
+                } else {
+                    event.setEventDate(null);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error parsing eventDate", e);
                 event.setEventDate(null);
             }
 
-            java.util.Date raffleDate = document.getDate("raffleDate");
-            if (raffleDate != null) {
-                Calendar raffleCal = Calendar.getInstance();
-                raffleCal.setTime(raffleDate);
-                event.setRaffleDate(raffleCal);
-            } else {
+            // Handle raffleDate
+            try {
+                java.util.Date raffleDate = document.getDate("raffleDate");
+                if (raffleDate != null) {
+                    Calendar raffleCal = Calendar.getInstance();
+                    raffleCal.setTime(raffleDate);
+                    event.setRaffleDate(raffleCal);
+                } else {
+                    event.setRaffleDate(null);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error parsing raffleDate", e);
                 event.setRaffleDate(null);
             }
 

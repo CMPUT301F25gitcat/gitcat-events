@@ -132,8 +132,13 @@ public class HomeFragment extends Fragment {
                     .commit();
         });
 
-        // Load events
-        loadEvents();
+        // Load events after view is fully created
+        // Use post to ensure view is attached to window
+        view.post(() -> {
+            if (getView() != null && isAdded()) {
+                loadEvents();
+            }
+        });
 
         return view;
     }
@@ -323,6 +328,7 @@ public class HomeFragment extends Fragment {
         }
         
         String currentDeviceId = getOrCreateDeviceId();
+        Log.d(TAG, "Loading upcoming events for device: " + currentDeviceId);
 
         // Load all events sorted by event date
         db.collection("events")
@@ -333,6 +339,7 @@ public class HomeFragment extends Fragment {
                         return;
                     }
                     
+                    Log.d(TAG, "Loaded " + (queryDocumentSnapshots != null ? queryDocumentSnapshots.size() : 0) + " events from Firestore");
                     upcomingEvents.clear();
 
                     // First, collect all event IDs where user is already involved
@@ -344,10 +351,16 @@ public class HomeFragment extends Fragment {
                     
                     // Helper to check if all queries are done and filter
                     Runnable checkAndFilter = () -> {
-                        completedQueries[0]++;
-                        if (completedQueries[0] == totalQueries) {
-                            if (getView() != null) {
-                                filterUpcomingEvents(queryDocumentSnapshots, currentDeviceId, involvedEventIds);
+                        synchronized (this) {
+                            completedQueries[0]++;
+                            Log.d(TAG, "Query completed: " + completedQueries[0] + "/" + totalQueries + ", involved events: " + involvedEventIds.size());
+                            if (completedQueries[0] == totalQueries) {
+                                if (getView() != null) {
+                                    Log.d(TAG, "All queries complete, filtering events. Total events: " + queryDocumentSnapshots.size());
+                                    filterUpcomingEvents(queryDocumentSnapshots, currentDeviceId, involvedEventIds);
+                                } else {
+                                    Log.w(TAG, "View is null when trying to filter events");
+                                }
                             }
                         }
                     };
@@ -440,10 +453,12 @@ public class HomeFragment extends Fragment {
         upcomingEvents.clear();
         
         if (queryDocumentSnapshots == null || queryDocumentSnapshots.isEmpty()) {
-            Log.d(TAG, "No events to filter");
+            Log.d(TAG, "No events to filter - query result is empty");
             updateUpcomingEventsUI();
             return;
         }
+        
+        Log.d(TAG, "Filtering " + queryDocumentSnapshots.size() + " events. Current device: " + currentDeviceId + ", Involved in: " + involvedEventIds.size() + " events");
         
         for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
             try {
@@ -484,6 +499,7 @@ public class HomeFragment extends Fragment {
                 nowNormalized.set(Calendar.MILLISECOND, 0);
                 
                 boolean registrationStarted = true;
+                String regStartInfo = "null";
                 if (event.getRegistrationStartDate() != null) {
                     try {
                         Calendar regStartNormalized = (Calendar) event.getRegistrationStartDate().clone();
@@ -493,6 +509,7 @@ public class HomeFragment extends Fragment {
                         regStartNormalized.set(Calendar.MILLISECOND, 0);
                         // Registration has started if now >= registrationStartDate
                         registrationStarted = !nowNormalized.before(regStartNormalized);
+                        regStartInfo = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(regStartNormalized.getTime());
                     } catch (Exception e) {
                         Log.e(TAG, "Error comparing registration start date for event: " + eventId, e);
                         registrationStarted = true; // Default to showing if error
@@ -500,6 +517,7 @@ public class HomeFragment extends Fragment {
                 }
                 
                 boolean registrationOpen = true;
+                String raffleDateInfo = "null";
                 if (event.getRaffleDate() != null) {
                     try {
                         Calendar raffleNormalized = (Calendar) event.getRaffleDate().clone();
@@ -510,20 +528,35 @@ public class HomeFragment extends Fragment {
                         // Registration is open if now <= raffleDate (registration closes at end of raffleDate)
                         // So we allow events where now is before or equal to raffleDate
                         registrationOpen = !nowNormalized.after(raffleNormalized);
+                        raffleDateInfo = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(raffleNormalized.getTime());
                     } catch (Exception e) {
                         Log.e(TAG, "Error comparing raffle date for event: " + eventId, e);
                         registrationOpen = true; // Default to showing if error
                     }
                 }
+                
+                String nowInfo = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(nowNormalized.getTime());
+                Log.d(TAG, "Event: " + event.getName() + " - Now: " + nowInfo + ", RegStart: " + regStartInfo + ", Raffle: " + raffleDateInfo + 
+                          ", Started: " + registrationStarted + ", Open: " + registrationOpen);
+
+                // For debugging: Log all events before filtering to see what we have
+                Log.d(TAG, "Event details - Name: " + event.getName() + ", Organizer: " + event.getOrganizerDeviceId() + 
+                          ", Is organizer? " + (event.getOrganizerDeviceId() != null && event.getOrganizerDeviceId().equals(currentDeviceId)) +
+                          ", Is involved? " + involvedEventIds.contains(eventId));
 
                 if (registrationStarted && registrationOpen) {
                     upcomingEvents.add(event);
+                    Log.d(TAG, "✓ Added event to upcoming: " + event.getName() + " (ID: " + eventId + ")");
+                } else {
+                    Log.d(TAG, "✗ Event filtered out: " + event.getName() + " - registrationStarted: " + registrationStarted + ", registrationOpen: " + registrationOpen);
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error filtering event: " + (document != null ? document.getId() : "unknown"), e);
                 // Continue processing other events even if one fails
             }
         }
+
+        Log.d(TAG, "After filtering: " + upcomingEvents.size() + " upcoming events");
 
         // Sort by event date
         try {
