@@ -23,7 +23,12 @@ public class Event implements Serializable {
     //current plan is to store images as strings
     private String poster;
     //private QRCode qrCode; --QRCode class is not done yet
-    private int organizer;
+    private String organizerDeviceId; // Device ID of the organizer (permanent identifier)
+    private String documentId; // Firestore document ID (not stored in DB, set when loaded)
+
+    // No-arg constructor for Firebase
+    public Event() {
+    }
 
     // No-arg constructor for Firebase
     public Event() {

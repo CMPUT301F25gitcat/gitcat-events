@@ -1,7 +1,11 @@
 package com.example.gitcat_events;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import android.util.Log;
@@ -26,8 +30,12 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.UUID;
 
 public class HomeFragment extends Fragment {
+    private static final String TAG = "HomeFragment";
+    private static final String PREFS = "app_prefs";
+    
     private ArrayList<Event> upcomingEvents;
     private ArrayList<Event> enteredEvents;
 
@@ -38,6 +46,10 @@ public class HomeFragment extends Fragment {
 
     private ListView enteredEventsList;
     private ListView upcomingEventsList;
+    private TextView enteredEventsEmpty;
+    private TextView upcomingEventsEmpty;
+    
+    private FirebaseFirestore db;
 
     public HomeFragment() {
         // Required empty public constructor
@@ -46,6 +58,7 @@ public class HomeFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        db = FirebaseFirestore.getInstance();
     }
 
     @Override
@@ -107,6 +120,7 @@ public class HomeFragment extends Fragment {
                     Log.e("Firestore", "Error loading events", e);
                 });
 
+        // Initialize adapters
         enteredEventsAdapter = new EventArrayAdapter(getContext(), enteredEvents);
         upcomingEventsAdapter = new EventArrayAdapter(getContext(), upcomingEvents);
 
