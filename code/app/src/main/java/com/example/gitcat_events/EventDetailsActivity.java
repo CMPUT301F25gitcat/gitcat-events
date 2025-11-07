@@ -32,6 +32,23 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+
+/**
+ * this is the activity for displaying the details of an event.
+ * 
+ * 
+ * 
+ * @author ryan chattopadhyay
+ * 
+ * @see Event
+ * @see WaitListEntry
+ * @see DocumentSnapshot
+ * @see FirebaseFirestore
+ * @see ListenerRegistration
+ * 
+ * 
+ */
+
 public class EventDetailsActivity extends AppCompatActivity {
 
     private static final String TAG = "EventDetailsActivity";
@@ -98,6 +115,12 @@ public class EventDetailsActivity extends AppCompatActivity {
         checkWaitlistStatus();
     }
 
+    /**
+     * this is a method for loading the event details from the firestore db 
+     * 
+     * 
+     */
+
     private void loadEventDetails() {
         db.collection("events").document(eventId).get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -113,6 +136,12 @@ public class EventDetailsActivity extends AppCompatActivity {
                     finish();
                 });
     }
+
+
+    /**
+     * 
+     * @param document
+     */
 
     private void parseAndDisplayEvent(DocumentSnapshot document) {
         currentEvent = new Event();

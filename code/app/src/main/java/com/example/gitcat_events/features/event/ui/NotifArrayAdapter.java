@@ -16,11 +16,33 @@ import com.example.gitcat_events.core.model.Notif;
 import java.util.ArrayList;
 import java.util.List;
 
+
+/**
+ * this is a custom array adapter for displaying notifications in a list view.
+ * 
+ * @author andriy 
+ * @see ArrayAdapter
+ * @see Notif
+ * @see Context
+ * @see LayoutInflater
+ * @see View
+ * @see ViewGroup
+ * @see TextView
+ * @see ArrayList
+ * 
+ */
 public class NotifArrayAdapter extends ArrayAdapter<Notif> {
     public NotifArrayAdapter(@NonNull Context context, @NonNull ArrayList<Notif> notifs) {
         super(context, 0, notifs);
     }
-
+    /**
+     * 
+     * this for getting a view for the notification item in the list view.
+     * @param position the position of the item in the list view 
+     * @param convertView the convert view for the item in the list view 
+     * @param parent this is the parent view group for the item in the list view 
+     * @return the view for the notification item in the list view 
+     */
     public View getView(int position, View convertView, @NonNull ViewGroup parent){
         View view;
         if (convertView == null) {
