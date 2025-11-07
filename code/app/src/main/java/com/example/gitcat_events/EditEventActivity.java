@@ -128,10 +128,19 @@ public class EditEventActivity extends AppCompatActivity {
                     progressDialog.dismiss();
                     
                     if (documentSnapshot.exists()) {
-                        currentEvent = documentSnapshot.toObject(Event.class);
-                        if (currentEvent != null) {
-                            currentEvent.setDocumentId(eventId);
-                            populateForm();
+                        try {
+                            currentEvent = parseEvent(documentSnapshot);
+                            if (currentEvent != null) {
+                                currentEvent.setDocumentId(eventId);
+                                populateForm();
+                            } else {
+                                Toast.makeText(this, "Failed to parse event data", Toast.LENGTH_SHORT).show();
+                                finish();
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error parsing event", e);
+                            Toast.makeText(this, "Failed to parse event: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            finish();
                         }
                     } else {
                         Toast.makeText(this, "Event not found", Toast.LENGTH_SHORT).show();
@@ -144,6 +153,65 @@ public class EditEventActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to load event: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     finish();
                 });
+    }
+    
+    private Event parseEvent(com.google.firebase.firestore.DocumentSnapshot document) {
+        if (document == null || !document.exists()) {
+            return null;
+        }
+        
+        try {
+            Event event = new Event();
+            event.setDocumentId(document.getId());
+            event.setName(document.getString("name"));
+            event.setDescription(document.getString("description"));
+
+            Long capacity = document.getLong("capacity");
+            event.setCapacity(capacity != null ? capacity.intValue() : 0);
+
+            Long maxWaitlist = document.getLong("maxWaitListSize");
+            event.setMaxWaitListSize(maxWaitlist != null ? maxWaitlist.intValue() : null);
+
+            event.setPoster(document.getString("poster"));
+            event.setOrganizerDeviceId(document.getString("organizerDeviceId"));
+            event.setSelectionCriteria(document.getString("selectionCriteria"));
+
+            Boolean geoLocation = document.getBoolean("geoLocationRequired");
+            event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
+
+            // Convert Date/Timestamp to Calendar
+            java.util.Date registrationStartDate = document.getDate("registrationStartDate");
+            if (registrationStartDate != null) {
+                Calendar regStartCal = Calendar.getInstance();
+                regStartCal.setTime(registrationStartDate);
+                event.setRegistrationStartDate(regStartCal);
+            } else {
+                event.setRegistrationStartDate(null);
+            }
+
+            java.util.Date eventDate = document.getDate("eventDate");
+            if (eventDate != null) {
+                Calendar eventCal = Calendar.getInstance();
+                eventCal.setTime(eventDate);
+                event.setEventDate(eventCal);
+            } else {
+                event.setEventDate(null);
+            }
+
+            java.util.Date raffleDate = document.getDate("raffleDate");
+            if (raffleDate != null) {
+                Calendar raffleCal = Calendar.getInstance();
+                raffleCal.setTime(raffleDate);
+                event.setRaffleDate(raffleCal);
+            } else {
+                event.setRaffleDate(null);
+            }
+
+            return event;
+        } catch (Exception e) {
+            Log.e(TAG, "Error parsing event document: " + document.getId(), e);
+            return null;
+        }
     }
 
     private void populateForm() {

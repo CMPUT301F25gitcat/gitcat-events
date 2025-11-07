@@ -148,6 +148,11 @@ public class HomeFragment extends Fragment {
     }
 
     private void loadEvents() {
+        if (getView() == null) {
+            Log.w(TAG, "Fragment view is null, skipping loadEvents");
+            return;
+        }
+        
         String deviceId = getOrCreateDeviceId();
 
         // Load pending invitations first (highest priority)
