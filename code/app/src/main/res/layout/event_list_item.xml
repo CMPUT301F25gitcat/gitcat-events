@@ -10,7 +10,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
-        android:layout_margin="10dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginBottom="10dp"
         app:cardCornerRadius="10dp"
         app:cardElevation="8dp">
 
@@ -31,10 +34,12 @@
                 <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="10dp"
                     app:cardBackgroundColor="#CAD6FF"
                     app:cardCornerRadius="10dp"
-                    app:contentPadding="10dp">
+                    app:contentPaddingBottom="5dp"
+                    app:contentPaddingLeft="10dp"
+                    app:contentPaddingRight="10dp"
+                    app:contentPaddingTop="5dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -46,7 +51,9 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="TextView"
-                            android:textSize="20sp" />
+                            android:textColor="#2B66FF"
+                            android:textSize="19sp"
+                            android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/eventCardSubtitleText"
