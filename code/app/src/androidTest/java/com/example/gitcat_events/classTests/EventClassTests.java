@@ -24,6 +24,9 @@ public class EventClassTests {
 
     @Test
     public void testConstructorAndGetters() {
+        Calendar registrationStartDate = Calendar.getInstance();
+        registrationStartDate.set(2022, Calendar.DECEMBER, 15);
+        
         Calendar raffleDate = Calendar.getInstance();
         raffleDate.set(2023, Calendar.JANUARY, 1);
         
@@ -36,6 +39,7 @@ public class EventClassTests {
                 100,
                 20,
                 "https://example.com/poster.png",
+                registrationStartDate,
                 raffleDate,
                 eventDate,
                 false
@@ -46,6 +50,7 @@ public class EventClassTests {
         assertEquals(100, event.getCapacity());
         assertEquals((Integer) 20, event.getMaxWaitListSize());
         assertEquals("https://example.com/poster.png", event.getPoster());
+        assertEquals(registrationStartDate, event.getRegistrationStartDate());
         assertEquals(raffleDate, event.getRaffleDate());
         assertEquals(eventDate, event.getEventDate());
         assertFalse(event.getGeoLocationRequired());
@@ -53,6 +58,7 @@ public class EventClassTests {
 
     @Test
     public void testNullableMaxWaitListSize() {
+        Calendar registrationStartDate = Calendar.getInstance();
         Calendar raffleDate = Calendar.getInstance();
         Calendar eventDate = Calendar.getInstance();
 
@@ -62,6 +68,7 @@ public class EventClassTests {
                 50,
                 null,
                 "https://poster.com",
+                registrationStartDate,
                 raffleDate,
                 eventDate,
                 true
@@ -73,6 +80,9 @@ public class EventClassTests {
 
     @Test
     public void testSetters() {
+        Calendar registrationStartDate = Calendar.getInstance();
+        registrationStartDate.set(2023, Calendar.FEBRUARY, 1);
+        
         Calendar raffleDate = Calendar.getInstance();
         raffleDate.set(2023, Calendar.MARCH, 1);
         
@@ -85,6 +95,7 @@ public class EventClassTests {
                 10,
                 5,
                 "https://poster1.com",
+                registrationStartDate,
                 raffleDate,
                 eventDate,
                 false
@@ -120,6 +131,7 @@ public class EventClassTests {
 
     @Test
     public void testSetMaxWaitListSizeToNull() {
+        Calendar registrationStartDate = Calendar.getInstance();
         Calendar raffleDate = Calendar.getInstance();
         Calendar eventDate = Calendar.getInstance();
         
@@ -129,6 +141,7 @@ public class EventClassTests {
                 1000,
                 200,
                 "poster.png",
+                registrationStartDate,
                 raffleDate,
                 eventDate,
                 false
@@ -140,6 +153,9 @@ public class EventClassTests {
 
     @Test
     public void testMultipleMutations() {
+        Calendar registrationStartDate = Calendar.getInstance();
+        registrationStartDate.setTimeInMillis(50000L);
+        
         Calendar raffleDate = Calendar.getInstance();
         raffleDate.setTimeInMillis(100000L);
         
@@ -152,6 +168,7 @@ public class EventClassTests {
                 10,
                 null,
                 "posterA.png",
+                registrationStartDate,
                 raffleDate,
                 eventDate,
                 false
@@ -178,6 +195,7 @@ public class EventClassTests {
 
     @Test
     public void testSelectionCriteria() {
+        Calendar registrationStartDate = Calendar.getInstance();
         Calendar raffleDate = Calendar.getInstance();
         Calendar eventDate = Calendar.getInstance();
         
@@ -187,6 +205,7 @@ public class EventClassTests {
                 50,
                 100,
                 null,
+                registrationStartDate,
                 raffleDate,
                 eventDate,
                 false
@@ -200,6 +219,7 @@ public class EventClassTests {
 
     @Test
     public void testGeoLocationRequired() {
+        Calendar registrationStartDate = Calendar.getInstance();
         Calendar raffleDate = Calendar.getInstance();
         Calendar eventDate = Calendar.getInstance();
         
@@ -209,6 +229,7 @@ public class EventClassTests {
                 50,
                 null,
                 null,
+                registrationStartDate,
                 raffleDate,
                 eventDate,
                 true
@@ -222,6 +243,7 @@ public class EventClassTests {
                 50,
                 null,
                 null,
+                registrationStartDate,
                 raffleDate,
                 eventDate,
                 false

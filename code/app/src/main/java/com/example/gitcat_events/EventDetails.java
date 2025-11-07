@@ -44,7 +44,7 @@ public class EventDetails extends Fragment {
     private ImageView ivEventPoster;
     private TextView tvEventName, tvEventDate, tvEventSpots, tvEventDesc;
     private TextView tvWaitingListCount, tvStatusMessage, tvSelectionCriteria;
-    private Button btnJoinWaitingList, btnBack, btnRunRaffle;
+    private Button btnJoinWaitingList, btnBack, btnRunRaffle, btnViewWaitingList, btnViewInvitedEntrants, btnViewEnrolledEntrants, btnViewCancelledEntrants;
     private Button btnAcceptInvitation, btnDeclineInvitation;
     private android.view.ViewGroup invitationButtons;
 
@@ -83,6 +83,10 @@ public class EventDetails extends Fragment {
         tvSelectionCriteria = view.findViewById(R.id.tvSelectionCriteria);
         btnJoinWaitingList = view.findViewById(R.id.btnJoinWaitingList);
         btnRunRaffle = view.findViewById(R.id.btnRunRaffle);
+        btnViewWaitingList = view.findViewById(R.id.btnViewWaitingList);
+        btnViewInvitedEntrants = view.findViewById(R.id.btnViewInvitedEntrants);
+        btnViewEnrolledEntrants = view.findViewById(R.id.btnViewEnrolledEntrants);
+        btnViewCancelledEntrants = view.findViewById(R.id.btnViewCancelledEntrants);
         btnBack = view.findViewById(R.id.eventDetailsBackBtn);
         btnAcceptInvitation = view.findViewById(R.id.btnAcceptInvitation);
         btnDeclineInvitation = view.findViewById(R.id.btnDeclineInvitation);
@@ -102,6 +106,18 @@ public class EventDetails extends Fragment {
         
         // Set up raffle button (only visible to organizer)
         btnRunRaffle.setOnClickListener(v -> runRaffle());
+        
+        // Set up view waiting list button (only visible to organizer)
+        btnViewWaitingList.setOnClickListener(v -> viewWaitingList());
+        
+        // Set up view invited entrants button (only visible to organizer)
+        btnViewInvitedEntrants.setOnClickListener(v -> viewInvitedEntrants());
+        
+        // Set up view enrolled entrants button (only visible to organizer)
+        btnViewEnrolledEntrants.setOnClickListener(v -> viewEnrolledEntrants());
+        
+        // Set up view cancelled entrants button (only visible to organizer)
+        btnViewCancelledEntrants.setOnClickListener(v -> viewCancelledEntrants());
         
         // Set up invitation response buttons
         btnAcceptInvitation.setOnClickListener(v -> acceptInvitation());
@@ -162,14 +178,22 @@ public class EventDetails extends Fragment {
             btnJoinWaitingList.setVisibility(View.GONE);
             invitationButtons.setVisibility(View.GONE);
             btnRunRaffle.setVisibility(View.VISIBLE);
+            btnViewWaitingList.setVisibility(View.VISIBLE);
+            btnViewInvitedEntrants.setVisibility(View.VISIBLE);
+            btnViewEnrolledEntrants.setVisibility(View.VISIBLE);
+            btnViewCancelledEntrants.setVisibility(View.VISIBLE);
             
             // Show organizer status
             showOrganizerStatus();
             return;
         }
         
-        // Not organizer, hide raffle button
+        // Not organizer, hide organizer buttons
         btnRunRaffle.setVisibility(View.GONE);
+        btnViewWaitingList.setVisibility(View.GONE);
+        btnViewInvitedEntrants.setVisibility(View.GONE);
+        btnViewEnrolledEntrants.setVisibility(View.GONE);
+        btnViewCancelledEntrants.setVisibility(View.GONE);
         
         // Check if user has a pending invitation
         checkInvitationStatus(deviceId);
@@ -323,13 +347,21 @@ public class EventDetails extends Fragment {
         
         String deviceId = getOrCreateDeviceId();
         
-        // Check if registration is still open
-        if (event.getRaffleDate() != null) {
-            Calendar now = Calendar.getInstance();
-            if (now.after(event.getRaffleDate())) {
-                showError("Registration has closed for this event.");
-                return;
-            }
+        // Check if registration window is open
+        Calendar now = Calendar.getInstance();
+        
+        // Check if registration has started
+        if (event.getRegistrationStartDate() != null && now.before(event.getRegistrationStartDate())) {
+            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
+            String startDate = sdf.format(event.getRegistrationStartDate().getTime());
+            showError("Registration opens on " + startDate);
+            return;
+        }
+        
+        // Check if registration has closed
+        if (event.getRaffleDate() != null && now.after(event.getRaffleDate())) {
+            showError("Registration has closed for this event.");
+            return;
         }
         
         // Check if already on waitlist
@@ -404,6 +436,47 @@ public class EventDetails extends Fragment {
         
         // Calculate how many spots are available (for replacement draws)
         calculateAvailableSpots();
+    }
+    
+    private void viewWaitingList() {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Navigate to WaitlistViewActivity
+        android.content.Intent intent = new android.content.Intent(requireContext(), WaitlistViewActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
+        intent.putExtra("eventName", event.getName());
+        startActivity(intent);
+    }
+    
+    private void viewInvitedEntrants() {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Navigate to InvitationListViewActivity
+        android.content.Intent intent = new android.content.Intent(requireContext(), InvitationListViewActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
+        intent.putExtra("eventName", event.getName());
+        startActivity(intent);
+    }
+    
+    private void viewEnrolledEntrants() {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Navigate to AcceptedEntrantsViewActivity
+        android.content.Intent intent = new android.content.Intent(requireContext(), AcceptedEntrantsViewActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
+        intent.putExtra("eventName", event.getName());
+        intent.putExtra("eventCapacity", event.getCapacity());
+        startActivity(intent);
+    }
+    
+    private void viewCancelledEntrants() {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Navigate to CancelledEntrantsViewActivity
+        android.content.Intent intent = new android.content.Intent(requireContext(), CancelledEntrantsViewActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
+        intent.putExtra("eventName", event.getName());
+        startActivity(intent);
     }
     
     private void calculateAvailableSpots() {
@@ -746,32 +819,54 @@ public class EventDetails extends Fragment {
     
     private void performDecline() {
         String deviceId = getOrCreateDeviceId();
+        String eventDocId = event.getDocumentId();
         
-        // Update status to declined in invitation_list, then remove
-        db.collection("events").document(event.getDocumentId())
+        // Get the invitation data first
+        db.collection("events").document(eventDocId)
                 .collection("invitation_list")
                 .document(deviceId)
-                .update("status", "declined", "declinedAt", System.currentTimeMillis())
-                .addOnSuccessListener(v -> {
-                    // Remove from invitation_list after marking as declined
-                    db.collection("events").document(event.getDocumentId())
-                            .collection("invitation_list")
-                            .document(deviceId)
-                            .delete()
-                            .addOnSuccessListener(v2 -> {
-                                showSuccess("Invitation declined. Spot will be offered to another participant.");
-                                hasInvitation = false;
-                                hideInvitationButtons();
-                                
-                                // Organizer will see updated status automatically when they view their event
-                            })
-                            .addOnFailureListener(e -> {
-                                showError("Failed to process decline. Please try again.");
-                            });
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        Map<String, Object> invitationData = doc.getData();
+                        
+                        // Create cancelled entry data
+                        Map<String, Object> cancelledData = new HashMap<>(invitationData);
+                        cancelledData.put("status", "declined");
+                        cancelledData.put("declinedAt", System.currentTimeMillis());
+                        
+                        // Move to cancelled_list collection
+                        db.collection("events").document(eventDocId)
+                                .collection("cancelled_list")
+                                .document(deviceId)
+                                .set(cancelledData)
+                                .addOnSuccessListener(v -> {
+                                    // Now delete from invitation_list
+                                    db.collection("events").document(eventDocId)
+                                            .collection("invitation_list")
+                                            .document(deviceId)
+                                            .delete()
+                                            .addOnSuccessListener(v2 -> {
+                                                showSuccess("Invitation declined. Spot will be offered to another participant.");
+                                                hasInvitation = false;
+                                                hideInvitationButtons();
+                                            })
+                                            .addOnFailureListener(e -> {
+                                                showError("Failed to process decline. Please try again.");
+                                                Log.e(TAG, "Error removing from invitation list", e);
+                                            });
+                                })
+                                .addOnFailureListener(e -> {
+                                    showError("Failed to decline invitation. Please try again.");
+                                    Log.e(TAG, "Error adding to cancelled list", e);
+                                });
+                    } else {
+                        showError("Invitation not found.");
+                    }
                 })
                 .addOnFailureListener(e -> {
                     showError("Failed to decline invitation. Please try again.");
-                    Log.e(TAG, "Error declining invitation", e);
+                    Log.e(TAG, "Error loading invitation", e);
                 });
     }
 

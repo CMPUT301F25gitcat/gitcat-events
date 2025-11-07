@@ -17,7 +17,8 @@ public class Event implements Serializable {
     private int capacity;   //refers to the size of the final list
     @Nullable private Integer maxWaitListSize;
     private Calendar eventDate;
-    private Calendar raffleDate;
+    private Calendar registrationStartDate; // When registration opens
+    private Calendar raffleDate; // When registration closes (renamed for clarity, but keeping field name for compatibility)
     private Boolean geoLocationRequired;
 
     //current plan is to store images as strings
@@ -29,12 +30,13 @@ public class Event implements Serializable {
     public Event() {
     }
 
-    public Event(String name, String description, int capacity, @Nullable Integer maxWaitListSize, String poster,  Calendar raffleDate, Calendar eventDate, Boolean geoLocationRequired) {
+    public Event(String name, String description, int capacity, @Nullable Integer maxWaitListSize, String poster, Calendar registrationStartDate, Calendar raffleDate, Calendar eventDate, Boolean geoLocationRequired) {
         this.name = name;
         this.description = description;
         this.capacity = capacity;
         this.maxWaitListSize = maxWaitListSize;
         this.poster = poster;
+        this.registrationStartDate = registrationStartDate;
         this.eventDate = eventDate;
         this.raffleDate = raffleDate;
         this.geoLocationRequired = geoLocationRequired;
@@ -88,6 +90,15 @@ public class Event implements Serializable {
 
     public void setEventDate(Calendar eventDate) {
         this.eventDate = eventDate;
+    }
+
+    // Registration Start Date
+    public Calendar getRegistrationStartDate() {
+        return registrationStartDate;
+    }
+
+    public void setRegistrationStartDate(Calendar registrationStartDate) {
+        this.registrationStartDate = registrationStartDate;
     }
 
     // Raffle Date (Final Registration Date)

@@ -93,6 +93,250 @@ public class HomeFragment extends Fragment {
                     .commit();
         });
 
+        // Load events
+        loadEvents();
+    }
+    
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Reload events when returning to fragment
+        if (enteredEvents != null && upcomingEvents != null) {
+            loadEvents();
+        }
+    }
+    
+    private void loadEvents() {
+        String deviceId = getOrCreateDeviceId();
+        
+        // Load all upcoming events
+        loadUpcomingEvents();
+        
+        // Load events user has entered (waitlisted)
+        loadEnteredEvents(deviceId);
+    }
+    
+    private void loadUpcomingEvents() {
+        String currentDeviceId = getOrCreateDeviceId();
+        
+        // Load all events sorted by event date
+        db.collection("events")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    upcomingEvents.clear();
+                    
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        try {
+                            Event event = parseEvent(document);
+                            
+                            // Don't show events organized by this user
+                            if (event.getOrganizerDeviceId() != null && 
+                                    event.getOrganizerDeviceId().equals(currentDeviceId)) {
+                                continue;
+                            }
+                            
+                            // Only show events where registration is currently open
+                            Calendar now = Calendar.getInstance();
+                            boolean registrationStarted = event.getRegistrationStartDate() == null || 
+                                    !now.before(event.getRegistrationStartDate());
+                            boolean registrationOpen = event.getRaffleDate() == null || 
+                                    now.before(event.getRaffleDate()) || 
+                                    now.equals(event.getRaffleDate());
+                            
+                            if (registrationStarted && registrationOpen) {
+                                upcomingEvents.add(event);
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error parsing event: " + document.getId(), e);
+                        }
+                    }
+                    
+                    // Sort by event date
+                    upcomingEvents.sort((e1, e2) -> {
+                        if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
+                        return e1.getEventDate().compareTo(e2.getEventDate());
+                    });
+                    
+                    updateUpcomingEventsUI();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error loading upcoming events", e);
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), "Failed to load events", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+    
+    private void loadEnteredEvents(String deviceId) {
+        enteredEvents.clear();
+        java.util.Set<String> eventIds = new java.util.HashSet<>();
+        final int[] queriesCompleted = {0};
+        final int totalQueries = 2; // waitlist + acceptedList
+        
+        // Query 1: Events where user is in the waiting list
+        db.collectionGroup("waitlist")
+                .whereEqualTo("userDeviceId", deviceId)
+                .get()
+                .addOnSuccessListener(waitlistSnapshot -> {
+                    // Collect all event IDs from waitlist
+                    for (QueryDocumentSnapshot doc : waitlistSnapshot) {
+                        String eventId = doc.getString("eventId");
+                        if (eventId != null) {
+                            eventIds.add(eventId);
+                        }
+                    }
+                    
+                    queriesCompleted[0]++;
+                    if (queriesCompleted[0] == totalQueries) {
+                        loadEventDetails(eventIds);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error loading waitlist events", e);
+                    queriesCompleted[0]++;
+                    if (queriesCompleted[0] == totalQueries) {
+                        loadEventDetails(eventIds);
+                    }
+                });
+        
+        // Query 2: Events where user has accepted invitation
+        db.collectionGroup("acceptedList")
+                .whereEqualTo("userDeviceId", deviceId)
+                .get()
+                .addOnSuccessListener(acceptedSnapshot -> {
+                    // Collect all event IDs from accepted list
+                    for (QueryDocumentSnapshot doc : acceptedSnapshot) {
+                        String eventId = doc.getString("eventId");
+                        if (eventId != null) {
+                            eventIds.add(eventId);
+                        }
+                    }
+                    
+                    queriesCompleted[0]++;
+                    if (queriesCompleted[0] == totalQueries) {
+                        loadEventDetails(eventIds);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error loading accepted events", e);
+                    queriesCompleted[0]++;
+                    if (queriesCompleted[0] == totalQueries) {
+                        loadEventDetails(eventIds);
+                    }
+                });
+    }
+    
+    private void loadEventDetails(java.util.Set<String> eventIds) {
+        if (eventIds.isEmpty()) {
+            updateEnteredEventsUI();
+            return;
+        }
+        
+        for (String eventId : eventIds) {
+            db.collection("events").document(eventId)
+                    .get()
+                    .addOnSuccessListener(eventDoc -> {
+                        if (eventDoc.exists()) {
+                            try {
+                                Event event = parseEvent(eventDoc);
+                                if (!enteredEvents.contains(event)) {
+                                    enteredEvents.add(event);
+                                }
+                                
+                                // Sort by event date
+                                enteredEvents.sort((e1, e2) -> {
+                                    if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
+                                    return e1.getEventDate().compareTo(e2.getEventDate());
+                                });
+                                
+                                updateEnteredEventsUI();
+                            } catch (Exception e) {
+                                Log.e(TAG, "Error parsing entered event", e);
+                            }
+                        }
+                    });
+        }
+    }
+    
+    private Event parseEvent(com.google.firebase.firestore.DocumentSnapshot document) {
+        Event event = new Event();
+        event.setDocumentId(document.getId());
+        event.setName(document.getString("name"));
+        event.setDescription(document.getString("description"));
+        
+        Long capacity = document.getLong("capacity");
+        event.setCapacity(capacity != null ? capacity.intValue() : 0);
+        
+        Long maxWaitlist = document.getLong("maxWaitListSize");
+        event.setMaxWaitListSize(maxWaitlist != null ? maxWaitlist.intValue() : null);
+        
+        event.setPoster(document.getString("poster"));
+        event.setOrganizerDeviceId(document.getString("organizerDeviceId"));
+        
+        Boolean geoLocation = document.getBoolean("geoLocationRequired");
+        event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
+        
+        // Convert Date to Calendar
+        Date registrationStartDate = document.getDate("registrationStartDate");
+        if (registrationStartDate != null) {
+            Calendar regStartCal = Calendar.getInstance();
+            regStartCal.setTime(registrationStartDate);
+            event.setRegistrationStartDate(regStartCal);
+        }
+        
+        Date eventDate = document.getDate("eventDate");
+        if (eventDate != null) {
+            Calendar eventCal = Calendar.getInstance();
+            eventCal.setTime(eventDate);
+            event.setEventDate(eventCal);
+        }
+        
+        Date raffleDate = document.getDate("raffleDate");
+        if (raffleDate != null) {
+            Calendar raffleCal = Calendar.getInstance();
+            raffleCal.setTime(raffleDate);
+            event.setRaffleDate(raffleCal);
+        }
+        
+        return event;
+    }
+    
+    private void updateUpcomingEventsUI() {
+        if (upcomingEvents.isEmpty()) {
+            upcomingEventsEmpty.setVisibility(View.VISIBLE);
+            upcomingEventsList.setVisibility(View.GONE);
+        } else {
+            upcomingEventsEmpty.setVisibility(View.GONE);
+            upcomingEventsList.setVisibility(View.VISIBLE);
+            upcomingEventsAdapter.notifyDataSetChanged();
+            setListViewHeightBasedOnChildren(upcomingEventsList);
+        }
+    }
+    
+    private void updateEnteredEventsUI() {
+        if (enteredEvents.isEmpty()) {
+            enteredEventsEmpty.setVisibility(View.VISIBLE);
+            enteredEventsList.setVisibility(View.GONE);
+        } else {
+            enteredEventsEmpty.setVisibility(View.GONE);
+            enteredEventsList.setVisibility(View.VISIBLE);
+            enteredEventsAdapter.notifyDataSetChanged();
+            setListViewHeightBasedOnChildren(enteredEventsList);
+        }
+    }
+    
+    private String getOrCreateDeviceId() {
+        if (getContext() == null) return UUID.randomUUID().toString();
+        
+        SharedPreferences sp = getContext().getSharedPreferences(PREFS, getContext().MODE_PRIVATE);
+        String deviceId = sp.getString("device_id", null);
+
+        if (deviceId == null) {
+            try {
+                deviceId = Settings.Secure.getString(getContext().getContentResolver(), Settings.Secure.ANDROID_ID);
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to get Android ID", e);
+            }
 
         return view;
     }

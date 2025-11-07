@@ -131,6 +131,13 @@ public class EventDetailsActivity extends AppCompatActivity {
         currentEvent.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
         
         // Convert Date to Calendar
+        Date registrationStartDate = document.getDate("registrationStartDate");
+        if (registrationStartDate != null) {
+            Calendar regStartCal = Calendar.getInstance();
+            regStartCal.setTime(registrationStartDate);
+            currentEvent.setRegistrationStartDate(regStartCal);
+        }
+        
         Date eventDate = document.getDate("eventDate");
         if (eventDate != null) {
             Calendar eventCal = Calendar.getInstance();
@@ -300,8 +307,18 @@ public class EventDetailsActivity extends AppCompatActivity {
             return;
         }
 
-        // Check if registration is still open (before raffle date)
+        // Check if registration window is open
         Calendar now = Calendar.getInstance();
+        
+        // Check if registration has started
+        if (currentEvent.getRegistrationStartDate() != null && now.before(currentEvent.getRegistrationStartDate())) {
+            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
+            String startDate = sdf.format(currentEvent.getRegistrationStartDate().getTime());
+            showError("Registration opens on " + startDate);
+            return;
+        }
+        
+        // Check if registration has closed
         if (currentEvent.getRaffleDate() != null && now.after(currentEvent.getRaffleDate())) {
             showError("Registration is closed. The deadline has passed.");
             return;

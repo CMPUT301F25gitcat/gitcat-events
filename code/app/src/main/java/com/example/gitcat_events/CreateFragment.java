@@ -132,6 +132,13 @@ public class CreateFragment extends Fragment {
                             event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
                             
                             // Convert Date to Calendar
+                            Date registrationStartDate = document.getDate("registrationStartDate");
+                            if (registrationStartDate != null) {
+                                Calendar regStartCal = Calendar.getInstance();
+                                regStartCal.setTime(registrationStartDate);
+                                event.setRegistrationStartDate(regStartCal);
+                            }
+                            
                             Date eventDate = document.getDate("eventDate");
                             if (eventDate != null) {
                                 Calendar eventCal = Calendar.getInstance();
@@ -205,6 +212,7 @@ public class CreateFragment extends Fragment {
         class EventViewHolder extends RecyclerView.ViewHolder {
             ImageView ivEventThumbnail;
             TextView tvEventName, tvEventDescription, tvEventDate, tvEventCapacity;
+            android.widget.ImageButton btnEditEvent;
 
             EventViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -213,6 +221,7 @@ public class CreateFragment extends Fragment {
                 tvEventDescription = itemView.findViewById(R.id.tvEventDescription);
                 tvEventDate = itemView.findViewById(R.id.tvEventDate);
                 tvEventCapacity = itemView.findViewById(R.id.tvEventCapacity);
+                btnEditEvent = itemView.findViewById(R.id.btnEditEvent);
             }
 
             void bind(Event event) {
@@ -239,6 +248,13 @@ public class CreateFragment extends Fragment {
                 itemView.setOnClickListener(v -> {
                     Toast.makeText(getContext(), "Event: " + event.getName(), Toast.LENGTH_SHORT).show();
                     // TODO: Navigate to event details page
+                });
+
+                // Click listener for edit button - navigate to edit event
+                btnEditEvent.setOnClickListener(v -> {
+                    Intent intent = new Intent(getContext(), EditEventActivity.class);
+                    intent.putExtra("eventId", event.getDocumentId());
+                    startActivity(intent);
                 });
             }
         }
