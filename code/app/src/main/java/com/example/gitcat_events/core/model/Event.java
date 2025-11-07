@@ -22,6 +22,10 @@ public class Event {
     //private QRCode qrCode; --QRCode class is not done yet
     private int organizer;
 
+    // No-arg constructor for Firebase
+    public Event() {
+    }
+
     public Event(String name, String description, int capacity, @Nullable Integer maxWaitListSize, String poster,  Calendar raffleDate, Calendar eventDate, Boolean geoLocationRequired) {
         this.name = name;
         this.description = description;
@@ -100,6 +104,15 @@ public class Event {
     public void setRaffleDate(Calendar raffleDate) {
         this.raffleDate = raffleDate;
     }
+
+    public Boolean getGeoLocationRequired() {
+        return geoLocationRequired;
+    }
+
+    public void setGeoLocationRequired(Boolean geoLocationRequired) {
+        this.geoLocationRequired = geoLocationRequired;
+    }
+
     /*public void setQRCode(QRCode qrCode) {  -- QR code class is not ready yet
         this.qrCode = qrCode;
     }*/
