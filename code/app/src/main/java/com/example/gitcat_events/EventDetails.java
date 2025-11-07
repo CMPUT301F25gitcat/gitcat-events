@@ -44,7 +44,7 @@ public class EventDetails extends Fragment {
     private ImageView ivEventPoster;
     private TextView tvEventName, tvEventDate, tvEventSpots, tvEventDesc;
     private TextView tvWaitingListCount, tvStatusMessage, tvSelectionCriteria;
-    private Button btnJoinWaitingList, btnBack, btnRunRaffle, btnViewWaitingList;
+    private Button btnJoinWaitingList, btnBack, btnRunRaffle, btnViewWaitingList, btnViewInvitedEntrants;
     private Button btnAcceptInvitation, btnDeclineInvitation;
     private android.view.ViewGroup invitationButtons;
 
@@ -84,6 +84,7 @@ public class EventDetails extends Fragment {
         btnJoinWaitingList = view.findViewById(R.id.btnJoinWaitingList);
         btnRunRaffle = view.findViewById(R.id.btnRunRaffle);
         btnViewWaitingList = view.findViewById(R.id.btnViewWaitingList);
+        btnViewInvitedEntrants = view.findViewById(R.id.btnViewInvitedEntrants);
         btnBack = view.findViewById(R.id.eventDetailsBackBtn);
         btnAcceptInvitation = view.findViewById(R.id.btnAcceptInvitation);
         btnDeclineInvitation = view.findViewById(R.id.btnDeclineInvitation);
@@ -106,6 +107,9 @@ public class EventDetails extends Fragment {
         
         // Set up view waiting list button (only visible to organizer)
         btnViewWaitingList.setOnClickListener(v -> viewWaitingList());
+        
+        // Set up view invited entrants button (only visible to organizer)
+        btnViewInvitedEntrants.setOnClickListener(v -> viewInvitedEntrants());
         
         // Set up invitation response buttons
         btnAcceptInvitation.setOnClickListener(v -> acceptInvitation());
@@ -167,6 +171,7 @@ public class EventDetails extends Fragment {
             invitationButtons.setVisibility(View.GONE);
             btnRunRaffle.setVisibility(View.VISIBLE);
             btnViewWaitingList.setVisibility(View.VISIBLE);
+            btnViewInvitedEntrants.setVisibility(View.VISIBLE);
             
             // Show organizer status
             showOrganizerStatus();
@@ -176,6 +181,7 @@ public class EventDetails extends Fragment {
         // Not organizer, hide organizer buttons
         btnRunRaffle.setVisibility(View.GONE);
         btnViewWaitingList.setVisibility(View.GONE);
+        btnViewInvitedEntrants.setVisibility(View.GONE);
         
         // Check if user has a pending invitation
         checkInvitationStatus(deviceId);
@@ -425,6 +431,16 @@ public class EventDetails extends Fragment {
         
         // Navigate to WaitlistViewActivity
         android.content.Intent intent = new android.content.Intent(requireContext(), WaitlistViewActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
+        intent.putExtra("eventName", event.getName());
+        startActivity(intent);
+    }
+    
+    private void viewInvitedEntrants() {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Navigate to InvitationListViewActivity
+        android.content.Intent intent = new android.content.Intent(requireContext(), InvitationListViewActivity.class);
         intent.putExtra("eventId", event.getDocumentId());
         intent.putExtra("eventName", event.getName());
         startActivity(intent);
