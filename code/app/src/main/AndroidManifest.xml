@@ -44,6 +44,9 @@
         <activity android:name=".InvitationListViewActivity"
             android:exported="false"
             android:theme="@style/Theme.GitCat_events"/>
+        <activity android:name=".CancelledEntrantsViewActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GitCat_events"/>
     </application>
 
 </manifest>

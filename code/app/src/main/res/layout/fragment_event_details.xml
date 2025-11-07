@@ -224,6 +224,23 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/btnViewWaitingList" />
 
+        <!-- View Cancelled Entrants Button (for organizers) -->
+        <Button
+            android:id="@+id/btnViewCancelledEntrants"
+            android:layout_width="0dp"
+            android:layout_height="60dp"
+            android:layout_marginStart="40dp"
+            android:layout_marginEnd="40dp"
+            android:layout_marginTop="12dp"
+            android:text="❌ View Cancelled Entrants"
+            android:textSize="16sp"
+            android:textColor="@android:color/white"
+            android:backgroundTint="@android:color/holo_red_dark"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/btnViewInvitedEntrants" />
+
         <!-- Invitation Response Buttons (for invited entrants) -->
         <LinearLayout
             android:id="@+id/invitationButtons"

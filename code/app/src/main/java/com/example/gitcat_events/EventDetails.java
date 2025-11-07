@@ -44,7 +44,7 @@ public class EventDetails extends Fragment {
     private ImageView ivEventPoster;
     private TextView tvEventName, tvEventDate, tvEventSpots, tvEventDesc;
     private TextView tvWaitingListCount, tvStatusMessage, tvSelectionCriteria;
-    private Button btnJoinWaitingList, btnBack, btnRunRaffle, btnViewWaitingList, btnViewInvitedEntrants;
+    private Button btnJoinWaitingList, btnBack, btnRunRaffle, btnViewWaitingList, btnViewInvitedEntrants, btnViewCancelledEntrants;
     private Button btnAcceptInvitation, btnDeclineInvitation;
     private android.view.ViewGroup invitationButtons;
 
@@ -85,6 +85,7 @@ public class EventDetails extends Fragment {
         btnRunRaffle = view.findViewById(R.id.btnRunRaffle);
         btnViewWaitingList = view.findViewById(R.id.btnViewWaitingList);
         btnViewInvitedEntrants = view.findViewById(R.id.btnViewInvitedEntrants);
+        btnViewCancelledEntrants = view.findViewById(R.id.btnViewCancelledEntrants);
         btnBack = view.findViewById(R.id.eventDetailsBackBtn);
         btnAcceptInvitation = view.findViewById(R.id.btnAcceptInvitation);
         btnDeclineInvitation = view.findViewById(R.id.btnDeclineInvitation);
@@ -110,6 +111,9 @@ public class EventDetails extends Fragment {
         
         // Set up view invited entrants button (only visible to organizer)
         btnViewInvitedEntrants.setOnClickListener(v -> viewInvitedEntrants());
+        
+        // Set up view cancelled entrants button (only visible to organizer)
+        btnViewCancelledEntrants.setOnClickListener(v -> viewCancelledEntrants());
         
         // Set up invitation response buttons
         btnAcceptInvitation.setOnClickListener(v -> acceptInvitation());
@@ -172,6 +176,7 @@ public class EventDetails extends Fragment {
             btnRunRaffle.setVisibility(View.VISIBLE);
             btnViewWaitingList.setVisibility(View.VISIBLE);
             btnViewInvitedEntrants.setVisibility(View.VISIBLE);
+            btnViewCancelledEntrants.setVisibility(View.VISIBLE);
             
             // Show organizer status
             showOrganizerStatus();
@@ -182,6 +187,7 @@ public class EventDetails extends Fragment {
         btnRunRaffle.setVisibility(View.GONE);
         btnViewWaitingList.setVisibility(View.GONE);
         btnViewInvitedEntrants.setVisibility(View.GONE);
+        btnViewCancelledEntrants.setVisibility(View.GONE);
         
         // Check if user has a pending invitation
         checkInvitationStatus(deviceId);
@@ -441,6 +447,16 @@ public class EventDetails extends Fragment {
         
         // Navigate to InvitationListViewActivity
         android.content.Intent intent = new android.content.Intent(requireContext(), InvitationListViewActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
+        intent.putExtra("eventName", event.getName());
+        startActivity(intent);
+    }
+    
+    private void viewCancelledEntrants() {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Navigate to CancelledEntrantsViewActivity
+        android.content.Intent intent = new android.content.Intent(requireContext(), CancelledEntrantsViewActivity.class);
         intent.putExtra("eventId", event.getDocumentId());
         intent.putExtra("eventName", event.getName());
         startActivity(intent);
@@ -786,32 +802,54 @@ public class EventDetails extends Fragment {
     
     private void performDecline() {
         String deviceId = getOrCreateDeviceId();
+        String eventDocId = event.getDocumentId();
         
-        // Update status to declined in invitation_list, then remove
-        db.collection("events").document(event.getDocumentId())
+        // Get the invitation data first
+        db.collection("events").document(eventDocId)
                 .collection("invitation_list")
                 .document(deviceId)
-                .update("status", "declined", "declinedAt", System.currentTimeMillis())
-                .addOnSuccessListener(v -> {
-                    // Remove from invitation_list after marking as declined
-                    db.collection("events").document(event.getDocumentId())
-                            .collection("invitation_list")
-                            .document(deviceId)
-                            .delete()
-                            .addOnSuccessListener(v2 -> {
-                                showSuccess("Invitation declined. Spot will be offered to another participant.");
-                                hasInvitation = false;
-                                hideInvitationButtons();
-                                
-                                // Organizer will see updated status automatically when they view their event
-                            })
-                            .addOnFailureListener(e -> {
-                                showError("Failed to process decline. Please try again.");
-                            });
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        Map<String, Object> invitationData = doc.getData();
+                        
+                        // Create cancelled entry data
+                        Map<String, Object> cancelledData = new HashMap<>(invitationData);
+                        cancelledData.put("status", "declined");
+                        cancelledData.put("declinedAt", System.currentTimeMillis());
+                        
+                        // Move to cancelled_list collection
+                        db.collection("events").document(eventDocId)
+                                .collection("cancelled_list")
+                                .document(deviceId)
+                                .set(cancelledData)
+                                .addOnSuccessListener(v -> {
+                                    // Now delete from invitation_list
+                                    db.collection("events").document(eventDocId)
+                                            .collection("invitation_list")
+                                            .document(deviceId)
+                                            .delete()
+                                            .addOnSuccessListener(v2 -> {
+                                                showSuccess("Invitation declined. Spot will be offered to another participant.");
+                                                hasInvitation = false;
+                                                hideInvitationButtons();
+                                            })
+                                            .addOnFailureListener(e -> {
+                                                showError("Failed to process decline. Please try again.");
+                                                Log.e(TAG, "Error removing from invitation list", e);
+                                            });
+                                })
+                                .addOnFailureListener(e -> {
+                                    showError("Failed to decline invitation. Please try again.");
+                                    Log.e(TAG, "Error adding to cancelled list", e);
+                                });
+                    } else {
+                        showError("Invitation not found.");
+                    }
                 })
                 .addOnFailureListener(e -> {
                     showError("Failed to decline invitation. Please try again.");
-                    Log.e(TAG, "Error declining invitation", e);
+                    Log.e(TAG, "Error loading invitation", e);
                 });
     }
 
