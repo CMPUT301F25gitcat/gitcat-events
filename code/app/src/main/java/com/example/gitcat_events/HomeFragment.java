@@ -329,6 +329,12 @@ public class HomeFragment extends Fragment {
                 Event event = parseEvent(document);
                 String eventId = event.getDocumentId();
 
+                // Skip if event couldn't be parsed
+                if (eventId == null) {
+                    Log.w(TAG, "Skipping event with null document ID");
+                    continue;
+                }
+
                 // Don't show events organized by this user
                 if (event.getOrganizerDeviceId() != null &&
                         event.getOrganizerDeviceId().equals(currentDeviceId)) {
@@ -340,19 +346,46 @@ public class HomeFragment extends Fragment {
                     continue;
                 }
 
-                // Only show events where registration is currently open
+                // Check if registration is currently open
+                // Registration is open if: registrationStartDate <= now <= raffleDate
                 Calendar now = Calendar.getInstance();
-                boolean registrationStarted = event.getRegistrationStartDate() == null ||
-                        !now.before(event.getRegistrationStartDate());
-                boolean registrationOpen = event.getRaffleDate() == null ||
-                        now.before(event.getRaffleDate()) ||
-                        now.equals(event.getRaffleDate());
+                
+                // Normalize now to start of day for date-only comparison
+                Calendar nowNormalized = (Calendar) now.clone();
+                nowNormalized.set(Calendar.HOUR_OF_DAY, 0);
+                nowNormalized.set(Calendar.MINUTE, 0);
+                nowNormalized.set(Calendar.SECOND, 0);
+                nowNormalized.set(Calendar.MILLISECOND, 0);
+                
+                boolean registrationStarted = true;
+                if (event.getRegistrationStartDate() != null) {
+                    Calendar regStartNormalized = (Calendar) event.getRegistrationStartDate().clone();
+                    regStartNormalized.set(Calendar.HOUR_OF_DAY, 0);
+                    regStartNormalized.set(Calendar.MINUTE, 0);
+                    regStartNormalized.set(Calendar.SECOND, 0);
+                    regStartNormalized.set(Calendar.MILLISECOND, 0);
+                    // Registration has started if now >= registrationStartDate
+                    registrationStarted = !nowNormalized.before(regStartNormalized);
+                }
+                
+                boolean registrationOpen = true;
+                if (event.getRaffleDate() != null) {
+                    Calendar raffleNormalized = (Calendar) event.getRaffleDate().clone();
+                    raffleNormalized.set(Calendar.HOUR_OF_DAY, 0);
+                    raffleNormalized.set(Calendar.MINUTE, 0);
+                    raffleNormalized.set(Calendar.SECOND, 0);
+                    raffleNormalized.set(Calendar.MILLISECOND, 0);
+                    // Registration is open if now <= raffleDate (registration closes at end of raffleDate)
+                    // So we allow events where now is before or equal to raffleDate
+                    registrationOpen = !nowNormalized.after(raffleNormalized);
+                }
 
                 if (registrationStarted && registrationOpen) {
                     upcomingEvents.add(event);
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error parsing event: " + document.getId(), e);
+                // Continue processing other events even if one fails
             }
         }
 
@@ -436,47 +469,63 @@ public class HomeFragment extends Fragment {
     }
 
     private Event parseEvent(DocumentSnapshot document) {
-        Event event = new Event();
-        event.setDocumentId(document.getId());
-        event.setName(document.getString("name"));
-        event.setDescription(document.getString("description"));
-
-        Long capacity = document.getLong("capacity");
-        event.setCapacity(capacity != null ? capacity.intValue() : 0);
-
-        Long maxWaitlist = document.getLong("maxWaitListSize");
-        event.setMaxWaitListSize(maxWaitlist != null ? maxWaitlist.intValue() : null);
-
-        event.setPoster(document.getString("poster"));
-        event.setOrganizerDeviceId(document.getString("organizerDeviceId"));
-        event.setSelectionCriteria(document.getString("selectionCriteria"));
-
-        Boolean geoLocation = document.getBoolean("geoLocationRequired");
-        event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
-
-        // Convert Date to Calendar
-        Date registrationStartDate = document.getDate("registrationStartDate");
-        if (registrationStartDate != null) {
-            Calendar regStartCal = Calendar.getInstance();
-            regStartCal.setTime(registrationStartDate);
-            event.setRegistrationStartDate(regStartCal);
+        if (document == null || !document.exists()) {
+            Log.w(TAG, "Attempted to parse null or non-existent document");
+            return null;
         }
+        
+        try {
+            Event event = new Event();
+            event.setDocumentId(document.getId());
+            event.setName(document.getString("name"));
+            event.setDescription(document.getString("description"));
 
-        Date eventDate = document.getDate("eventDate");
-        if (eventDate != null) {
-            Calendar eventCal = Calendar.getInstance();
-            eventCal.setTime(eventDate);
-            event.setEventDate(eventCal);
+            Long capacity = document.getLong("capacity");
+            event.setCapacity(capacity != null ? capacity.intValue() : 0);
+
+            Long maxWaitlist = document.getLong("maxWaitListSize");
+            event.setMaxWaitListSize(maxWaitlist != null ? maxWaitlist.intValue() : null);
+
+            event.setPoster(document.getString("poster"));
+            event.setOrganizerDeviceId(document.getString("organizerDeviceId"));
+            event.setSelectionCriteria(document.getString("selectionCriteria"));
+
+            Boolean geoLocation = document.getBoolean("geoLocationRequired");
+            event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
+
+            // Convert Date to Calendar with null checks
+            Date registrationStartDate = document.getDate("registrationStartDate");
+            if (registrationStartDate != null) {
+                Calendar regStartCal = Calendar.getInstance();
+                regStartCal.setTime(registrationStartDate);
+                event.setRegistrationStartDate(regStartCal);
+            } else {
+                event.setRegistrationStartDate(null);
+            }
+
+            Date eventDate = document.getDate("eventDate");
+            if (eventDate != null) {
+                Calendar eventCal = Calendar.getInstance();
+                eventCal.setTime(eventDate);
+                event.setEventDate(eventCal);
+            } else {
+                event.setEventDate(null);
+            }
+
+            Date raffleDate = document.getDate("raffleDate");
+            if (raffleDate != null) {
+                Calendar raffleCal = Calendar.getInstance();
+                raffleCal.setTime(raffleDate);
+                event.setRaffleDate(raffleCal);
+            } else {
+                event.setRaffleDate(null);
+            }
+
+            return event;
+        } catch (Exception e) {
+            Log.e(TAG, "Error parsing event document: " + document.getId(), e);
+            return null;
         }
-
-        Date raffleDate = document.getDate("raffleDate");
-        if (raffleDate != null) {
-            Calendar raffleCal = Calendar.getInstance();
-            raffleCal.setTime(raffleDate);
-            event.setRaffleDate(raffleCal);
-        }
-
-        return event;
     }
 
     private void updateUpcomingEventsUI() {

@@ -47,6 +47,7 @@ public class EventDetails extends Fragment {
     private Event event;
     private FirebaseFirestore db;
     private ListenerRegistration waitlistListener;
+    private ListenerRegistration eventListener; // Real-time event update listener
     private boolean isOnWaitlist = false;
     private boolean isOrganizer = false;
     private boolean hasInvitation = false;
@@ -107,6 +108,9 @@ public class EventDetails extends Fragment {
         // Display event details
         displayEvent();
         
+        // Set up real-time event update listener (to prevent crashes when event is edited)
+        setupEventListener();
+        
         // Set up real-time waiting list count listener
         setupWaitlistListener();
         
@@ -155,94 +159,109 @@ public class EventDetails extends Fragment {
     }
 
     private void displayEvent() {
-        if (event == null) return;
+        if (event == null || getView() == null) return;
         
-        tvEventName.setText(event.getName());
-        tvEventDesc.setText(event.getDescription() != null ? event.getDescription() : "No description");
-        
-        // Format and display dates
-        SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
-        if (event.getEventDate() != null) {
-            tvEventDate.setText("Event: " + dateFormat.format(event.getEventDate().getTime()));
-        }
-        
-        tvEventSpots.setText("Capacity: " + event.getCapacity());
-        
-        // Display selection criteria
-        if (event.getSelectionCriteria() != null && !event.getSelectionCriteria().isEmpty()) {
-            tvSelectionCriteria.setText(event.getSelectionCriteria());
-        } else {
-            tvSelectionCriteria.setText("Random selection from all registered participants. All entrants have an equal chance of being selected.");
-        }
-        
-        // Load poster image
-        if (event.getPoster() != null && !event.getPoster().isEmpty()) {
-            loadBase64Image(event.getPoster(), ivEventPoster);
+        try {
+            tvEventName.setText(event.getName() != null ? event.getName() : "Unnamed Event");
+            tvEventDesc.setText(event.getDescription() != null ? event.getDescription() : "No description");
+            
+            // Format and display dates
+            SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
+            if (event.getEventDate() != null) {
+                tvEventDate.setText("Event: " + dateFormat.format(event.getEventDate().getTime()));
+            } else {
+                tvEventDate.setText("Event: Date TBD");
+            }
+            
+            tvEventSpots.setText("Capacity: " + event.getCapacity());
+            
+            // Display selection criteria
+            if (event.getSelectionCriteria() != null && !event.getSelectionCriteria().isEmpty()) {
+                tvSelectionCriteria.setText(event.getSelectionCriteria());
+            } else {
+                tvSelectionCriteria.setText("Random selection from all registered participants. All entrants have an equal chance of being selected.");
+            }
+            
+            // Load poster image
+            if (event.getPoster() != null && !event.getPoster().isEmpty()) {
+                loadBase64Image(event.getPoster(), ivEventPoster);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error displaying event", e);
         }
     }
     
     private void checkUserStatus() {
-        if (event == null || event.getDocumentId() == null) return;
+        if (event == null || event.getDocumentId() == null || getView() == null) return;
         
-        String deviceId = getOrCreateDeviceId();
-        
-        // Check if user is the organizer
-        if (event.getOrganizerDeviceId() != null && 
-                event.getOrganizerDeviceId().equals(deviceId)) {
-            isOrganizer = true;
-            btnJoinWaitingList.setVisibility(View.GONE);
-            invitationButtons.setVisibility(View.GONE);
-            btnRunRaffle.setVisibility(View.VISIBLE);
-            btnViewWaitingList.setVisibility(View.VISIBLE);
-            btnViewInvitedEntrants.setVisibility(View.VISIBLE);
-            btnViewEnrolledEntrants.setVisibility(View.VISIBLE);
-            btnViewCancelledEntrants.setVisibility(View.VISIBLE);
-            btnEditEvent.setVisibility(View.VISIBLE);
+        try {
+            String deviceId = getOrCreateDeviceId();
             
-            // Show organizer status
-            showOrganizerStatus();
-            return;
+            // Check if user is the organizer
+            if (event.getOrganizerDeviceId() != null && 
+                    event.getOrganizerDeviceId().equals(deviceId)) {
+                isOrganizer = true;
+                if (btnJoinWaitingList != null) btnJoinWaitingList.setVisibility(View.GONE);
+                if (invitationButtons != null) invitationButtons.setVisibility(View.GONE);
+                if (btnRunRaffle != null) btnRunRaffle.setVisibility(View.VISIBLE);
+                if (btnViewWaitingList != null) btnViewWaitingList.setVisibility(View.VISIBLE);
+                if (btnViewInvitedEntrants != null) btnViewInvitedEntrants.setVisibility(View.VISIBLE);
+                if (btnViewEnrolledEntrants != null) btnViewEnrolledEntrants.setVisibility(View.VISIBLE);
+                if (btnViewCancelledEntrants != null) btnViewCancelledEntrants.setVisibility(View.VISIBLE);
+                if (btnEditEvent != null) btnEditEvent.setVisibility(View.VISIBLE);
+                
+                // Show organizer status
+                showOrganizerStatus();
+                return;
+            }
+            
+            // Not organizer, hide organizer buttons
+            isOrganizer = false;
+            if (btnRunRaffle != null) btnRunRaffle.setVisibility(View.GONE);
+            if (btnViewWaitingList != null) btnViewWaitingList.setVisibility(View.GONE);
+            if (btnViewInvitedEntrants != null) btnViewInvitedEntrants.setVisibility(View.GONE);
+            if (btnViewEnrolledEntrants != null) btnViewEnrolledEntrants.setVisibility(View.GONE);
+            if (btnViewCancelledEntrants != null) btnViewCancelledEntrants.setVisibility(View.GONE);
+            if (btnEditEvent != null) btnEditEvent.setVisibility(View.GONE);
+            
+            // Show join button by default (will be hidden if user has invitation)
+            if (btnJoinWaitingList != null) btnJoinWaitingList.setVisibility(View.VISIBLE);
+            
+            // Check if user has a pending invitation
+            checkInvitationStatus(deviceId);
+            
+            // Check waitlist status
+            db.collection("events").document(event.getDocumentId())
+                    .collection("waitlist")
+                    .document(deviceId)
+                    .addSnapshotListener((documentSnapshot, error) -> {
+                        if (error != null) {
+                            Log.e(TAG, "Error checking waitlist status", error);
+                            return;
+                        }
+                        
+                        if (getView() == null) return; // Fragment view detached
+                        
+                        if (documentSnapshot != null && documentSnapshot.exists()) {
+                            isOnWaitlist = true;
+                            if (!hasInvitation) {
+                                updateButtonForWaitlistStatus();
+                            }
+                        } else {
+                            isOnWaitlist = false;
+                            if (!hasInvitation) {
+                                updateButtonForWaitlistStatus();
+                            }
+                        }
+                    });
+        } catch (Exception e) {
+            Log.e(TAG, "Error in checkUserStatus", e);
         }
-        
-        // Not organizer, hide organizer buttons
-        btnRunRaffle.setVisibility(View.GONE);
-        btnViewWaitingList.setVisibility(View.GONE);
-        btnViewInvitedEntrants.setVisibility(View.GONE);
-        btnViewEnrolledEntrants.setVisibility(View.GONE);
-        btnViewCancelledEntrants.setVisibility(View.GONE);
-        btnEditEvent.setVisibility(View.GONE);
-        
-        // Show join button by default (will be hidden if user has invitation)
-        btnJoinWaitingList.setVisibility(View.VISIBLE);
-        
-        // Check if user has a pending invitation
-        checkInvitationStatus(deviceId);
-        
-        // Check waitlist status
-        db.collection("events").document(event.getDocumentId())
-                .collection("waitlist")
-                .document(deviceId)
-                .addSnapshotListener((documentSnapshot, error) -> {
-                    if (error != null) {
-                        Log.e(TAG, "Error checking waitlist status", error);
-                        return;
-                    }
-                    
-                    if (documentSnapshot != null && documentSnapshot.exists()) {
-                        isOnWaitlist = true;
-                        if (!hasInvitation) {
-                            updateButtonForWaitlistStatus();
-                        }
-                    } else {
-                        isOnWaitlist = false;
-                        if (!hasInvitation) {
-                            updateButtonForWaitlistStatus();
-                        }
-                    }
-                });
     }
     
     private void checkInvitationStatus(String deviceId) {
+        if (event == null || event.getDocumentId() == null) return;
+        
         db.collection("events").document(event.getDocumentId())
                 .collection("invitation_list")
                 .document(deviceId)
@@ -251,6 +270,8 @@ public class EventDetails extends Fragment {
                         Log.e(TAG, "Error checking invitation status", error);
                         return;
                     }
+                    
+                    if (getView() == null) return; // Fragment view detached
                     
                     if (documentSnapshot != null && documentSnapshot.exists()) {
                         String status = documentSnapshot.getString("status");
@@ -269,38 +290,56 @@ public class EventDetails extends Fragment {
     }
     
     private void showInvitationButtons() {
-        btnJoinWaitingList.setVisibility(View.GONE);
-        invitationButtons.setVisibility(View.VISIBLE);
-        if (tvStatusMessage != null) {
-            tvStatusMessage.setVisibility(View.VISIBLE);
-            tvStatusMessage.setText("🎉 Congratulations! You've been selected for this event!");
-            tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_orange_dark));
+        if (getView() == null) return;
+        
+        try {
+            if (btnJoinWaitingList != null) btnJoinWaitingList.setVisibility(View.GONE);
+            if (invitationButtons != null) invitationButtons.setVisibility(View.VISIBLE);
+            if (tvStatusMessage != null) {
+                tvStatusMessage.setVisibility(View.VISIBLE);
+                tvStatusMessage.setText("🎉 Congratulations! You've been selected for this event!");
+                tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_orange_dark));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error showing invitation buttons", e);
         }
     }
     
     private void hideInvitationButtons() {
-        invitationButtons.setVisibility(View.GONE);
-        if (!hasInvitation) {
-            btnJoinWaitingList.setVisibility(View.VISIBLE);
-            updateButtonForWaitlistStatus();
+        if (getView() == null) return;
+        
+        try {
+            if (invitationButtons != null) invitationButtons.setVisibility(View.GONE);
+            if (!hasInvitation && btnJoinWaitingList != null) {
+                btnJoinWaitingList.setVisibility(View.VISIBLE);
+                updateButtonForWaitlistStatus();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error hiding invitation buttons", e);
         }
     }
     
     private void updateButtonForWaitlistStatus() {
-        if (isOnWaitlist) {
-            btnJoinWaitingList.setText("Leave Waiting List");
-            btnJoinWaitingList.setBackgroundColor(getResources().getColor(android.R.color.holo_orange_dark));
-            if (tvStatusMessage != null) {
-                tvStatusMessage.setVisibility(View.VISIBLE);
-                tvStatusMessage.setText("You're on the waiting list");
-                tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+        if (getView() == null || btnJoinWaitingList == null) return;
+        
+        try {
+            if (isOnWaitlist) {
+                btnJoinWaitingList.setText("Leave Waiting List");
+                btnJoinWaitingList.setBackgroundColor(getResources().getColor(android.R.color.holo_orange_dark));
+                if (tvStatusMessage != null) {
+                    tvStatusMessage.setVisibility(View.VISIBLE);
+                    tvStatusMessage.setText("You're on the waiting list");
+                    tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+                }
+            } else {
+                btnJoinWaitingList.setText("Join Waiting List");
+                btnJoinWaitingList.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_dark));
+                if (tvStatusMessage != null) {
+                    tvStatusMessage.setVisibility(View.GONE);
+                }
             }
-        } else {
-            btnJoinWaitingList.setText("Join Waiting List");
-            btnJoinWaitingList.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_dark));
-            if (tvStatusMessage != null) {
-                tvStatusMessage.setVisibility(View.GONE);
-            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error updating button for waitlist status", e);
         }
     }
     
@@ -340,6 +379,97 @@ public class EventDetails extends Fragment {
                 });
     }
 
+    private void setupEventListener() {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Listen for real-time updates to the event document
+        // This prevents crashes when someone edits the event while another user is viewing it
+        eventListener = db.collection("events").document(event.getDocumentId())
+                .addSnapshotListener((documentSnapshot, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Error listening to event updates", error);
+                        return;
+                    }
+                    
+                    if (documentSnapshot != null && documentSnapshot.exists() && getView() != null) {
+                        try {
+                            // Parse and update the event
+                            Event updatedEvent = parseEvent(documentSnapshot);
+                            if (updatedEvent != null) {
+                                event = updatedEvent;
+                                // Update the UI with new event data
+                                displayEvent();
+                                // Re-check user status in case organizer changed or other updates
+                                checkUserStatus();
+                                Log.d(TAG, "Event updated from Firestore");
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error parsing updated event", e);
+                        }
+                    } else if (documentSnapshot != null && !documentSnapshot.exists()) {
+                        // Event was deleted
+                        if (getView() != null) {
+                            Toast.makeText(requireContext(), "This event has been deleted", Toast.LENGTH_LONG).show();
+                            // Go back to home
+                            requireActivity().getSupportFragmentManager().popBackStack();
+                        }
+                    }
+                });
+    }
+    
+    private Event parseEvent(com.google.firebase.firestore.DocumentSnapshot document) {
+        if (document == null || !document.exists()) {
+            return null;
+        }
+        
+        try {
+            Event event = new Event();
+            event.setDocumentId(document.getId());
+            event.setName(document.getString("name"));
+            event.setDescription(document.getString("description"));
+
+            Long capacity = document.getLong("capacity");
+            event.setCapacity(capacity != null ? capacity.intValue() : 0);
+
+            Long maxWaitlist = document.getLong("maxWaitListSize");
+            event.setMaxWaitListSize(maxWaitlist != null ? maxWaitlist.intValue() : null);
+
+            event.setPoster(document.getString("poster"));
+            event.setOrganizerDeviceId(document.getString("organizerDeviceId"));
+            event.setSelectionCriteria(document.getString("selectionCriteria"));
+
+            Boolean geoLocation = document.getBoolean("geoLocationRequired");
+            event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
+
+            // Convert Date to Calendar
+            java.util.Date registrationStartDate = document.getDate("registrationStartDate");
+            if (registrationStartDate != null) {
+                Calendar regStartCal = Calendar.getInstance();
+                regStartCal.setTime(registrationStartDate);
+                event.setRegistrationStartDate(regStartCal);
+            }
+
+            java.util.Date eventDate = document.getDate("eventDate");
+            if (eventDate != null) {
+                Calendar eventCal = Calendar.getInstance();
+                eventCal.setTime(eventDate);
+                event.setEventDate(eventCal);
+            }
+
+            java.util.Date raffleDate = document.getDate("raffleDate");
+            if (raffleDate != null) {
+                Calendar raffleCal = Calendar.getInstance();
+                raffleCal.setTime(raffleDate);
+                event.setRaffleDate(raffleCal);
+            }
+
+            return event;
+        } catch (Exception e) {
+            Log.e(TAG, "Error parsing event document: " + document.getId(), e);
+            return null;
+        }
+    }
+
     private void setupWaitlistListener() {
         if (event == null || event.getDocumentId() == null) return;
         
@@ -351,7 +481,7 @@ public class EventDetails extends Fragment {
                         return;
                     }
                     
-                    if (querySnapshot != null) {
+                    if (querySnapshot != null && event != null) {
                         int count = querySnapshot.size();
                         if (event.getMaxWaitListSize() != null) {
                             tvWaitingListCount.setText("Waiting List: " + count + " / " + event.getMaxWaitListSize());
@@ -926,6 +1056,11 @@ public class EventDetails extends Fragment {
         super.onDestroyView();
         if (waitlistListener != null) {
             waitlistListener.remove();
+            waitlistListener = null;
+        }
+        if (eventListener != null) {
+            eventListener.remove();
+            eventListener = null;
         }
     }
 }
