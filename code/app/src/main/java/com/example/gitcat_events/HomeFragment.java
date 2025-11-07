@@ -142,7 +142,7 @@ public class HomeFragment extends Fragment {
     public void onResume() {
         super.onResume();
         // Reload events when returning to fragment
-        if (enteredEvents != null && upcomingEvents != null && pendingInvitations != null) {
+        if (getView() != null && enteredEvents != null && upcomingEvents != null && pendingInvitations != null) {
             loadEvents();
         }
     }
@@ -161,6 +161,14 @@ public class HomeFragment extends Fragment {
     }
     
     private void loadPendingInvitations(String deviceId) {
+        if (getView() == null) {
+            Log.w(TAG, "Fragment view is null, skipping loadPendingInvitations");
+            return;
+        }
+        
+        if (pendingInvitations == null) {
+            pendingInvitations = new ArrayList<>();
+        }
         pendingInvitations.clear();
         
         // Find all events where user has a pending invitation
@@ -168,20 +176,31 @@ public class HomeFragment extends Fragment {
                 .whereEqualTo("userDeviceId", deviceId)
                 .get()
                 .addOnSuccessListener(invitationSnapshot -> {
-                    if (invitationSnapshot.isEmpty()) {
+                    if (getView() == null) {
+                        Log.w(TAG, "Fragment view destroyed during loadPendingInvitations");
+                        return;
+                    }
+                    
+                    if (invitationSnapshot == null || invitationSnapshot.isEmpty()) {
                         updatePendingInvitationsUI();
                         return;
                     }
                     
                     // Collect event IDs with pending invitations
                     Set<String> invitationEventIds = new HashSet<>();
-                    for (QueryDocumentSnapshot doc : invitationSnapshot) {
-                        String status = doc.getString("status");
-                        String eventId = doc.getString("eventId");
-                        // Only show events with "pending" status
-                        if ("pending".equals(status) && eventId != null) {
-                            invitationEventIds.add(eventId);
+                    try {
+                        for (QueryDocumentSnapshot doc : invitationSnapshot) {
+                            String status = doc.getString("status");
+                            String eventId = doc.getString("eventId");
+                            // Only show events with "pending" status
+                            if ("pending".equals(status) && eventId != null) {
+                                invitationEventIds.add(eventId);
+                            }
                         }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error processing invitation snapshot", e);
+                        updatePendingInvitationsUI();
+                        return;
                     }
                     
                     if (invitationEventIds.isEmpty()) {
@@ -193,33 +212,55 @@ public class HomeFragment extends Fragment {
                     final int[] completed = {0};
                     final int total = invitationEventIds.size();
                     
+                    if (pendingInvitations == null) {
+                        pendingInvitations = new ArrayList<>();
+                    }
+                    
                     for (String eventId : invitationEventIds) {
                         db.collection("events").document(eventId)
                                 .get()
                                 .addOnSuccessListener(eventDoc -> {
-                                    if (eventDoc.exists()) {
+                                    if (getView() == null) {
+                                        return;
+                                    }
+                                    
+                                    if (eventDoc != null && eventDoc.exists()) {
                                         try {
                                             Event event = parseEvent(eventDoc);
-                                            pendingInvitations.add(event);
+                                            if (event != null && pendingInvitations != null) {
+                                                pendingInvitations.add(event);
+                                            }
                                         } catch (Exception e) {
                                             Log.e(TAG, "Error parsing invitation event", e);
                                         }
                                     }
                                     
                                     completed[0]++;
-                                    if (completed[0] == total) {
+                                    if (completed[0] == total && getView() != null) {
                                         // Sort by event date
-                                        pendingInvitations.sort((e1, e2) -> {
-                                            if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
-                                            return e1.getEventDate().compareTo(e2.getEventDate());
-                                        });
+                                        try {
+                                            if (pendingInvitations != null) {
+                                                pendingInvitations.sort((e1, e2) -> {
+                                                    try {
+                                                        if (e1 == null || e2 == null) return 0;
+                                                        if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
+                                                        return e1.getEventDate().compareTo(e2.getEventDate());
+                                                    } catch (Exception e) {
+                                                        Log.e(TAG, "Error sorting pending invitations", e);
+                                                        return 0;
+                                                    }
+                                                });
+                                            }
+                                        } catch (Exception e) {
+                                            Log.e(TAG, "Error sorting pending invitations list", e);
+                                        }
                                         updatePendingInvitationsUI();
                                     }
                                 })
                                 .addOnFailureListener(e -> {
                                     Log.e(TAG, "Error loading invitation event: " + eventId, e);
                                     completed[0]++;
-                                    if (completed[0] == total) {
+                                    if (completed[0] == total && getView() != null) {
                                         updatePendingInvitationsUI();
                                     }
                                 });
@@ -227,111 +268,191 @@ public class HomeFragment extends Fragment {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error loading pending invitations", e);
-                    updatePendingInvitationsUI();
+                    if (getView() != null) {
+                        updatePendingInvitationsUI();
+                    }
                 });
     }
     
     private void updatePendingInvitationsUI() {
-        if (pendingInvitations.isEmpty()) {
-            pendingInvitationsContainer.setVisibility(View.GONE);
-        } else {
-            pendingInvitationsContainer.setVisibility(View.VISIBLE);
-            pendingInvitationsEmpty.setVisibility(View.GONE);
-            pendingInvitationsList.setVisibility(View.VISIBLE);
-            pendingInvitationsAdapter.notifyDataSetChanged();
-            setListViewHeightBasedOnChildren(pendingInvitationsList);
+        if (getView() == null) {
+            Log.w(TAG, "Fragment view is null, skipping updatePendingInvitationsUI");
+            return;
+        }
+        
+        try {
+            if (pendingInvitations == null) {
+                pendingInvitations = new ArrayList<>();
+            }
+            
+            if (pendingInvitations.isEmpty()) {
+                if (pendingInvitationsContainer != null) {
+                    pendingInvitationsContainer.setVisibility(View.GONE);
+                }
+            } else {
+                if (pendingInvitationsContainer != null) {
+                    pendingInvitationsContainer.setVisibility(View.VISIBLE);
+                }
+                if (pendingInvitationsEmpty != null) {
+                    pendingInvitationsEmpty.setVisibility(View.GONE);
+                }
+                if (pendingInvitationsList != null) {
+                    pendingInvitationsList.setVisibility(View.VISIBLE);
+                }
+                if (pendingInvitationsAdapter != null) {
+                    pendingInvitationsAdapter.notifyDataSetChanged();
+                    if (pendingInvitationsList != null) {
+                        setListViewHeightBasedOnChildren(pendingInvitationsList);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error updating pending invitations UI", e);
         }
     }
 
     private void loadUpcomingEvents() {
+        if (getView() == null) {
+            Log.w(TAG, "Fragment view is null, skipping loadUpcomingEvents");
+            return;
+        }
+        
         String currentDeviceId = getOrCreateDeviceId();
 
         // Load all events sorted by event date
         db.collection("events")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (getView() == null) {
+                        Log.w(TAG, "Fragment view destroyed during load, aborting");
+                        return;
+                    }
+                    
                     upcomingEvents.clear();
 
                     // First, collect all event IDs where user is already involved
                     Set<String> involvedEventIds = new HashSet<>();
+                    
+                    // Use counters to track completion of all async operations
+                    final int[] completedQueries = {0};
+                    final int totalQueries = 3;
+                    
+                    // Helper to check if all queries are done and filter
+                    Runnable checkAndFilter = () -> {
+                        completedQueries[0]++;
+                        if (completedQueries[0] == totalQueries) {
+                            if (getView() != null) {
+                                filterUpcomingEvents(queryDocumentSnapshots, currentDeviceId, involvedEventIds);
+                            }
+                        }
+                    };
                     
                     // Check waitlist
                     db.collectionGroup("waitlist")
                             .whereEqualTo("userDeviceId", currentDeviceId)
                             .get()
                             .addOnSuccessListener(waitlistSnapshot -> {
-                                for (QueryDocumentSnapshot doc : waitlistSnapshot) {
-                                    String eventId = doc.getString("eventId");
-                                    if (eventId != null) {
-                                        involvedEventIds.add(eventId);
+                                try {
+                                    for (QueryDocumentSnapshot doc : waitlistSnapshot) {
+                                        String eventId = doc.getString("eventId");
+                                        if (eventId != null) {
+                                            involvedEventIds.add(eventId);
+                                        }
                                     }
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Error processing waitlist snapshot", e);
                                 }
-                                
-                                // Check invitation_list
-                                db.collectionGroup("invitation_list")
-                                        .whereEqualTo("userDeviceId", currentDeviceId)
-                                        .get()
-                                        .addOnSuccessListener(invitationSnapshot -> {
-                                            for (QueryDocumentSnapshot doc : invitationSnapshot) {
-                                                String eventId = doc.getString("eventId");
-                                                if (eventId != null) {
-                                                    involvedEventIds.add(eventId);
-                                                }
-                                            }
-                                            
-                                            // Check acceptedList
-                                            db.collectionGroup("acceptedList")
-                                                    .whereEqualTo("userDeviceId", currentDeviceId)
-                                                    .get()
-                                                    .addOnSuccessListener(acceptedSnapshot -> {
-                                                        for (QueryDocumentSnapshot doc : acceptedSnapshot) {
-                                                            String eventId = doc.getString("eventId");
-                                                            if (eventId != null) {
-                                                                involvedEventIds.add(eventId);
-                                                            }
-                                                        }
-                                                        
-                                                        // Now filter events
-                                                        filterUpcomingEvents(queryDocumentSnapshots, currentDeviceId, involvedEventIds);
-                                                    })
-                                                    .addOnFailureListener(e -> {
-                                                        Log.e(TAG, "Error loading acceptedList", e);
-                                                        // Continue with filtering even if this fails
-                                                        filterUpcomingEvents(queryDocumentSnapshots, currentDeviceId, involvedEventIds);
-                                                    });
-                                        })
-                                        .addOnFailureListener(e -> {
-                                            Log.e(TAG, "Error loading invitation_list", e);
-                                            // Continue with filtering even if this fails
-                                            filterUpcomingEvents(queryDocumentSnapshots, currentDeviceId, involvedEventIds);
-                                        });
+                                checkAndFilter.run();
                             })
                             .addOnFailureListener(e -> {
                                 Log.e(TAG, "Error loading waitlist", e);
-                                // Continue with filtering even if this fails
-                                filterUpcomingEvents(queryDocumentSnapshots, currentDeviceId, involvedEventIds);
+                                checkAndFilter.run();
+                            });
+                    
+                    // Check invitation_list
+                    db.collectionGroup("invitation_list")
+                            .whereEqualTo("userDeviceId", currentDeviceId)
+                            .get()
+                            .addOnSuccessListener(invitationSnapshot -> {
+                                try {
+                                    for (QueryDocumentSnapshot doc : invitationSnapshot) {
+                                        String eventId = doc.getString("eventId");
+                                        if (eventId != null) {
+                                            involvedEventIds.add(eventId);
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Error processing invitation_list snapshot", e);
+                                }
+                                checkAndFilter.run();
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Error loading invitation_list", e);
+                                checkAndFilter.run();
+                            });
+                    
+                    // Check acceptedList
+                    db.collectionGroup("acceptedList")
+                            .whereEqualTo("userDeviceId", currentDeviceId)
+                            .get()
+                            .addOnSuccessListener(acceptedSnapshot -> {
+                                try {
+                                    for (QueryDocumentSnapshot doc : acceptedSnapshot) {
+                                        String eventId = doc.getString("eventId");
+                                        if (eventId != null) {
+                                            involvedEventIds.add(eventId);
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Error processing acceptedList snapshot", e);
+                                }
+                                checkAndFilter.run();
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Error loading acceptedList", e);
+                                checkAndFilter.run();
                             });
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error loading upcoming events", e);
-                    if (getContext() != null) {
+                    if (getView() != null && getContext() != null) {
                         Toast.makeText(getContext(), "Failed to load events", Toast.LENGTH_SHORT).show();
+                        updateUpcomingEventsUI();
                     }
                 });
     }
     
     private void filterUpcomingEvents(com.google.firebase.firestore.QuerySnapshot queryDocumentSnapshots, 
                                       String currentDeviceId, Set<String> involvedEventIds) {
+        if (getView() == null) {
+            Log.w(TAG, "Fragment view is null, skipping filterUpcomingEvents");
+            return;
+        }
+        
+        if (upcomingEvents == null) {
+            upcomingEvents = new ArrayList<>();
+        }
         upcomingEvents.clear();
+        
+        if (queryDocumentSnapshots == null || queryDocumentSnapshots.isEmpty()) {
+            Log.d(TAG, "No events to filter");
+            updateUpcomingEventsUI();
+            return;
+        }
         
         for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
             try {
                 Event event = parseEvent(document);
-                String eventId = event.getDocumentId();
-
+                
                 // Skip if event couldn't be parsed
-                if (eventId == null) {
-                    Log.w(TAG, "Skipping event with null document ID");
+                if (event == null) {
+                    Log.w(TAG, "Skipping event with null parse result: " + document.getId());
+                    continue;
+                }
+                
+                String eventId = event.getDocumentId();
+                if (eventId == null || eventId.isEmpty()) {
+                    Log.w(TAG, "Skipping event with null or empty document ID: " + document.getId());
                     continue;
                 }
 
@@ -359,46 +480,74 @@ public class HomeFragment extends Fragment {
                 
                 boolean registrationStarted = true;
                 if (event.getRegistrationStartDate() != null) {
-                    Calendar regStartNormalized = (Calendar) event.getRegistrationStartDate().clone();
-                    regStartNormalized.set(Calendar.HOUR_OF_DAY, 0);
-                    regStartNormalized.set(Calendar.MINUTE, 0);
-                    regStartNormalized.set(Calendar.SECOND, 0);
-                    regStartNormalized.set(Calendar.MILLISECOND, 0);
-                    // Registration has started if now >= registrationStartDate
-                    registrationStarted = !nowNormalized.before(regStartNormalized);
+                    try {
+                        Calendar regStartNormalized = (Calendar) event.getRegistrationStartDate().clone();
+                        regStartNormalized.set(Calendar.HOUR_OF_DAY, 0);
+                        regStartNormalized.set(Calendar.MINUTE, 0);
+                        regStartNormalized.set(Calendar.SECOND, 0);
+                        regStartNormalized.set(Calendar.MILLISECOND, 0);
+                        // Registration has started if now >= registrationStartDate
+                        registrationStarted = !nowNormalized.before(regStartNormalized);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error comparing registration start date for event: " + eventId, e);
+                        registrationStarted = true; // Default to showing if error
+                    }
                 }
                 
                 boolean registrationOpen = true;
                 if (event.getRaffleDate() != null) {
-                    Calendar raffleNormalized = (Calendar) event.getRaffleDate().clone();
-                    raffleNormalized.set(Calendar.HOUR_OF_DAY, 0);
-                    raffleNormalized.set(Calendar.MINUTE, 0);
-                    raffleNormalized.set(Calendar.SECOND, 0);
-                    raffleNormalized.set(Calendar.MILLISECOND, 0);
-                    // Registration is open if now <= raffleDate (registration closes at end of raffleDate)
-                    // So we allow events where now is before or equal to raffleDate
-                    registrationOpen = !nowNormalized.after(raffleNormalized);
+                    try {
+                        Calendar raffleNormalized = (Calendar) event.getRaffleDate().clone();
+                        raffleNormalized.set(Calendar.HOUR_OF_DAY, 0);
+                        raffleNormalized.set(Calendar.MINUTE, 0);
+                        raffleNormalized.set(Calendar.SECOND, 0);
+                        raffleNormalized.set(Calendar.MILLISECOND, 0);
+                        // Registration is open if now <= raffleDate (registration closes at end of raffleDate)
+                        // So we allow events where now is before or equal to raffleDate
+                        registrationOpen = !nowNormalized.after(raffleNormalized);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error comparing raffle date for event: " + eventId, e);
+                        registrationOpen = true; // Default to showing if error
+                    }
                 }
 
                 if (registrationStarted && registrationOpen) {
                     upcomingEvents.add(event);
                 }
             } catch (Exception e) {
-                Log.e(TAG, "Error parsing event: " + document.getId(), e);
+                Log.e(TAG, "Error filtering event: " + (document != null ? document.getId() : "unknown"), e);
                 // Continue processing other events even if one fails
             }
         }
 
         // Sort by event date
-        upcomingEvents.sort((e1, e2) -> {
-            if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
-            return e1.getEventDate().compareTo(e2.getEventDate());
-        });
+        try {
+            upcomingEvents.sort((e1, e2) -> {
+                try {
+                    if (e1 == null || e2 == null) return 0;
+                    if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
+                    return e1.getEventDate().compareTo(e2.getEventDate());
+                } catch (Exception e) {
+                    Log.e(TAG, "Error sorting events", e);
+                    return 0;
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Error sorting upcoming events list", e);
+        }
 
         updateUpcomingEventsUI();
     }
 
     private void loadEnteredEvents(String deviceId) {
+        if (getView() == null) {
+            Log.w(TAG, "Fragment view is null, skipping loadEnteredEvents");
+            return;
+        }
+        
+        if (enteredEvents == null) {
+            enteredEvents = new ArrayList<>();
+        }
         enteredEvents.clear();
         Set<String> eventIds = new HashSet<>();
 
@@ -408,12 +557,23 @@ public class HomeFragment extends Fragment {
                 .whereEqualTo("userDeviceId", deviceId)
                 .get()
                 .addOnSuccessListener(acceptedSnapshot -> {
-                    // Collect all event IDs from accepted list
-                    for (QueryDocumentSnapshot doc : acceptedSnapshot) {
-                        String eventId = doc.getString("eventId");
-                        if (eventId != null) {
-                            eventIds.add(eventId);
+                    if (getView() == null) {
+                        Log.w(TAG, "Fragment view destroyed during loadEnteredEvents");
+                        return;
+                    }
+                    
+                    try {
+                        // Collect all event IDs from accepted list
+                        if (acceptedSnapshot != null) {
+                            for (QueryDocumentSnapshot doc : acceptedSnapshot) {
+                                String eventId = doc.getString("eventId");
+                                if (eventId != null) {
+                                    eventIds.add(eventId);
+                                }
+                            }
                         }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error processing accepted events snapshot", e);
                     }
 
                     loadEventDetails(eventIds);
@@ -421,47 +581,76 @@ public class HomeFragment extends Fragment {
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error loading accepted events", e);
                     // Even if query fails, try to load with empty set
-                    loadEventDetails(eventIds);
+                    if (getView() != null) {
+                        loadEventDetails(eventIds);
+                    }
                 });
     }
 
     private void loadEventDetails(Set<String> eventIds) {
-        if (eventIds.isEmpty()) {
+        if (getView() == null) {
+            Log.w(TAG, "Fragment view is null, skipping loadEventDetails");
+            return;
+        }
+        
+        if (eventIds == null || eventIds.isEmpty()) {
             updateEnteredEventsUI();
             return;
         }
 
         final int[] completed = {0};
         final int total = eventIds.size();
+        
+        if (enteredEvents == null) {
+            enteredEvents = new ArrayList<>();
+        }
         enteredEvents.clear();
 
         for (String eventId : eventIds) {
             db.collection("events").document(eventId)
                     .get()
                     .addOnSuccessListener(eventDoc -> {
-                        if (eventDoc.exists()) {
+                        if (getView() == null) {
+                            return;
+                        }
+                        
+                        if (eventDoc != null && eventDoc.exists()) {
                             try {
                                 Event event = parseEvent(eventDoc);
-                                enteredEvents.add(event);
+                                if (event != null && enteredEvents != null) {
+                                    enteredEvents.add(event);
+                                }
                             } catch (Exception e) {
                                 Log.e(TAG, "Error parsing entered event", e);
                             }
                         }
 
                         completed[0]++;
-                        if (completed[0] == total) {
+                        if (completed[0] == total && getView() != null) {
                             // Sort by event date
-                            enteredEvents.sort((e1, e2) -> {
-                                if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
-                                return e1.getEventDate().compareTo(e2.getEventDate());
-                            });
+                            try {
+                                if (enteredEvents != null) {
+                                    enteredEvents.sort((e1, e2) -> {
+                                        try {
+                                            if (e1 == null || e2 == null) return 0;
+                                            if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
+                                            return e1.getEventDate().compareTo(e2.getEventDate());
+                                        } catch (Exception e) {
+                                            Log.e(TAG, "Error sorting entered events", e);
+                                            return 0;
+                                        }
+                                    });
+                                }
+                            } catch (Exception e) {
+                                Log.e(TAG, "Error sorting entered events list", e);
+                            }
                             updateEnteredEventsUI();
                         }
                     })
                     .addOnFailureListener(e -> {
                         Log.e(TAG, "Error loading event: " + eventId, e);
                         completed[0]++;
-                        if (completed[0] == total) {
+                        if (completed[0] == total && getView() != null) {
                             updateEnteredEventsUI();
                         }
                     });
@@ -529,26 +718,76 @@ public class HomeFragment extends Fragment {
     }
 
     private void updateUpcomingEventsUI() {
-        if (upcomingEvents.isEmpty()) {
-            upcomingEventsEmpty.setVisibility(View.VISIBLE);
-            upcomingEventsList.setVisibility(View.GONE);
-        } else {
-            upcomingEventsEmpty.setVisibility(View.GONE);
-            upcomingEventsList.setVisibility(View.VISIBLE);
-            upcomingEventsAdapter.notifyDataSetChanged();
-            setListViewHeightBasedOnChildren(upcomingEventsList);
+        if (getView() == null) {
+            Log.w(TAG, "Fragment view is null, skipping updateUpcomingEventsUI");
+            return;
+        }
+        
+        try {
+            if (upcomingEvents == null) {
+                upcomingEvents = new ArrayList<>();
+            }
+            
+            if (upcomingEvents.isEmpty()) {
+                if (upcomingEventsEmpty != null) {
+                    upcomingEventsEmpty.setVisibility(View.VISIBLE);
+                }
+                if (upcomingEventsList != null) {
+                    upcomingEventsList.setVisibility(View.GONE);
+                }
+            } else {
+                if (upcomingEventsEmpty != null) {
+                    upcomingEventsEmpty.setVisibility(View.GONE);
+                }
+                if (upcomingEventsList != null) {
+                    upcomingEventsList.setVisibility(View.VISIBLE);
+                }
+                if (upcomingEventsAdapter != null) {
+                    upcomingEventsAdapter.notifyDataSetChanged();
+                    if (upcomingEventsList != null) {
+                        setListViewHeightBasedOnChildren(upcomingEventsList);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error updating upcoming events UI", e);
         }
     }
 
     private void updateEnteredEventsUI() {
-        if (enteredEvents.isEmpty()) {
-            enteredEventsEmpty.setVisibility(View.VISIBLE);
-            enteredEventsList.setVisibility(View.GONE);
-        } else {
-            enteredEventsEmpty.setVisibility(View.GONE);
-            enteredEventsList.setVisibility(View.VISIBLE);
-            enteredEventsAdapter.notifyDataSetChanged();
-            setListViewHeightBasedOnChildren(enteredEventsList);
+        if (getView() == null) {
+            Log.w(TAG, "Fragment view is null, skipping updateEnteredEventsUI");
+            return;
+        }
+        
+        try {
+            if (enteredEvents == null) {
+                enteredEvents = new ArrayList<>();
+            }
+            
+            if (enteredEvents.isEmpty()) {
+                if (enteredEventsEmpty != null) {
+                    enteredEventsEmpty.setVisibility(View.VISIBLE);
+                }
+                if (enteredEventsList != null) {
+                    enteredEventsList.setVisibility(View.GONE);
+                }
+            } else {
+                if (enteredEventsEmpty != null) {
+                    enteredEventsEmpty.setVisibility(View.GONE);
+                }
+                if (enteredEventsList != null) {
+                    enteredEventsList.setVisibility(View.VISIBLE);
+                }
+                if (enteredEventsAdapter != null) {
+                    enteredEventsAdapter.notifyDataSetChanged();
+                    if (enteredEventsList != null) {
+                        setListViewHeightBasedOnChildren(enteredEventsList);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error updating entered events UI", e);
         }
     }
 
