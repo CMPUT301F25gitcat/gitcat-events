@@ -22,42 +22,42 @@ public class EntryClassTests {
     }
 
     static class TestEntry extends Entry {
-        public TestEntry(int eventID, int userID) {
-            super(eventID, userID);
+        public TestEntry(String eventId, String userDeviceId) {
+            super(eventId, userDeviceId);
         }
     }
 
     @Test
     public void testConstructorAndGetters() {
-        TestEntry entry = new TestEntry(123, 456);
-        assertEquals(123, entry.getEventID());
-        assertEquals(456, entry.getUserID());
+        TestEntry entry = new TestEntry("event-123", "device-456");
+        assertEquals("event-123", entry.getEventId());
+        assertEquals("device-456", entry.getUserDeviceId());
     }
 
     @Test
     public void testSetters() {
-        TestEntry entry = new TestEntry(1, 2);
+        TestEntry entry = new TestEntry("event-1", "device-2");
 
-        entry.setEventID(99);
-        entry.setUserID(77);
+        entry.setEventId("event-99");
+        entry.setUserDeviceId("device-77");
 
-        assertEquals(99, entry.getEventID());
-        assertEquals(77, entry.getUserID());
+        assertEquals("event-99", entry.getEventId());
+        assertEquals("device-77", entry.getUserDeviceId());
     }
 
     @Test
     public void testMultipleChanges() {
-        Entry entry = new TestEntry(0, 0);
+        Entry entry = new TestEntry("event-0", "device-0");
 
-        entry.setEventID(10);
-        entry.setUserID(20);
-        assertEquals(10, entry.getEventID());
-        assertEquals(20, entry.getUserID());
+        entry.setEventId("event-10");
+        entry.setUserDeviceId("device-20");
+        assertEquals("event-10", entry.getEventId());
+        assertEquals("device-20", entry.getUserDeviceId());
 
-        entry.setEventID(999);
-        entry.setUserID(888);
-        assertEquals(999, entry.getEventID());
-        assertEquals(888, entry.getUserID());
+        entry.setEventId("event-999");
+        entry.setUserDeviceId("device-888");
+        assertEquals("event-999", entry.getEventId());
+        assertEquals("device-888", entry.getUserDeviceId());
     }
 
 }
