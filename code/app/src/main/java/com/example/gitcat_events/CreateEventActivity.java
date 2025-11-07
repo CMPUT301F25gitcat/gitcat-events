@@ -34,7 +34,9 @@ import java.io.InputStream;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
-
+/**
+ * This activity allows users to create new events with details such as name, description, capacity, dates, and poster image. Events are saved to Firestore with auto-incremented IDs
+ */
 public class CreateEventActivity extends AppCompatActivity {
 
     private static final String TAG = "CreateEventActivity";
@@ -92,13 +94,17 @@ public class CreateEventActivity extends AppCompatActivity {
         btnSelectRaffleDate.setOnClickListener(v -> selectRaffleDate());
         btnCreateEvent.setOnClickListener(v -> createEvent());
     }
-
+    /**
+     * Opens an image picker to select a poster for the event
+     */
     private void selectPoster() {
         Intent intent = new Intent(Intent.ACTION_PICK);
         intent.setType("image/*");
         posterPickerLauncher.launch(intent);
     }
-
+    /**
+     * Shows a date picker dialog to select the event date
+     */
     private void selectEventDate() {
         Calendar calendar = Calendar.getInstance();
         DatePickerDialog datePickerDialog = new DatePickerDialog(
@@ -116,7 +122,9 @@ public class CreateEventActivity extends AppCompatActivity {
         );
         datePickerDialog.show();
     }
-
+    /**
+     * Shows a date picker dialog to select the raffle date (final registration date)
+     */
     private void selectRaffleDate() {
         Calendar calendar = Calendar.getInstance();
         DatePickerDialog datePickerDialog = new DatePickerDialog(
@@ -134,7 +142,9 @@ public class CreateEventActivity extends AppCompatActivity {
         );
         datePickerDialog.show();
     }
-
+    /**
+     * Validates input fields and creates a new event in Firestore
+     */
     private void createEvent() {
         // Validate inputs
         String name = etEventName.getText().toString().trim();
@@ -212,7 +222,13 @@ public class CreateEventActivity extends AppCompatActivity {
         // Save to Firestore with auto-incrementing ID
         saveEventToFirestore(newEvent, progressDialog);
     }
-
+    /**
+     * Saves the event to Firestore using a transaction to ensure atomic counter increment
+     * @param event
+     * the event to save
+     * @param progressDialog
+     * the progress dialog to show during saving
+     */
     private void saveEventToFirestore(Event event, ProgressDialog progressDialog) {
         db.runTransaction(transaction -> {
             DocumentReference counterRef = db.collection("meta").document("events_counter");
@@ -268,7 +284,15 @@ public class CreateEventActivity extends AppCompatActivity {
             Toast.makeText(this, "Failed to create event: " + e.getMessage(), Toast.LENGTH_LONG).show();
         });
     }
-
+    /**
+     * Converts the selected image URI to a Base64 encoded string for storage
+     * @param imageUri
+     * the URI of the image to convert
+     * @return
+     * returns the Base64 encoded string of the image
+     * @throws Exception
+     * if the image cannot be processed
+     */
     private String convertImageToBase64(Uri imageUri) throws Exception {
         InputStream inputStream = getContentResolver().openInputStream(imageUri);
         if (inputStream == null) throw new Exception("Failed to open input stream");
@@ -289,7 +313,15 @@ public class CreateEventActivity extends AppCompatActivity {
         Log.d(TAG, "Poster converted to Base64. Size: " + (base64Image.length() / 1024) + "KB");
         return base64Image;
     }
-
+    /**
+     * Resizes a bitmap to fit within the specified maximum size while maintaining aspect ratio
+     * @param bitmap
+     * the original bitmap to resize
+     * @param maxSize
+     * the maximum width or height for the resized image
+     * @return
+     * returns the resized bitmap
+     */
     private Bitmap resizeBitmap(Bitmap bitmap, int maxSize) {
         int width = bitmap.getWidth();
         int height = bitmap.getHeight();
@@ -304,7 +336,11 @@ public class CreateEventActivity extends AppCompatActivity {
 
         return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true);
     }
-
+    /**
+     * Gets the device ID from shared preferences or creates a new one if it doesn't exist
+     * @return
+     * returns the unique device identifier
+     */
     private String getOrCreateDeviceId() {
         SharedPreferences sp = getSharedPreferences(PREFS, MODE_PRIVATE);
         String deviceId = sp.getString("device_id", null);
