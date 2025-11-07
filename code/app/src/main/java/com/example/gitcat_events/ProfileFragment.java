@@ -6,11 +6,13 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Base64;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
 import android.view.LayoutInflater;
@@ -24,7 +26,15 @@ import android.widget.Toast;
 import com.example.gitcat_events.core.model.Profile;
 import com.example.gitcat_events.features.entrant.ui.ProfileActivity;
 import com.example.gitcat_events.features.entrant.ui.ProfileDialogFragment;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.WriteBatch;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Fragment to display user profile information
@@ -165,7 +175,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
         
         if (getContext() == null) return;
         
-        new androidx.appcompat.app.AlertDialog.Builder(getContext())
+        new AlertDialog.Builder(getContext())
                 .setTitle("Delete profile?")
                 .setMessage("This will permanently remove:\n• Your profile\n• All your created events\n• All waitlist entries for those events\n• Your entries in other events")
                 .setNegativeButton("Cancel", null)
@@ -182,7 +192,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                 .whereEqualTo("organizerDeviceId", deviceId)
                 .get()
                 .addOnSuccessListener(eventSnapshot -> {
-                    com.google.firebase.firestore.WriteBatch batch = db.batch();
+                    WriteBatch batch = db.batch();
                     
                     // For each event, delete its waitlist subcollection entries first
                     int eventsCount = eventSnapshot.size();
@@ -194,7 +204,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                         return;
                     }
                     
-                    for (com.google.firebase.firestore.QueryDocumentSnapshot eventDoc : eventSnapshot) {
+                    for (QueryDocumentSnapshot eventDoc : eventSnapshot) {
                         String eventId = eventDoc.getId();
                         
                         // Delete waitlist entries for this event
@@ -202,7 +212,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                                 .collection("waitlist")
                                 .get()
                                 .addOnSuccessListener(waitlistSnapshot -> {
-                                    for (com.google.firebase.firestore.QueryDocumentSnapshot waitlistDoc : waitlistSnapshot) {
+                                    for (QueryDocumentSnapshot waitlistDoc : waitlistSnapshot) {
                                         batch.delete(waitlistDoc.getReference());
                                     }
                                     
@@ -210,7 +220,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                                     
                                     // When all events processed, delete the events themselves
                                     if (processedEvents[0] == eventsCount) {
-                                        for (com.google.firebase.firestore.QueryDocumentSnapshot doc : eventSnapshot) {
+                                        for (QueryDocumentSnapshot doc : eventSnapshot) {
                                             batch.delete(doc.getReference());
                                         }
                                         
@@ -239,8 +249,8 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                 .whereEqualTo("userDeviceId", deviceId)
                 .get()
                 .addOnSuccessListener(waitlistSnapshot -> {
-                    com.google.firebase.firestore.WriteBatch batch = db.batch();
-                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : waitlistSnapshot) {
+                    WriteBatch batch = db.batch();
+                    for (QueryDocumentSnapshot doc : waitlistSnapshot) {
                         batch.delete(doc.getReference());
                     }
                     
@@ -325,8 +335,8 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
     
     private void createProfileWithAutoId(Profile profile) {
         db.runTransaction(transaction -> {
-            com.google.firebase.firestore.DocumentReference counterRef = db.collection("meta").document("profiles_counter");
-            com.google.firebase.firestore.DocumentSnapshot snap = transaction.get(counterRef);
+            DocumentReference counterRef = db.collection("meta").document("profiles_counter");
+            DocumentSnapshot snap = transaction.get(counterRef);
 
             long next;
             boolean existed = snap.exists();
@@ -338,9 +348,9 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
             }
 
             String docId = String.valueOf(next);
-            com.google.firebase.firestore.DocumentReference profileRef = db.collection("profiles").document(docId);
+            DocumentReference profileRef = db.collection("profiles").document(docId);
 
-            java.util.Map<String, Object> data = new java.util.HashMap<>();
+            Map<String, Object> data = new HashMap<>();
             data.put("name", profile.getName());
             data.put("email", profile.getEmail());
             data.put("phone", profile.getPhone());
@@ -352,7 +362,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
             if (existed) {
                 transaction.update(counterRef, "next", next + 1L);
             } else {
-                java.util.Map<String, Object> counterInit = new java.util.HashMap<>();
+                Map<String, Object> counterInit = new HashMap<>();
                 counterInit.put("next", next + 1L);
                 transaction.set(counterRef, counterInit);
             }
@@ -377,23 +387,23 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
     }
     
     private String getOrCreateDeviceId() {
-        if (getActivity() == null) return java.util.UUID.randomUUID().toString();
+        if (getActivity() == null) return UUID.randomUUID().toString();
         
         SharedPreferences sp = getActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String deviceId = sp.getString("device_id", null);
         
         if (deviceId == null) {
             try {
-                deviceId = android.provider.Settings.Secure.getString(
+                deviceId = Settings.Secure.getString(
                     getActivity().getContentResolver(), 
-                    android.provider.Settings.Secure.ANDROID_ID
+                    Settings.Secure.ANDROID_ID
                 );
             } catch (Exception e) {
                 deviceId = null;
             }
             
             if (deviceId == null || deviceId.isEmpty()) {
-                deviceId = java.util.UUID.randomUUID().toString();
+                deviceId = UUID.randomUUID().toString();
             }
             
             sp.edit().putString("device_id", deviceId).apply();

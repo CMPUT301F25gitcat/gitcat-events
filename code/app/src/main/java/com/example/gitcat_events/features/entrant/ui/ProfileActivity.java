@@ -15,6 +15,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.gitcat_events.CreateFragment;
@@ -246,7 +247,7 @@ public class ProfileActivity extends AppCompatActivity
             Toast.makeText(this, "No profile to delete.", Toast.LENGTH_SHORT).show();
             return;
         }
-        new androidx.appcompat.app.AlertDialog.Builder(this)
+        new AlertDialog.Builder(this)
                 .setTitle("Delete profile?")
                 .setMessage("This will remove your profile from the database on this app.")
                 .setNegativeButton("Cancel", null)

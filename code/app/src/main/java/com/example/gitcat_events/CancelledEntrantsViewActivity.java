@@ -3,6 +3,8 @@ package com.example.gitcat_events;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -33,7 +35,7 @@ public class CancelledEntrantsViewActivity extends AppCompatActivity {
     private RecyclerView rvCancelledList;
     private TextView tvCancelledListEmpty;
     private TextView tvCancelledListCount;
-    private android.widget.ImageButton btnBack;
+    private ImageButton btnBack;
     
     private String eventId;
     private String eventName;
@@ -234,7 +236,7 @@ public class CancelledEntrantsViewActivity extends AppCompatActivity {
 
         @NonNull
         @Override
-        public ViewHolder onCreateViewHolder(@NonNull android.view.ViewGroup parent, int viewType) {
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View view = getLayoutInflater().inflate(R.layout.item_cancelled_entry, parent, false);
             return new ViewHolder(view);
         }
