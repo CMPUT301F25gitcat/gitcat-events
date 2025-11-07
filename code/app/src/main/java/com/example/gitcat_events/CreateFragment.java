@@ -206,6 +206,7 @@ public class CreateFragment extends Fragment {
         class EventViewHolder extends RecyclerView.ViewHolder {
             ImageView ivEventThumbnail;
             TextView tvEventName, tvEventDescription, tvEventDate, tvEventCapacity;
+            android.widget.ImageButton btnEditEvent;
 
             EventViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -214,6 +215,7 @@ public class CreateFragment extends Fragment {
                 tvEventDescription = itemView.findViewById(R.id.tvEventDescription);
                 tvEventDate = itemView.findViewById(R.id.tvEventDate);
                 tvEventCapacity = itemView.findViewById(R.id.tvEventCapacity);
+                btnEditEvent = itemView.findViewById(R.id.btnEditEvent);
             }
 
             void bind(Event event) {
@@ -239,6 +241,13 @@ public class CreateFragment extends Fragment {
                 // Click listener for event item - navigate to event details
                 itemView.setOnClickListener(v -> {
                     Intent intent = new Intent(getContext(), EventDetailsActivity.class);
+                    intent.putExtra("eventId", event.getDocumentId());
+                    startActivity(intent);
+                });
+
+                // Click listener for edit button - navigate to edit event
+                btnEditEvent.setOnClickListener(v -> {
+                    Intent intent = new Intent(getContext(), EditEventActivity.class);
                     intent.putExtra("eventId", event.getDocumentId());
                     startActivity(intent);
                 });
