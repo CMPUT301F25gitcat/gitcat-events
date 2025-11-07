@@ -302,23 +302,50 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
                     sanitizeFileName(eventName != null ? eventName : "Event"),
                     timestamp);
             
-            // Save file to Downloads folder
-            boolean saved = saveToDownloads(fileName, csvContent.toString());
+            // Try to save file to Downloads folder
+            String filePath = saveToDownloads(fileName, csvContent.toString());
             
-            if (saved) {
-                Toast.makeText(this, "CSV file saved to Downloads: " + fileName, 
+            if (filePath != null && !filePath.isEmpty()) {
+                // Successfully saved to Downloads
+                Toast.makeText(this, "CSV saved to Downloads: " + fileName, 
                         Toast.LENGTH_LONG).show();
+                
+                // Try to open the file with an intent (optional)
+                openFileWithIntent(filePath, fileName);
             } else {
-                // Fallback to cache directory if Downloads folder is not accessible
-                File cacheDir = getCacheDir();
-                File csvFile = new File(cacheDir, fileName);
+                // Fallback: Save to app's external files directory (more reliable on emulators)
+                File externalFilesDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+                if (externalFilesDir == null) {
+                    externalFilesDir = getExternalFilesDir(null);
+                }
                 
-                FileWriter writer = new FileWriter(csvFile);
-                writer.write(csvContent.toString());
-                writer.close();
-                
-                // Share the file as fallback
-                shareFile(csvFile);
+                if (externalFilesDir != null) {
+                    File csvFile = new File(externalFilesDir, fileName);
+                    FileWriter writer = new FileWriter(csvFile);
+                    writer.write(csvContent.toString());
+                    writer.close();
+                    
+                    String fallbackPath = csvFile.getAbsolutePath();
+                    Toast.makeText(this, "CSV saved to: " + fallbackPath, 
+                            Toast.LENGTH_LONG).show();
+                    
+                    // Open the file
+                    openFileWithIntent(fallbackPath, fileName);
+                } else {
+                    // Last resort: Save to cache and share
+                    File cacheDir = getCacheDir();
+                    File csvFile = new File(cacheDir, fileName);
+                    
+                    FileWriter writer = new FileWriter(csvFile);
+                    writer.write(csvContent.toString());
+                    writer.close();
+                    
+                    Toast.makeText(this, "CSV saved. Opening file...", 
+                            Toast.LENGTH_SHORT).show();
+                    
+                    // Share/open the file
+                    openFileWithIntent(csvFile.getAbsolutePath(), fileName);
+                }
             }
             
         } catch (IOException e) {
@@ -328,7 +355,7 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
         }
     }
     
-    private boolean saveToDownloads(String fileName, String content) {
+    private String saveToDownloads(String fileName, String content) {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 // Android 10+ (API 29+) - Use MediaStore
@@ -344,15 +371,25 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
                         if (outputStream != null) {
                             outputStream.write(content.getBytes());
                             outputStream.flush();
-                            return true;
+                            outputStream.close();
+                            
+                            // Try to get the file path (may not always work with MediaStore)
+                            Log.d(TAG, "File saved via MediaStore: " + uri.toString());
+                            return uri.toString();
                         }
                     }
+                } else {
+                    Log.w(TAG, "Failed to insert file into MediaStore");
                 }
             } else {
                 // Android 9 and below - Use direct file access
                 File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
                 if (!downloadsDir.exists()) {
-                    downloadsDir.mkdirs();
+                    boolean created = downloadsDir.mkdirs();
+                    if (!created) {
+                        Log.w(TAG, "Failed to create Downloads directory");
+                        return null;
+                    }
                 }
                 
                 File csvFile = new File(downloadsDir, fileName);
@@ -366,13 +403,84 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
                 mediaScanIntent.setData(fileUri);
                 sendBroadcast(mediaScanIntent);
                 
-                return true;
+                Log.d(TAG, "File saved to: " + csvFile.getAbsolutePath());
+                return csvFile.getAbsolutePath();
             }
         } catch (Exception e) {
             Log.e(TAG, "Error saving to Downloads folder", e);
-            return false;
+            e.printStackTrace();
         }
-        return false;
+        return null;
+    }
+    
+    private void openFileWithIntent(String filePath, String fileName) {
+        try {
+            File file = new File(filePath);
+            if (!file.exists()) {
+                // If filePath is a URI string, try to parse it
+                if (filePath.startsWith("content://")) {
+                    openFileWithUri(Uri.parse(filePath), fileName);
+                    return;
+                }
+                Log.e(TAG, "File does not exist: " + filePath);
+                return;
+            }
+            
+            // Use FileProvider for secure file sharing
+            Uri fileUri = FileProvider.getUriForFile(
+                    this,
+                    getPackageName() + ".fileprovider",
+                    file
+            );
+            
+            // Create intent to view the file
+            Intent viewIntent = new Intent(Intent.ACTION_VIEW);
+            viewIntent.setDataAndType(fileUri, "text/csv");
+            viewIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            viewIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            
+            // Try to open with a CSV viewer, fallback to chooser
+            try {
+                startActivity(viewIntent);
+            } catch (Exception e) {
+                // If no app can open CSV directly, use share intent
+                Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                shareIntent.setType("text/csv");
+                shareIntent.putExtra(Intent.EXTRA_STREAM, fileUri);
+                shareIntent.putExtra(Intent.EXTRA_SUBJECT, fileName);
+                shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                
+                startActivity(Intent.createChooser(shareIntent, "Open CSV with..."));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error opening file", e);
+            Toast.makeText(this, "File saved but couldn't open automatically. Check Downloads folder.", 
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+    
+    private void openFileWithUri(Uri uri, String fileName) {
+        try {
+            Intent viewIntent = new Intent(Intent.ACTION_VIEW);
+            viewIntent.setDataAndType(uri, "text/csv");
+            viewIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            viewIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            
+            try {
+                startActivity(viewIntent);
+            } catch (Exception e) {
+                // Fallback to share
+                Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                shareIntent.setType("text/csv");
+                shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
+                shareIntent.putExtra(Intent.EXTRA_SUBJECT, fileName);
+                shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                
+                startActivity(Intent.createChooser(shareIntent, "Open CSV with..."));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error opening file with URI", e);
+        }
     }
     
     private String escapeCsvField(String field) {
