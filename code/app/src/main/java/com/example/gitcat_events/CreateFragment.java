@@ -130,6 +130,10 @@ public class CreateFragment extends Fragment {
                             Long organizer = document.getLong("organizer");
                             event.setOrganizer(organizer != null ? organizer.intValue() : 0);
                             
+                            // Set document ID and organizer device ID
+                            event.setDocumentId(document.getId());
+                            event.setOrganizerDeviceId(document.getString("organizerDeviceId"));
+                            
                             Boolean geoLocation = document.getBoolean("geoLocationRequired");
                             event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
                             

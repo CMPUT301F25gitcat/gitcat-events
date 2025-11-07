@@ -20,6 +20,7 @@ import android.util.Base64;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -30,17 +31,21 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import android.provider.Settings;
+
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class CreateEventActivity extends AppCompatActivity {
 
     private static final String TAG = "CreateEventActivity";
     private static final String PREFS = "app_prefs";
     private static final String KEY_PROFILE_ID = "profile_doc_id";
+    private static final String KEY_DEVICE_ID = "device_id";
 
     private FirebaseFirestore db;
     private ImageView ivEventPoster;
@@ -75,6 +80,7 @@ public class CreateEventActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
 
         // Initialize views
+        ImageButton btnBack = findViewById(R.id.btnBack);
         ivEventPoster = findViewById(R.id.ivEventPoster);
         etEventName = findViewById(R.id.etEventName);
         etEventDescription = findViewById(R.id.etEventDescription);
@@ -91,6 +97,7 @@ public class CreateEventActivity extends AppCompatActivity {
         switchGeoLocation = findViewById(R.id.switchGeoLocation);
 
         // Set up click listeners
+        btnBack.setOnClickListener(v -> finish());
         btnSelectPoster.setOnClickListener(v -> selectPoster());
         btnSelectRegistrationStartDate.setOnClickListener(v -> selectRegistrationStartDate());
         btnSelectEventDate.setOnClickListener(v -> selectEventDate());
@@ -267,6 +274,10 @@ public class CreateEventActivity extends AppCompatActivity {
                 geoLocationRequired
         );
         newEvent.setOrganizer(organizerId);
+        
+        // Set organizer device ID for organizer identification
+        String deviceId = getOrCreateDeviceId();
+        newEvent.setOrganizerDeviceId(deviceId);
 
         // Save to Firestore with auto-incrementing ID
         saveEventToFirestore(newEvent, progressDialog);
@@ -301,6 +312,7 @@ public class CreateEventActivity extends AppCompatActivity {
             data.put("geoLocationRequired", event.getGeoLocationRequired());
             data.put("poster", event.getPoster());
             data.put("organizer", event.getOrganizer());
+            data.put("organizerDeviceId", event.getOrganizerDeviceId());
             data.put("eventId", next);
 
             transaction.set(eventRef, data);
@@ -314,6 +326,9 @@ public class CreateEventActivity extends AppCompatActivity {
                 transaction.set(counterRef, counterInit);
             }
 
+            // Set document ID on event object
+            event.setDocumentId(docId);
+            
             return docId;
         }).addOnSuccessListener(eventId -> {
             progressDialog.dismiss();
@@ -362,6 +377,28 @@ public class CreateEventActivity extends AppCompatActivity {
         int newHeight = Math.round(height * ratio);
 
         return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true);
+    }
+
+    private String getOrCreateDeviceId() {
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        String deviceId = prefs.getString(KEY_DEVICE_ID, null);
+        
+        if (deviceId == null || deviceId.isEmpty()) {
+            // Try to get Android ID first
+            String androidId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
+            if (androidId != null && !androidId.isEmpty() && !"9774d56d682e549c".equals(androidId)) {
+                // 9774d56d682e549c is a known problematic Android ID on some emulators
+                deviceId = androidId;
+            } else {
+                // Fallback to UUID
+                deviceId = UUID.randomUUID().toString();
+            }
+            
+            // Save for future use
+            prefs.edit().putString(KEY_DEVICE_ID, deviceId).apply();
+        }
+        
+        return deviceId;
     }
 }
 
