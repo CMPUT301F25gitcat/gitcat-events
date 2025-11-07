@@ -4,6 +4,7 @@ import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
 
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,6 +16,12 @@ import android.widget.TextView;
 
 import com.example.gitcat_events.core.model.Event;
 import com.example.gitcat_events.features.event.ui.EventArrayAdapter;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -24,6 +31,7 @@ public class HomeFragment extends Fragment {
     private ArrayList<Event> upcomingEvents;
     private ArrayList<Event> enteredEvents;
 
+    private FirebaseFirestore db;
 
     private EventArrayAdapter upcomingEventsAdapter;
     private EventArrayAdapter enteredEventsAdapter;
@@ -43,35 +51,68 @@ public class HomeFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        db = FirebaseFirestore.getInstance();
+
         View view = inflater.inflate(R.layout.fragment_home, container, false);
         enteredEventsList = view.findViewById(R.id.enteredEventsList);
         upcomingEventsList = view.findViewById(R.id.upcomingEventsList);
-
-        Event eventOne = new Event("Event 1", "This is a description", 1,10, "poster1", Calendar.getInstance(), Calendar.getInstance(), Boolean.FALSE);
-        Event eventTwo = new Event("Event 2", "This is a description", 1, 10, "poster2", Calendar.getInstance(), Calendar.getInstance(), Boolean.FALSE);
-
         enteredEvents = new ArrayList<>();
         upcomingEvents = new ArrayList<>();
-//        enteredEvents.add(eventTwo);
-//        enteredEvents.add(eventTwo);
-//        enteredEvents.add(eventTwo);
-        upcomingEvents.add(eventOne);
-        upcomingEvents.add(eventOne);
-        upcomingEvents.add(eventOne);
-        upcomingEvents.add(eventOne);
+
+        db.collection("events")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        String name = doc.getString("name");
+                        System.out.println(name);
+
+                        String description = doc.getString("description");
+                        Long capacityLong = doc.getLong("capacity");
+                        int capacity = capacityLong != null ? capacityLong.intValue() : 0;
+
+                        Long maxWaitLong = doc.getLong("maxWaitListSize");
+                        Integer maxWaitListSize = maxWaitLong != null ? maxWaitLong.intValue() : null;
+
+                        String poster = doc.getString("poster");
+                        Boolean geoLocationRequired = doc.getBoolean("geoLocationRequired");
+
+                        // Convert Firestore timestamps to Calendar
+                        Timestamp raffleTs = doc.getTimestamp("raffleDate");
+                        Timestamp eventTs = doc.getTimestamp("eventDate");
+
+                        Calendar raffleDate = Calendar.getInstance();
+                        Calendar eventDate = Calendar.getInstance();
+
+                        if (raffleTs != null) raffleDate.setTime(raffleTs.toDate());
+                        if (eventTs != null) eventDate.setTime(eventTs.toDate());
+
+                        Event event = new Event(
+                                name,
+                                description,
+                                capacity,
+                                maxWaitListSize,
+                                poster,
+                                raffleDate,
+                                eventDate,
+                                geoLocationRequired
+                        );
+
+                        upcomingEvents.add(event);
+                    }
+                    upcomingEventsAdapter.notifyDataSetChanged();
+                    setListViewHeightBasedOnChildren(upcomingEventsList);
+                    updatePlaceholderText(view);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("Firestore", "Error loading events", e);
+                });
 
         enteredEventsAdapter = new EventArrayAdapter(getContext(), enteredEvents);
         upcomingEventsAdapter = new EventArrayAdapter(getContext(), upcomingEvents);
 
 
         // show placeholders if there is no events
-        if(enteredEvents.size() == 0){
-            view.findViewById(R.id.EnteredEventsEmpty).setVisibility(View.VISIBLE);;
-        }
-
-        if(upcomingEvents.size() == 0){
-            view.findViewById(R.id.upcomingEventsEmpty).setVisibility(View.VISIBLE);;
-        }
+        updatePlaceholderText(view);
 
         enteredEventsList.setAdapter(enteredEventsAdapter);
         upcomingEventsList.setAdapter(upcomingEventsAdapter);
@@ -95,6 +136,20 @@ public class HomeFragment extends Fragment {
 
 
         return view;
+    }
+
+    public void updatePlaceholderText(View view){
+        if(enteredEvents.size() == 0){
+            view.findViewById(R.id.EnteredEventsEmpty).setVisibility(View.VISIBLE);;
+        } else {
+            view.findViewById(R.id.EnteredEventsEmpty).setVisibility(View.GONE);;
+        }
+
+        if(upcomingEvents.size() == 0){
+            view.findViewById(R.id.upcomingEventsEmpty).setVisibility(View.VISIBLE);;
+        } else {
+            view.findViewById(R.id.upcomingEventsEmpty).setVisibility(View.GONE);;
+        }
     }
 
     public static void setListViewHeightBasedOnChildren(ListView listView) {
