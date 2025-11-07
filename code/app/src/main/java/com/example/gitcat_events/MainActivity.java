@@ -25,8 +25,34 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // set initial page
-        replaceFragment(new HomeFragment());
+        // Check if we should navigate to a specific fragment
+        String targetFragment = getIntent().getStringExtra("fragment");
+        if (targetFragment != null) {
+            switch (targetFragment) {
+                case "home":
+                    replaceFragment(new HomeFragment());
+                    binding.bottomNavigationView.setSelectedItemId(R.id.home);
+                    break;
+                case "notifs":
+                    replaceFragment(new NotifsFragment());
+                    binding.bottomNavigationView.setSelectedItemId(R.id.notifs);
+                    break;
+                case "create":
+                    replaceFragment(new CreateFragment());
+                    binding.bottomNavigationView.setSelectedItemId(R.id.create);
+                    break;
+                case "profile":
+                    replaceFragment(new ProfileFragment());
+                    binding.bottomNavigationView.setSelectedItemId(R.id.profile);
+                    break;
+                default:
+                    replaceFragment(new HomeFragment());
+                    break;
+            }
+        } else {
+            // set initial page
+            replaceFragment(new HomeFragment());
+        }
 
         binding.bottomNavigationView.setOnItemSelectedListener((item) -> {
             int id = item.getItemId();
