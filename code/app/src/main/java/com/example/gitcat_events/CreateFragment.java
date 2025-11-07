@@ -126,6 +126,13 @@ public class CreateFragment extends Fragment {
                             event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
                             
                             // Convert Date to Calendar
+                            Date registrationStartDate = document.getDate("registrationStartDate");
+                            if (registrationStartDate != null) {
+                                Calendar regStartCal = Calendar.getInstance();
+                                regStartCal.setTime(registrationStartDate);
+                                event.setRegistrationStartDate(regStartCal);
+                            }
+                            
                             Date eventDate = document.getDate("eventDate");
                             if (eventDate != null) {
                                 Calendar eventCal = Calendar.getInstance();

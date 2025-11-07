@@ -151,9 +151,15 @@ public class HomeFragment extends Fragment {
                                 continue;
                             }
                             
-                            // Only show events where registration is still open
+                            // Only show events where registration is currently open
                             Calendar now = Calendar.getInstance();
-                            if (event.getRaffleDate() != null && now.before(event.getRaffleDate())) {
+                            boolean registrationStarted = event.getRegistrationStartDate() == null || 
+                                    !now.before(event.getRegistrationStartDate());
+                            boolean registrationOpen = event.getRaffleDate() == null || 
+                                    now.before(event.getRaffleDate()) || 
+                                    now.equals(event.getRaffleDate());
+                            
+                            if (registrationStarted && registrationOpen) {
                                 upcomingEvents.add(event);
                             }
                         } catch (Exception e) {
@@ -287,6 +293,13 @@ public class HomeFragment extends Fragment {
         event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
         
         // Convert Date to Calendar
+        Date registrationStartDate = document.getDate("registrationStartDate");
+        if (registrationStartDate != null) {
+            Calendar regStartCal = Calendar.getInstance();
+            regStartCal.setTime(registrationStartDate);
+            event.setRegistrationStartDate(regStartCal);
+        }
+        
         Date eventDate = document.getDate("eventDate");
         if (eventDate != null) {
             Calendar eventCal = Calendar.getInstance();

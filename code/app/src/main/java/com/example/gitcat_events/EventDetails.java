@@ -323,13 +323,21 @@ public class EventDetails extends Fragment {
         
         String deviceId = getOrCreateDeviceId();
         
-        // Check if registration is still open
-        if (event.getRaffleDate() != null) {
-            Calendar now = Calendar.getInstance();
-            if (now.after(event.getRaffleDate())) {
-                showError("Registration has closed for this event.");
-                return;
-            }
+        // Check if registration window is open
+        Calendar now = Calendar.getInstance();
+        
+        // Check if registration has started
+        if (event.getRegistrationStartDate() != null && now.before(event.getRegistrationStartDate())) {
+            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
+            String startDate = sdf.format(event.getRegistrationStartDate().getTime());
+            showError("Registration opens on " + startDate);
+            return;
+        }
+        
+        // Check if registration has closed
+        if (event.getRaffleDate() != null && now.after(event.getRaffleDate())) {
+            showError("Registration has closed for this event.");
+            return;
         }
         
         // Check if already on waitlist
