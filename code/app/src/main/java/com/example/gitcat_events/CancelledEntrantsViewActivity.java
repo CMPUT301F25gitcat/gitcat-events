@@ -102,13 +102,18 @@ public class CancelledEntrantsViewActivity extends AppCompatActivity {
 
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         String userDeviceId = document.getString("userDeviceId");
+                        String status = document.getString("status");
                         Long drawRound = document.getLong("drawRound");
                         Long timestamp = document.getLong("timestamp");
                         Long declinedAt = document.getLong("declinedAt");
+                        Long cancelledAt = document.getLong("cancelledAt");
+                        
+                        // Use cancelledAt if available, otherwise declinedAt
+                        Long cancellationTime = cancelledAt != null ? cancelledAt : declinedAt;
                         
                         if (userDeviceId != null) {
                             // Fetch user profile
-                            fetchUserProfile(userDeviceId, drawRound, timestamp, declinedAt, totalEntries, processedEntries);
+                            fetchUserProfile(userDeviceId, status, drawRound, timestamp, cancellationTime, totalEntries, processedEntries);
                         } else {
                             processedEntries[0]++;
                             if (processedEntries[0] == totalEntries) {
@@ -125,7 +130,7 @@ public class CancelledEntrantsViewActivity extends AppCompatActivity {
                 });
     }
 
-    private void fetchUserProfile(String deviceId, Long drawRound, Long timestamp, Long declinedAt,
+    private void fetchUserProfile(String deviceId, String status, Long drawRound, Long timestamp, Long cancellationTime,
                                    int totalEntries, int[] processedEntries) {
         db.collection("profiles")
                 .whereEqualTo("deviceId", deviceId)
@@ -134,9 +139,10 @@ public class CancelledEntrantsViewActivity extends AppCompatActivity {
                 .addOnSuccessListener(querySnapshot -> {
                     CancelledEntryDisplay entry = new CancelledEntryDisplay();
                     entry.deviceId = deviceId;
+                    entry.status = status != null ? status : "declined";
                     entry.drawRound = drawRound != null ? drawRound.intValue() : 1;
                     entry.invitedTimestamp = timestamp;
-                    entry.declinedTimestamp = declinedAt;
+                    entry.declinedTimestamp = cancellationTime;
 
                     if (!querySnapshot.isEmpty()) {
                         DocumentSnapshot profileDoc = querySnapshot.getDocuments().get(0);
@@ -175,9 +181,10 @@ public class CancelledEntrantsViewActivity extends AppCompatActivity {
                     // Add entry without profile info
                     CancelledEntryDisplay entry = new CancelledEntryDisplay();
                     entry.deviceId = deviceId;
+                    entry.status = status != null ? status : "declined";
                     entry.drawRound = drawRound != null ? drawRound.intValue() : 1;
                     entry.invitedTimestamp = timestamp;
-                    entry.declinedTimestamp = declinedAt;
+                    entry.declinedTimestamp = cancellationTime;
                     entry.name = "Unknown User";
                     cancelledEntries.add(entry);
                     
@@ -211,6 +218,7 @@ public class CancelledEntrantsViewActivity extends AppCompatActivity {
         String name;
         String email;
         String phone;
+        String status; // "declined" or "cancelled_by_organizer"
         int drawRound;
         Long invitedTimestamp;
         Long declinedTimestamp;
@@ -293,13 +301,19 @@ public class CancelledEntrantsViewActivity extends AppCompatActivity {
                     tvInvitedDate.setVisibility(View.GONE);
                 }
                 
-                // Declined timestamp
+                // Declined/Cancelled timestamp
                 if (entry.declinedTimestamp != null) {
                     SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault());
                     String dateStr = sdf.format(new Date(entry.declinedTimestamp));
-                    tvDeclinedDate.setText("❌ Declined: " + dateStr);
+                    
+                    if ("cancelled_by_organizer".equals(entry.status)) {
+                        tvDeclinedDate.setText("🚫 Cancelled by Organizer: " + dateStr);
+                        tvDeclinedDate.setTextColor(getResources().getColor(android.R.color.holo_orange_dark));
+                    } else {
+                        tvDeclinedDate.setText("❌ Declined by User: " + dateStr);
+                        tvDeclinedDate.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
+                    }
                     tvDeclinedDate.setVisibility(View.VISIBLE);
-                    tvDeclinedDate.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
                 } else {
                     tvDeclinedDate.setVisibility(View.GONE);
                 }

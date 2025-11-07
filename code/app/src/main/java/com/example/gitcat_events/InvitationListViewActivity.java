@@ -208,6 +208,70 @@ public class InvitationListViewActivity extends AppCompatActivity {
         rvInvitationList.setVisibility(View.GONE);
         tvInvitationListCount.setText("Total Invited: 0");
     }
+    
+    private void showCancelConfirmation(InvitationEntryDisplay entry) {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Cancel Invitation?")
+                .setMessage("Cancel invitation for " + entry.name + "?\n\nThis will remove them from the invited list and free up a spot for a replacement draw.")
+                .setNegativeButton("No", null)
+                .setPositiveButton("Yes, Cancel", (dialog, which) -> cancelInvitation(entry))
+                .show();
+    }
+    
+    private void cancelInvitation(InvitationEntryDisplay entry) {
+        if (eventId == null || entry.deviceId == null) return;
+        
+        // Show loading
+        Toast.makeText(this, "Cancelling invitation...", Toast.LENGTH_SHORT).show();
+        
+        // Get the invitation data first, then move it to cancelled_list
+        db.collection("events").document(eventId)
+                .collection("invitation_list")
+                .document(entry.deviceId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        java.util.Map<String, Object> invitationData = doc.getData();
+                        
+                        // Create cancelled entry data
+                        java.util.Map<String, Object> cancelledData = new java.util.HashMap<>(invitationData);
+                        cancelledData.put("status", "cancelled_by_organizer");
+                        cancelledData.put("cancelledAt", System.currentTimeMillis());
+                        
+                        // Move to cancelled_list collection
+                        db.collection("events").document(eventId)
+                                .collection("cancelled_list")
+                                .document(entry.deviceId)
+                                .set(cancelledData)
+                                .addOnSuccessListener(v -> {
+                                    // Now delete from invitation_list
+                                    db.collection("events").document(eventId)
+                                            .collection("invitation_list")
+                                            .document(entry.deviceId)
+                                            .delete()
+                                            .addOnSuccessListener(v2 -> {
+                                                Toast.makeText(this, "Invitation cancelled successfully", Toast.LENGTH_SHORT).show();
+                                                // Reload the list
+                                                loadInvitationList();
+                                            })
+                                            .addOnFailureListener(e -> {
+                                                Log.e(TAG, "Error removing from invitation list", e);
+                                                Toast.makeText(this, "Failed to cancel invitation", Toast.LENGTH_SHORT).show();
+                                            });
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e(TAG, "Error adding to cancelled list", e);
+                                    Toast.makeText(this, "Failed to cancel invitation", Toast.LENGTH_SHORT).show();
+                                });
+                    } else {
+                        Toast.makeText(this, "Invitation not found", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error loading invitation", e);
+                    Toast.makeText(this, "Failed to cancel invitation", Toast.LENGTH_SHORT).show();
+                });
+    }
 
     // Data class for displaying invitation entries
     private static class InvitationEntryDisplay {
@@ -254,6 +318,7 @@ public class InvitationListViewActivity extends AppCompatActivity {
             TextView tvStatus;
             TextView tvDrawRound;
             TextView tvInvitedDate;
+            android.widget.Button btnCancelInvitation;
 
             ViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -264,6 +329,7 @@ public class InvitationListViewActivity extends AppCompatActivity {
                 tvStatus = itemView.findViewById(R.id.tvStatus);
                 tvDrawRound = itemView.findViewById(R.id.tvDrawRound);
                 tvInvitedDate = itemView.findViewById(R.id.tvInvitedDate);
+                btnCancelInvitation = itemView.findViewById(R.id.btnCancelInvitation);
             }
 
             void bind(InvitationEntryDisplay entry, int position) {
@@ -288,15 +354,21 @@ public class InvitationListViewActivity extends AppCompatActivity {
                 if ("pending".equals(entry.status)) {
                     tvStatus.setText("⏳ Pending Response");
                     tvStatus.setTextColor(getResources().getColor(android.R.color.holo_orange_dark));
+                    // Show cancel button only for pending invitations
+                    btnCancelInvitation.setVisibility(View.VISIBLE);
+                    btnCancelInvitation.setOnClickListener(v -> showCancelConfirmation(entry));
                 } else if ("accepted".equals(entry.status)) {
                     tvStatus.setText("✓ Accepted");
                     tvStatus.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+                    btnCancelInvitation.setVisibility(View.GONE);
                 } else if ("declined".equals(entry.status)) {
                     tvStatus.setText("✗ Declined");
                     tvStatus.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
+                    btnCancelInvitation.setVisibility(View.GONE);
                 } else {
                     tvStatus.setText("Unknown");
                     tvStatus.setTextColor(getResources().getColor(android.R.color.darker_gray));
+                    btnCancelInvitation.setVisibility(View.GONE);
                 }
                 
                 // Draw round
