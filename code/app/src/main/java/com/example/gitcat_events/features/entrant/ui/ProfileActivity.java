@@ -264,11 +264,13 @@ public class ProfileActivity extends AppCompatActivity
                     tvEmail.setText("—");
                     tvPhone.setText("—");
                     ivProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
-                    Toast.makeText(this, "Profile deleted.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Profile deleted successfully.", Toast.LENGTH_SHORT).show();
 
-                    // Prompt to create a new one (optional)
-                    ProfileDialogFragment.newInstance(null)
-                            .show(getSupportFragmentManager(), "createProfile");
+                    // Redirect to setup page
+                    Intent intent = new Intent(this, SetupProfileActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                    finish();
                 })
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Delete failed: " + e.getMessage(), Toast.LENGTH_LONG).show()

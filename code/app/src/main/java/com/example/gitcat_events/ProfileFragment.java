@@ -102,11 +102,9 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
     private void loadProfile() {
         String profileId = getSavedDocId();
         if (profileId == null) {
-            // No profile yet, show default/empty state
-            tvFragmentName.setText("No profile yet");
-            tvFragmentEmail.setText("—");
-            tvFragmentPhone.setText("—");
-            ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
+            // No profile yet, redirect to setup page
+            Intent intent = new Intent(getActivity(), SetupProfileActivity.class);
+            startActivity(intent);
             return;
         }
 
@@ -177,6 +175,9 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                     SharedPreferences sp = getActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
                     sp.edit().remove(KEY_PROFILE_ID).apply();
                     
+                    // Clear current profile
+                    currentProfile = null;
+                    
                     // Clear UI
                     tvFragmentName.setText("No profile yet");
                     tvFragmentEmail.setText("—");
@@ -184,6 +185,10 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                     ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
                     
                     Toast.makeText(getContext(), "Profile deleted successfully.", Toast.LENGTH_SHORT).show();
+                    
+                    // Redirect to setup page
+                    Intent intent = new Intent(getActivity(), SetupProfileActivity.class);
+                    startActivity(intent);
                 })
                 .addOnFailureListener(e -> {
                     if (getContext() != null) {
@@ -323,4 +328,5 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
             imageView.setImageResource(R.drawable.ic_launcher_foreground);
         }
     }
+    
 }
