@@ -13,13 +13,14 @@
     android:layout_height="wrap_content">
 
     <!-- Profile Picture -->
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
         android:paddingBottom="16dp">
-        
+
         <ImageView
             android:id="@+id/ivFragmentProfilePicture"
             android:layout_width="120dp"
@@ -89,7 +90,7 @@
         android:layout_height="wrap_content"
         android:text="Edit Profile"
         android:layout_marginTop="8dp"/>
-    
+
     <Button
         android:id="@+id/btnFragmentDeleteProfile"
         android:layout_width="match_parent"
@@ -98,6 +99,21 @@
         android:textColor="@android:color/white"
         android:backgroundTint="#D32F2F"
         android:layout_marginTop="8dp"/>
+
+    <Button
+        android:id="@+id/eventHistoryBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="View Event History" />
+
+    <Button
+        android:id="@+id/adminMenuBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="50dp"
+        android:text="Admin Menu"
+        android:visibility="gone" />
 
 </LinearLayout>
 </ScrollView>
