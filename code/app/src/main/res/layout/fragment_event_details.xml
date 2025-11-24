@@ -141,12 +141,12 @@
             android:layout_width="0dp"
             android:layout_height="60dp"
             android:layout_marginStart="40dp"
-            android:layout_marginEnd="40dp"
             android:layout_marginTop="16dp"
-            android:text="🎲 Run Raffle"
-            android:textSize="16sp"
-            android:textColor="@android:color/white"
+            android:layout_marginEnd="40dp"
             android:backgroundTint="@android:color/holo_purple"
+            android:text="🎲 Run Raffle"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -158,12 +158,12 @@
             android:layout_width="0dp"
             android:layout_height="60dp"
             android:layout_marginStart="40dp"
-            android:layout_marginEnd="40dp"
             android:layout_marginTop="12dp"
-            android:text="📋 View Waiting List"
-            android:textSize="16sp"
-            android:textColor="@android:color/white"
+            android:layout_marginEnd="40dp"
             android:backgroundTint="@android:color/holo_blue_dark"
+            android:text="📋 View Waiting List"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -192,16 +192,17 @@
             android:layout_width="0dp"
             android:layout_height="60dp"
             android:layout_marginStart="40dp"
-            android:layout_marginEnd="40dp"
             android:layout_marginTop="12dp"
-            android:text="✅ View Enrolled Entrants"
-            android:textSize="16sp"
-            android:textColor="@android:color/white"
+            android:layout_marginEnd="40dp"
             android:backgroundTint="@android:color/holo_green_dark"
+            android:text="✅ View Enrolled Entrants"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/btnViewInvitedEntrants" />
+            app:layout_constraintTop_toBottomOf="@+id/btnViewInvitedEntrants"
+            tools:visibility="visible" />
 
         <!-- View Cancelled Entrants Button (for organizers) -->
         <Button
@@ -209,16 +210,17 @@
             android:layout_width="0dp"
             android:layout_height="60dp"
             android:layout_marginStart="40dp"
-            android:layout_marginEnd="40dp"
             android:layout_marginTop="12dp"
-            android:text="❌ View Cancelled Entrants"
-            android:textSize="16sp"
-            android:textColor="@android:color/white"
+            android:layout_marginEnd="40dp"
             android:backgroundTint="@android:color/holo_red_dark"
+            android:text="❌ View Cancelled Entrants"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/btnViewEnrolledEntrants" />
+            app:layout_constraintTop_toBottomOf="@+id/btnViewEnrolledEntrants"
+            tools:visibility="visible" />
 
         <!-- Edit Event Button (for organizers) -->
         <Button
@@ -226,16 +228,17 @@
             android:layout_width="0dp"
             android:layout_height="60dp"
             android:layout_marginStart="40dp"
-            android:layout_marginEnd="40dp"
             android:layout_marginTop="12dp"
-            android:text="✏️ Edit Event"
-            android:textSize="16sp"
-            android:textColor="@android:color/white"
+            android:layout_marginEnd="40dp"
             android:backgroundTint="@android:color/holo_orange_dark"
+            android:text="✏️ Edit Event"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/btnViewCancelledEntrants" />
+            app:layout_constraintTop_toBottomOf="@+id/btnViewCancelledEntrants"
+            tools:visibility="visible" />
 
         <!-- Invitation Response Buttons (for invited entrants) -->
         <LinearLayout
@@ -286,6 +289,21 @@
             android:tint="@android:color/black"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
+
+        <Button
+            android:id="@+id/adminDeleteEvent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="40dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="40dp"
+            android:backgroundTint="#BC2B2B"
+            android:text="Delete Event"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/btnEditEvent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

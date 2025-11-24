@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 
@@ -97,6 +98,20 @@ public class HomeFragment extends Fragment {
             Event selectedEvent = upcomingEvents.get(position);
             EventDetails detailFragment = EventDetails.newInstance(selectedEvent);
 
+            getParentFragmentManager().setFragmentResultListener("detail_closed", this, (key, bundle) -> {
+                Event deletedEvent = (Event) bundle.getSerializable("deletedEvent");
+                if (deletedEvent != null) {
+                    for (Iterator<Event> iterator = upcomingEvents.iterator(); iterator.hasNext();) {
+                        Event e = iterator.next();
+                        if (e.getDocumentId().equals(deletedEvent.getDocumentId())) {
+                            iterator.remove();
+                            break;
+                        }
+                    }
+                    upcomingEventsAdapter.notifyDataSetChanged();
+                }
+            });
+
             getParentFragmentManager()
                     .beginTransaction()
                     .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.fade_out,
@@ -109,6 +124,20 @@ public class HomeFragment extends Fragment {
         enteredEventsList.setOnItemClickListener((parent, tmpView, position, id) -> {
             Event selectedEvent = enteredEvents.get(position);
             EventDetails detailFragment = EventDetails.newInstance(selectedEvent);
+
+            getParentFragmentManager().setFragmentResultListener("detail_closed", this, (key, bundle) -> {
+                Event deletedEvent = (Event) bundle.getSerializable("deletedEvent");
+                if (deletedEvent != null) {
+                    for (Iterator<Event> iterator = enteredEvents.iterator(); iterator.hasNext();) {
+                        Event e = iterator.next();
+                        if (e.getDocumentId().equals(deletedEvent.getDocumentId())) {
+                            iterator.remove();
+                            break;
+                        }
+                    }
+                    enteredEventsAdapter.notifyDataSetChanged();
+                }
+            });
 
             getParentFragmentManager()
                     .beginTransaction()
@@ -492,10 +521,11 @@ public class HomeFragment extends Fragment {
                 }
 
                 // Don't show events organized by this user
-                if (event.getOrganizerDeviceId() != null &&
-                        event.getOrganizerDeviceId().equals(currentDeviceId)) {
-                    continue;
-                }
+                // commented out for debugging
+//                if (event.getOrganizerDeviceId() != null &&
+//                        event.getOrganizerDeviceId().equals(currentDeviceId)) {
+//                    continue;
+//                }
 
                 // Filter logic:
                 // - Show events user is on waitlist for (they can see their status)

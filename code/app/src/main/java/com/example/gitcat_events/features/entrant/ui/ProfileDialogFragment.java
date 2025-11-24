@@ -161,7 +161,7 @@ public class ProfileDialogFragment extends DialogFragment {
                                 String deviceId = (existingProfile != null && existingProfile.getDeviceId() != null) 
                                         ? existingProfile.getDeviceId() 
                                         : getOrCreateDeviceId();
-                                Profile p = new Profile(name, email, phone, deviceId, imageBase64);
+                                Profile p = new Profile(name, email, phone, deviceId, imageBase64, false);
                                 
                                 saveProfile(p);
                                 dlg.dismiss();
@@ -172,7 +172,7 @@ public class ProfileDialogFragment extends DialogFragment {
                                 String deviceId = (existingProfile != null && existingProfile.getDeviceId() != null) 
                                         ? existingProfile.getDeviceId() 
                                         : getOrCreateDeviceId();
-                                Profile p = new Profile(name, email, phone, deviceId, null);
+                                Profile p = new Profile(name, email, phone, deviceId, null, false);
                                 saveProfile(p);
                                 dlg.dismiss();
                             }
@@ -185,7 +185,7 @@ public class ProfileDialogFragment extends DialogFragment {
                             String deviceId = (existingProfile != null && existingProfile.getDeviceId() != null) 
                                     ? existingProfile.getDeviceId() 
                                     : getOrCreateDeviceId();
-                            Profile p = new Profile(name, email, phone, deviceId, null);
+                            Profile p = new Profile(name, email, phone, deviceId, null, false);
                             saveProfile(p);
                             dlg.dismiss();
                         });
@@ -203,7 +203,7 @@ public class ProfileDialogFragment extends DialogFragment {
                     profilePicture = existingProfile.getProfilePictureUrl();
                 }
                 
-                Profile p = new Profile(name, email, phone, deviceId, profilePicture);
+                Profile p = new Profile(name, email, phone, deviceId, profilePicture, false);
                 saveProfile(p);
                 dlg.dismiss();
             }
