@@ -25,6 +25,7 @@ import android.widget.Toast;
 import com.example.gitcat_events.core.model.Event;
 import com.example.gitcat_events.core.model.WaitListEntry;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.WriteBatch;
@@ -55,7 +56,7 @@ public class EventDetails extends Fragment {
     private ImageView ivEventPoster;
     private TextView tvEventName, tvEventDate, tvEventSpots, tvEventDesc;
     private TextView tvWaitingListCount, tvStatusMessage, tvSelectionCriteria;
-    private Button btnJoinWaitingList, btnRunRaffle, btnViewWaitingList, btnViewInvitedEntrants, btnViewEnrolledEntrants, btnViewCancelledEntrants, btnEditEvent;
+    private Button btnJoinWaitingList, btnRunRaffle, btnViewWaitingList, btnViewInvitedEntrants, btnViewEnrolledEntrants, btnViewCancelledEntrants, btnEditEvent, deleteEventBtn;
     private ImageButton btnBack;
     private Button btnAcceptInvitation, btnDeclineInvitation;
     private ViewGroup invitationButtons;
@@ -104,6 +105,7 @@ public class EventDetails extends Fragment {
         btnAcceptInvitation = view.findViewById(R.id.btnAcceptInvitation);
         btnDeclineInvitation = view.findViewById(R.id.btnDeclineInvitation);
         invitationButtons = view.findViewById(R.id.invitationButtons);
+        deleteEventBtn = view.findViewById(R.id.adminDeleteEvent);
 
         // Display event details
         displayEvent();
@@ -158,8 +160,59 @@ public class EventDetails extends Fragment {
             // Notify HomeFragment to refresh (it will reload in onResume)
         });
 
+        // set up delete btn
+        if(getIsAdmin(getContext())){
+            deleteEventBtn.setVisibility(View.VISIBLE);
+            deleteEventBtn.setOnClickListener(v -> {
+                deleteEvent(Integer.parseInt(event.getDocumentId()));
+            });
+        }
+
+
         return view;
     }
+
+    private boolean getIsAdmin(Context context) {
+        final String KEY_IS_ADMIN = "is_admin";
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getBoolean(KEY_IS_ADMIN, false);
+    }
+
+    private void deleteEvent(int eventId) {
+        db.collection("events")
+                .whereEqualTo("eventId", eventId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (querySnapshot.isEmpty()) {
+                        Toast.makeText(getContext(), "No event found with eventId: " + eventId, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    WriteBatch batch = db.batch();
+
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        batch.delete(doc.getReference());
+                    }
+
+                    batch.commit()
+                            .addOnSuccessListener(v -> {
+
+                                    // notify home page so they can reload event list
+                                Bundle result = new Bundle();
+                                result.putSerializable("deletedEvent", event);
+                                getParentFragmentManager().setFragmentResult("detail_closed", result);
+
+                                Toast.makeText(getContext(), "Event deleted: " + eventId, Toast.LENGTH_SHORT).show();
+                            })
+                            .addOnFailureListener(e ->
+                                    Toast.makeText(getContext(), "Failed to delete event: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(getContext(), "Error querying event: " + e.getMessage(), Toast.LENGTH_LONG).show());
+    }
+
+
+
 
     private void displayEvent() {
         if (event == null || getView() == null) return;

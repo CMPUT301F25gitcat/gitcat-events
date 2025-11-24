@@ -44,11 +44,12 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
     private static final String TAG = "ProfileFragment";
     private static final String PREFS = "app_prefs";
     private static final String KEY_PROFILE_ID = "profile_doc_id";
+    private static final String KEY_IS_ADMIN = "is_admin";
 
     private FirebaseFirestore db;
     private TextView tvFragmentName, tvFragmentEmail, tvFragmentPhone;
     private ImageView ivFragmentProfilePicture;
-    private Button btnFragmentViewFullProfile, btnFragmentDeleteProfile;
+    private Button btnFragmentViewFullProfile, btnFragmentDeleteProfile, adminBtn;
     private Profile currentProfile;
 
     public ProfileFragment() {
@@ -83,6 +84,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
         ivFragmentProfilePicture = view.findViewById(R.id.ivFragmentProfilePicture);
         btnFragmentViewFullProfile = view.findViewById(R.id.btnFragmentViewFullProfile);
         btnFragmentDeleteProfile = view.findViewById(R.id.btnFragmentDeleteProfile);
+        adminBtn = view.findViewById(R.id.adminMenuBtn);
 
         // Setup button to open edit dialog directly
         btnFragmentViewFullProfile.setOnClickListener(v -> {
@@ -124,6 +126,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                     Profile profile = documentSnapshot.toObject(Profile.class);
                     if (profile != null && isAdded()) {
                         currentProfile = profile;
+                        saveIsAdmin(currentProfile.isAdmin());
                         renderProfile(profile);
                     } else if (isAdded()) {
                         currentProfile = null;
@@ -157,6 +160,15 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
             loadBase64Image(profile.getProfilePictureUrl(), ivFragmentProfilePicture);
         } else {
             ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
+        }
+
+        // show admin menu button if user is an admin
+        if(profile.isAdmin()){
+            adminBtn.setVisibility(View.VISIBLE);
+            adminBtn.setOnClickListener(v -> {
+                Intent intent = new Intent(getContext(), AdminMenuActivity.class);
+                startActivity(intent);
+            });
         }
     }
 
@@ -430,5 +442,12 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
             imageView.setImageResource(R.drawable.ic_launcher_foreground);
         }
     }
-    
+
+    private void saveIsAdmin(Boolean isAdmin){
+        requireContext()
+                .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(KEY_IS_ADMIN, isAdmin)
+                .apply();
+    }
 }

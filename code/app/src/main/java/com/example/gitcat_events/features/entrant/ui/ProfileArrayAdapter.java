@@ -48,8 +48,15 @@ public class ProfileArrayAdapter extends ArrayAdapter<Profile> {
 
         Profile p = getItem(position);
         if (p != null) {
-            h.name.setText(p.getName());
-            h.email.setText(p.getEmail());
+            System.out.println();
+            System.out.println(h.name == null);
+            if(p.getName() == null) {
+                h.name.setText("Anonymous User");
+                h.email.setText(p.getDeviceId());
+            } else {
+                h.name.setText(p.getName());
+                h.email.setText(p.getEmail());
+            }
 
             // phone is optional: hide the row if null/blank
             String ph = p.getPhone();

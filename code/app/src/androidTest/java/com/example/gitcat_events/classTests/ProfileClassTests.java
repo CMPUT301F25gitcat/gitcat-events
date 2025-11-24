@@ -20,7 +20,7 @@ public class ProfileClassTests {
 
     @Test
     public void testConstructorWithAllFields() {
-        Profile profile = new Profile("Alice", "alice@example.com", "5551234", "device123", null);
+        Profile profile = new Profile("Alice", "alice@example.com", "5551234", "device123", null, false);
 
         assertEquals("Alice", profile.getName());
         assertEquals("alice@example.com", profile.getEmail());
@@ -42,7 +42,7 @@ public class ProfileClassTests {
 
     @Test
     public void testNullableOptionalFields() {
-        Profile profile = new Profile(null, null, null, "device789", null);
+        Profile profile = new Profile(null, null, null, "device789", null, false);
 
         assertNull(profile.getName());
         assertNull(profile.getEmail());
@@ -76,7 +76,7 @@ public class ProfileClassTests {
 
     @Test
     public void testSetterUpdates() {
-        Profile profile = new Profile("Initial", "initial@email.com", "12345", "device1", null);
+        Profile profile = new Profile("Initial", "initial@email.com", "12345", "device1", null, false);
 
         profile.setName("Updated Name");
         profile.setEmail("updated@email.com");
@@ -91,7 +91,7 @@ public class ProfileClassTests {
 
     @Test
     public void testSetPhoneToNull() {
-        Profile profile = new Profile("Dave", "dave@example.com", "1234567", "deviceDave", null);
+        Profile profile = new Profile("Dave", "dave@example.com", "1234567", "deviceDave", null, false);
 
         profile.setPhone(null);
         assertNull(profile.getPhone());
@@ -102,7 +102,7 @@ public class ProfileClassTests {
 
     @Test
     public void testSetNameToNull() {
-        Profile profile = new Profile("Bob", "bob@example.com", "5551234", "deviceBob", null);
+        Profile profile = new Profile("Bob", "bob@example.com", "5551234", "deviceBob", null, false);
 
         profile.setName(null);
         assertNull(profile.getName());
@@ -113,7 +113,7 @@ public class ProfileClassTests {
 
     @Test
     public void testSetEmailToNull() {
-        Profile profile = new Profile("Eve", "eve@example.com", "5559999", "deviceEve", null);
+        Profile profile = new Profile("Eve", "eve@example.com", "5559999", "deviceEve", null, false);
 
         profile.setEmail(null);
         assertNull(profile.getEmail());
@@ -125,7 +125,7 @@ public class ProfileClassTests {
     @Test
     public void testProfilePictureUrl() {
         String pictureUrl = "data:image/png;base64,iVBORw0KGgoAAAANS...";
-        Profile profile = new Profile("Frank", "frank@example.com", "5557777", "deviceFrank", pictureUrl);
+        Profile profile = new Profile("Frank", "frank@example.com", "5557777", "deviceFrank", pictureUrl, false);
 
         assertEquals(pictureUrl, profile.getProfilePictureUrl());
 
