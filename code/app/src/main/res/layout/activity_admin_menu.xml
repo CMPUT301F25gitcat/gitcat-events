@@ -1,85 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".EventDetailsActivity">
+    android:orientation="vertical"
+    tools:context=".AdminMenuActivity">
 
-    <LinearLayout
+    <Button
+        android:id="@+id/backToProfileBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:padding="16dp"
+        android:text="← Back to Profile"
+        android:textAllCaps="false"
+        android:textColor="?attr/colorPrimary" />
+
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="vertical">
+        android:layout_marginBottom="10dp"
+        android:text="Admin Menu"
+        android:textAlignment="center"
+        android:textSize="24sp"
+        android:textStyle="bold" />
 
-        <!-- Back Button -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/adminTabLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
-
-            <Button
-                android:id="@+id/btnBackToHome"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:padding="16dp"
-                android:text="← Back to Profile"
-                android:textAllCaps="false"
-                android:textColor="?attr/colorPrimary" />
-
-        </LinearLayout>
-
-        <!-- Event Poster -->
-
-        <!-- Event Details Container -->
-
-        <TextView
-            android:layout_width="match_parent"
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Admin Menu"
-            android:textAlignment="center"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:text="Notifications" />
 
-        <com.google.android.material.tabs.TabLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Profiles" />
 
-            <com.google.android.material.tabs.TabItem
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Notifications" />
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Images" />
+    </com.google.android.material.tabs.TabLayout>
 
-            <com.google.android.material.tabs.TabItem
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Profiles" />
+    <ListView
+        android:id="@+id/adminNotifsList"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="visible" />
 
-            <com.google.android.material.tabs.TabItem
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Images" />
-        </com.google.android.material.tabs.TabLayout>
+    <ListView
+        android:id="@+id/adminProfilesList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:visibility="gone">
 
-        <ListView
-            android:id="@+id/adminNotifsList"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+    </ListView>
 
-        <ListView
-            android:id="@+id/adminProfilesList"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+    <ListView
+        android:id="@+id/adminImagesList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="10dp"
+        android:visibility="gone" />
 
-        </ListView>
-
-        <ListView
-            android:id="@+id/adminImagesList"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-
-    </LinearLayout>
-</ScrollView>
-
+</LinearLayout>
