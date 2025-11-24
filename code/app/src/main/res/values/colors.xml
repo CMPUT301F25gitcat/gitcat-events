@@ -4,4 +4,6 @@
     <color name="white">#FFFFFFFF</color>
     <color name="mtrl_textinput_default_box_stroke_color">#6850a4</color>
     <color name="purple_500">#9C27B0</color>
+    <color name="filter_active_orange">#FF6B35</color>
+    <color name="text_default_blue">#2260FF</color>
 </resources>

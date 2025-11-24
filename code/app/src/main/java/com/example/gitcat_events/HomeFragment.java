@@ -10,12 +10,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.gitcat_events.core.model.Event;
@@ -51,8 +53,14 @@ public class HomeFragment extends Fragment {
     private TextView enteredEventsEmpty;
     private TextView pendingInvitationsEmpty;
     private LinearLayout pendingInvitationsContainer;
+    private ImageButton btnFilterEvents;
+    private TextView textView2; // Upcoming Events header
 
     private FirebaseFirestore db;
+
+    // Filter state
+    private Calendar filterStartDate;
+    private Calendar filterEndDate;
 
     public HomeFragment() {
         // Required empty public constructor
@@ -77,6 +85,8 @@ public class HomeFragment extends Fragment {
         enteredEventsEmpty = view.findViewById(R.id.EnteredEventsEmpty);
         pendingInvitationsEmpty = view.findViewById(R.id.pendingInvitationsEmpty);
         pendingInvitationsContainer = view.findViewById(R.id.PendingInvitationsContainer);
+        btnFilterEvents = view.findViewById(R.id.btnFilterEvents);
+        textView2 = view.findViewById(R.id.textView2);
 
         // Initialize lists
         enteredEvents = new ArrayList<>();
@@ -160,6 +170,14 @@ public class HomeFragment extends Fragment {
                     .addToBackStack(null)
                     .commit();
         });
+
+        // Set up filter button click listener
+        if (btnFilterEvents != null) {
+            btnFilterEvents.setOnClickListener(v -> showFilterBottomSheet());
+        }
+
+        // Update filter indicator on view creation
+        updateFilterIndicator();
 
         // Load events after view is fully created
         // Use post to ensure view is attached to window
@@ -503,6 +521,25 @@ public class HomeFragment extends Fragment {
                   ", Waitlist: " + waitlistEventIds.size() + 
                   ", Invited: " + invitedEventIds.size() + 
                   ", Accepted: " + acceptedEventIds.size());
+
+        // Prepare filter dates ONCE before the loop starts (performance optimization)
+        Calendar startNormalized = null;
+        if (filterStartDate != null) {
+            startNormalized = (Calendar) filterStartDate.clone();
+            startNormalized.set(Calendar.HOUR_OF_DAY, 0);
+            startNormalized.set(Calendar.MINUTE, 0);
+            startNormalized.set(Calendar.SECOND, 0);
+            startNormalized.set(Calendar.MILLISECOND, 0);
+        }
+
+        Calendar endNormalized = null;
+        if (filterEndDate != null) {
+            endNormalized = (Calendar) filterEndDate.clone();
+            endNormalized.set(Calendar.HOUR_OF_DAY, 0);
+            endNormalized.set(Calendar.MINUTE, 0);
+            endNormalized.set(Calendar.SECOND, 0);
+            endNormalized.set(Calendar.MILLISECOND, 0);
+        }
         
         for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
             try {
@@ -610,8 +647,52 @@ public class HomeFragment extends Fragment {
                           ", Accepted? " + acceptedEventIds.contains(eventId));
 
                 if (registrationStarted && registrationOpen) {
-                    upcomingEvents.add(event);
-                    Log.d(TAG, "✓ Added event to upcoming: " + event.getName() + " (ID: " + eventId + ")");
+                    // Apply date range filter if set
+                    boolean passesDateFilter = true;
+                    if (event.getEventDate() != null) {
+                        try {
+                            // Normalize event date to start of day for comparison
+                            Calendar eventDateNormalized = (Calendar) event.getEventDate().clone();
+                            eventDateNormalized.set(Calendar.HOUR_OF_DAY, 0);
+                            eventDateNormalized.set(Calendar.MINUTE, 0);
+                            eventDateNormalized.set(Calendar.SECOND, 0);
+                            eventDateNormalized.set(Calendar.MILLISECOND, 0);
+
+                            // Check start date filter (using pre-normalized filter date)
+                            if (startNormalized != null) {
+                                if (eventDateNormalized.before(startNormalized)) {
+                                    passesDateFilter = false;
+                                    Log.d(TAG, "Event filtered out by start date: " + event.getName());
+                                }
+                            }
+
+                            // Check end date filter (using pre-normalized filter date)
+                            if (endNormalized != null && passesDateFilter) {
+                                if (eventDateNormalized.after(endNormalized)) {
+                                    passesDateFilter = false;
+                                    Log.d(TAG, "Event filtered out by end date: " + event.getName());
+                                }
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error applying date filter for event: " + eventId, e);
+                            // Default to passing filter if error occurs
+                            passesDateFilter = true;
+                        }
+                    } else {
+                        // If event has no date and filters are set, exclude it
+                        // (In reality, events should always have dates, but we handle this defensively)
+                        if (startNormalized != null || endNormalized != null) {
+                            passesDateFilter = false;
+                            Log.d(TAG, "Event filtered out - no event date: " + event.getName());
+                        }
+                    }
+
+                    if (passesDateFilter) {
+                        upcomingEvents.add(event);
+                        Log.d(TAG, "✓ Added event to upcoming: " + event.getName() + " (ID: " + eventId + ")");
+                    } else {
+                        Log.d(TAG, "✗ Event filtered out by date range: " + event.getName());
+                    }
                 } else {
                     Log.d(TAG, "✗ Event filtered out: " + event.getName() + " - registrationStarted: " + registrationStarted + ", registrationOpen: " + registrationOpen);
                 }
@@ -623,13 +704,22 @@ public class HomeFragment extends Fragment {
 
         Log.d(TAG, "After filtering: " + upcomingEvents.size() + " upcoming events");
 
-        // Sort by event date
+        // Sort by event date (events without dates go to the end)
         try {
             upcomingEvents.sort((e1, e2) -> {
                 try {
                     if (e1 == null || e2 == null) return 0;
-                    if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
-                    return e1.getEventDate().compareTo(e2.getEventDate());
+                    Calendar d1 = e1.getEventDate();
+                    Calendar d2 = e2.getEventDate();
+                    
+                    // Both have no date - treat as equal
+                    if (d1 == null && d2 == null) return 0;
+                    // e1 has no date - put it at the end
+                    if (d1 == null) return 1;
+                    // e2 has no date - put it at the end
+                    if (d2 == null) return -1;
+                    // Both have dates - normal sort
+                    return d1.compareTo(d2);
                 } catch (Exception e) {
                     Log.e(TAG, "Error sorting events", e);
                     return 0;
@@ -640,6 +730,50 @@ public class HomeFragment extends Fragment {
         }
 
         updateUpcomingEventsUI();
+    }
+
+    private void showFilterBottomSheet() {
+        EventFilterBottomSheet filterSheet = EventFilterBottomSheet.newInstance(new EventFilterBottomSheet.FilterCallback() {
+            @Override
+            public void onFilterApplied(Calendar startDate, Calendar endDate) {
+                filterStartDate = startDate != null ? (Calendar) startDate.clone() : null;
+                filterEndDate = endDate != null ? (Calendar) endDate.clone() : null;
+                updateFilterIndicator();
+                // Reload events with new filter
+                loadUpcomingEvents();
+            }
+
+            @Override
+            public void onFiltersCleared() {
+                filterStartDate = null;
+                filterEndDate = null;
+                updateFilterIndicator();
+                // Reload events without filter
+                loadUpcomingEvents();
+            }
+        });
+
+        // Set initial dates if filters are already active
+        if (filterStartDate != null || filterEndDate != null) {
+            filterSheet.setInitialDates(filterStartDate, filterEndDate);
+        }
+
+        filterSheet.show(getParentFragmentManager(), "EventFilterBottomSheet");
+    }
+
+    private void updateFilterIndicator() {
+        if (getView() == null || textView2 == null || getContext() == null) return;
+
+        boolean hasActiveFilters = filterStartDate != null || filterEndDate != null;
+        if (hasActiveFilters) {
+            // Show visual indicator that filters are active
+            textView2.setText("Upcoming Events (Filtered)");
+            textView2.setTextColor(ContextCompat.getColor(requireContext(), R.color.filter_active_orange));
+        } else {
+            // Reset to normal
+            textView2.setText("Upcoming Events");
+            textView2.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_default_blue));
+        }
     }
 
     private void loadEnteredEvents(String deviceId) {
