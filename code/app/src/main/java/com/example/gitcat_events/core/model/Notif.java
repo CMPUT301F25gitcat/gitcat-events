@@ -1,12 +1,13 @@
 package com.example.gitcat_events.core.model;
 
-import java.util.Date;
+import androidx.annotation.Nullable;
 
+import java.util.Date;
 public class Notif {
     private String title;
     private String description;
     private Date date;
-    // TODO: add some other fields in the future such as event details and which users receive, etc.
+    private String documentId;
 
     public Notif(String title, String description, Date date) {
         this.title = title;
@@ -36,5 +37,11 @@ public class Notif {
 
     public void setDate(Date date) {
         this.date = date;
+    }
+    public String getDocumentId() {
+        return documentId;
+    }
+    public void setDocumentId(@Nullable String documentId) {
+        this.documentId = documentId;
     }
 }

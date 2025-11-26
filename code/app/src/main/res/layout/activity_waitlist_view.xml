@@ -108,7 +108,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/textInputLayout"
                 android:layout_width="match_parent"
-                android:layout_height="40dp">
+                android:layout_height="70dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/waitingListNotifTitleText"
@@ -120,7 +120,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/textInputLayout2"
                 android:layout_width="match_parent"
-                android:layout_height="140dp">
+                android:layout_height="110dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/waitingListNotifDescription"
@@ -130,7 +130,7 @@
             </com.google.android.material.textfield.TextInputLayout>
 
             <Button
-                android:id="@+id/button2"
+                android:id="@+id/waitingListSendNotif"
                 android:layout_width="match_parent"
                 android:layout_height="70dp"
                 android:layout_marginTop="0dp"

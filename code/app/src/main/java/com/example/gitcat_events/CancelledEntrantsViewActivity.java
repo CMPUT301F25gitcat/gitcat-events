@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -13,15 +14,21 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.SetOptions;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Activity to display the cancelled/declined entrants for an event (organizer only)
@@ -41,6 +48,9 @@ public class CancelledEntrantsViewActivity extends AppCompatActivity {
     private String eventName;
     private CancelledListAdapter adapter;
     private List<CancelledEntryDisplay> cancelledEntries;
+    private TextInputEditText notifTitle;
+    private TextInputEditText notifDescription;
+    private Button sendNotifButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +75,9 @@ public class CancelledEntrantsViewActivity extends AppCompatActivity {
         tvCancelledListEmpty = findViewById(R.id.tvCancelledListEmpty);
         tvCancelledListCount = findViewById(R.id.tvCancelledListCount);
         TextView tvEventName = findViewById(R.id.tvEventName);
+        notifTitle=findViewById(R.id.cancelledListNotifTitleText);
+        notifDescription=findViewById(R.id.cancelledListNotifDescription);
+        sendNotifButton = findViewById(R.id.cancelledListSendNotif);
 
         // Set event name
         if (eventName != null) {
@@ -81,11 +94,58 @@ public class CancelledEntrantsViewActivity extends AppCompatActivity {
 
         // Setup back button
         btnBack.setOnClickListener(v -> finish());
-
+        // Setup notif button
+        sendNotifButton.setOnClickListener(view -> {
+            addNotificationToFirestore(notifTitle.getText().toString(), notifDescription.getText().toString(), eventId);
+        });
         // Load cancelled list
         loadCancelledList();
     }
+    private void addNotificationToFirestore(String title, String description, String eventId) {
+        if (title.equals("")) {
+            Toast.makeText(this, "Must create title for the notification.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
+        DocumentReference countDocRef = db.collection("events").document(eventId).collection("cancelled_list").document("count");
+        DocumentReference notifIdDocRef = db.collection("events").document(eventId).collection("cancelled_list").document("notifID");
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("title", title);
+        data.put("description", description);
+        data.put("timestamp", FieldValue.serverTimestamp());
+
+        db.runTransaction(transaction -> {
+            // Get the count document
+            DocumentSnapshot countSnapshot = transaction.get(countDocRef);
+
+            long currentCount = 0;
+            if (!countSnapshot.exists()) {
+                Map<String, Object> countData = new HashMap<>();
+                countData.put("count", 1L); // Start with 1
+                transaction.set(countDocRef, countData);
+            } else {
+                currentCount = countSnapshot.getLong("count");
+                transaction.update(countDocRef, "count", currentCount + 1);
+            }
+
+            Map<String, Object> notifIdData = new HashMap<>();
+            notifIdData.put("createdAt", FieldValue.serverTimestamp());
+            notifIdData.put("lastUpdated", FieldValue.serverTimestamp());
+            transaction.set(notifIdDocRef, notifIdData, SetOptions.merge());
+
+            DocumentReference notifDocRef = notifIdDocRef.collection("notifItems").document(String.valueOf(currentCount));
+            transaction.set(notifDocRef, data);
+
+            return currentCount;
+        }).addOnSuccessListener(result -> {
+            Log.d("TAG", "Notification added successfully with count: " + result);
+            Toast.makeText(this, "Notification send to cancelled entrants!", Toast.LENGTH_SHORT).show();
+        }).addOnFailureListener(e -> {
+            Log.w("TAG", "Transaction failure: ", e);
+            Toast.makeText(this, "Failed to add notification!", Toast.LENGTH_SHORT).show();
+        });
+    }
     private void loadCancelledList() {
         db.collection("events").document(eventId)
                 .collection("cancelled_list")

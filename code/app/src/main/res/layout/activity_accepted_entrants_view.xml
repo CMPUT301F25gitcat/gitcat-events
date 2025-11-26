@@ -135,7 +135,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/textInputLayout"
                 android:layout_width="match_parent"
-                android:layout_height="40dp">
+                android:layout_height="70dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/acceptedListNotifTitleText"
@@ -147,7 +147,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/textInputLayout2"
                 android:layout_width="match_parent"
-                android:layout_height="140dp">
+                android:layout_height="110dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/acceptedListNotifDescription"
@@ -157,11 +157,11 @@
             </com.google.android.material.textfield.TextInputLayout>
 
             <Button
-                android:id="@+id/button2"
+                android:id="@+id/AcceptedListSendNotif"
                 android:layout_width="match_parent"
                 android:layout_height="70dp"
                 android:layout_marginTop="0dp"
-                android:backgroundTint="#9C27B0"
+                android:backgroundTint="@android:color/holo_green_dark"
                 android:text="Send Notifications To Entrants"
                 app:cornerRadius="0dp" />
         </LinearLayout>

@@ -22,9 +22,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.model.DocumentCollections;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -33,9 +39,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Activity to display the accepted/enrolled entrants for an event (organizer only)
@@ -58,6 +67,9 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
     private int eventCapacity;
     private AcceptedListAdapter adapter;
     private List<AcceptedEntryDisplay> acceptedEntries;
+    private TextInputEditText notifTitle;
+    private TextInputEditText notifDescription;
+    private Button sendNotifButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,7 +97,9 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
         tvCapacityInfo = findViewById(R.id.tvCapacityInfo);
         btnExportCsv = findViewById(R.id.btnExportCsv);
         TextView tvEventName = findViewById(R.id.tvEventName);
-
+        notifTitle=findViewById(R.id.acceptedListNotifTitleText);
+        notifDescription=findViewById(R.id.acceptedListNotifDescription);
+        sendNotifButton = findViewById(R.id.AcceptedListSendNotif);
         // Set event name
         if (eventName != null) {
             tvEventName.setText(eventName + " - Enrolled Entrants");
@@ -105,10 +119,59 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
         // Setup export CSV button
         btnExportCsv.setOnClickListener(v -> exportToCsv());
 
+        // Setup notif button
+        sendNotifButton.setOnClickListener(view -> {
+            addNotificationToFirestore(notifTitle.getText().toString(), notifDescription.getText().toString(), eventId);
+        });
         // Load accepted list
         loadAcceptedList();
     }
+    private void addNotificationToFirestore(String title, String description, String eventId) {
+        Log.d("actually went here", eventId);
+        if (title.equals("")) {
+            Toast.makeText(this, "Must create title for the notification.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
+        DocumentReference countDocRef = db.collection("events").document(eventId).collection("acceptedList").document("count");
+        DocumentReference notifIdDocRef = db.collection("events").document(eventId).collection("acceptedList").document("notifID");
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("title", title);
+        data.put("description", description);
+        data.put("timestamp", FieldValue.serverTimestamp());
+
+        db.runTransaction(transaction -> {
+            // Get the count document
+            DocumentSnapshot countSnapshot = transaction.get(countDocRef);
+
+            long currentCount = 0;
+            if (!countSnapshot.exists()) {
+                Map<String, Object> countData = new HashMap<>();
+                countData.put("count", 1L); // Start with 1
+                transaction.set(countDocRef, countData);
+            } else {
+                currentCount = countSnapshot.getLong("count");
+                transaction.update(countDocRef, "count", currentCount + 1);
+            }
+
+            Map<String, Object> notifIdData = new HashMap<>();
+            notifIdData.put("createdAt", FieldValue.serverTimestamp());
+            notifIdData.put("lastUpdated", FieldValue.serverTimestamp());
+            transaction.set(notifIdDocRef, notifIdData, SetOptions.merge());
+
+            DocumentReference notifDocRef = notifIdDocRef.collection("notifItems").document(String.valueOf(currentCount));
+            transaction.set(notifDocRef, data);
+
+            return currentCount;
+        }).addOnSuccessListener(result -> {
+            Log.d("TAG", "Notification added successfully with count: " + result);
+            Toast.makeText(this, "Notification added to accepted entrants!", Toast.LENGTH_SHORT).show();
+        }).addOnFailureListener(e -> {
+            Log.w("TAG", "Transaction failure: ", e);
+            Toast.makeText(this, "Failed to add notification!", Toast.LENGTH_SHORT).show();
+        });
+    }
     private void loadAcceptedList() {
         db.collection("events").document(eventId)
                 .collection("acceptedList")
