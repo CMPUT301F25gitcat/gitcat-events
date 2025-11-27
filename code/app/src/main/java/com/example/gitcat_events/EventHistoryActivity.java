@@ -1,9 +1,6 @@
 package com.example.gitcat_events;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
@@ -15,7 +12,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.gitcat_events.core.model.Event;
 import com.example.gitcat_events.features.event.ui.EventArrayAdapter;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -26,10 +22,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 public class EventHistoryActivity extends AppCompatActivity {
     private static final String TAG = "HomeFragment";
@@ -99,107 +93,104 @@ public class EventHistoryActivity extends AppCompatActivity {
         Task cancelled = db.collectionGroup("cancelled_list").whereEqualTo("userDeviceId", deviceId).get();
         Task waitlisted = db.collectionGroup("waitlist").whereEqualTo("userDeviceId", deviceId).get();
 
-        Task getHistory = Tasks.whenAllSuccess(invited, accepted, cancelled, waitlisted)
-                .addOnSuccessListener(historySnapshot -> {
-                    if (findViewById(android.R.id.content).getRootView() == null) {
-                        Log.w(TAG, "Activity view destroyed during loadPendingInvitations");
-                        return;
-                    }
+        if (enteredEvents == null) {
+            enteredEvents = new ArrayList<>();
+        }
+        Set<String> eventIds = new HashSet<>();
 
-                    if (historySnapshot == null || historySnapshot.isEmpty()) {
-                        updateAllEntriesUI();
+        //add invited event ids to enteredEvents
+        db.collectionGroup("invitation_list")
+                .whereEqualTo("userDeviceId", deviceId)
+                .get()
+                .addOnSuccessListener(acceptedSnapshot -> {
+                    /*if (getView() == null) {
+                        Log.w(TAG, "Fragment view destroyed during loadEnteredEvents");
                         return;
-                    }
+                    }*/
 
-                    // Collect event IDs
-                    Set<String> EventIds = new HashSet<>();
                     try {
-                        for (Object doc : historySnapshot) {
-                            System.out.println("HEY LOOK HERE!!!!");
-                            System.out.println(doc.toString());
-                            System.out.println(doc.getClass());
-                            //String status = doc.getString("status");
-                            /*String eventId = doc.getString("eventId");
-                            // Only show events with "pending" status
-                            if (eventId != null) {
-                                EventIds.add(eventId);
-                            }*/
+                        // Collect all event IDs from accepted list
+                        if (acceptedSnapshot != null) {
+                            for (QueryDocumentSnapshot doc : acceptedSnapshot) {
+                                String eventId = doc.getString("eventId");
+                                if (eventId != null) {
+                                    eventIds.add(eventId);
+                                }
+                            }
                         }
                     } catch (Exception e) {
-                        Log.e(TAG, "Error processing history snapshot", e);
-                        updateAllEntriesUI();
-                        return;
-                    }
-
-                    if (EventIds.isEmpty()) {
-                        updateAllEntriesUI();
-                        return;
-                    }
-
-                    // Load event details for each event
-                    final int[] completed = {0};
-                    final int total = EventIds.size();
-
-                    if (enteredEvents == null) {
-                        enteredEvents = new ArrayList<>();
-                    }
-
-                    for (String eventId : EventIds) {
-                        db.collection("events").document(eventId)
-                                .get()
-                                .addOnSuccessListener(eventDoc -> {
-                                    if (findViewById(android.R.id.content).getRootView() == null) {
-                                        return;
-                                    }
-
-                                    if (eventDoc != null && eventDoc.exists()) {
-                                        try {
-                                            Event event = parseEvent(eventDoc);
-                                            if (event != null && enteredEvents != null) {
-                                                enteredEvents.add(event);
-                                            }
-                                        } catch (Exception e) {
-                                            Log.e(TAG, "Error parsing invitation event", e);
-                                        }
-                                    }
-
-                                    completed[0]++;
-                                    if (completed[0] == total && findViewById(android.R.id.content).getRootView() != null) {
-                                        // Sort by event date
-                                        try {
-                                            if (enteredEvents != null) {
-                                                enteredEvents.sort((e1, e2) -> {
-                                                    try {
-                                                        if (e1 == null || e2 == null) return 0;
-                                                        if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
-                                                        return e1.getEventDate().compareTo(e2.getEventDate());
-                                                    } catch (Exception e) {
-                                                        Log.e(TAG, "Error sorting pending invitations", e);
-                                                        return 0;
-                                                    }
-                                                });
-                                            }
-                                        } catch (Exception e) {
-                                            Log.e(TAG, "Error sorting pending invitations list", e);
-                                        }
-                                        updateAllEntriesUI();
-                                    }
-                                })
-                                .addOnFailureListener(e -> {
-                                    Log.e(TAG, "Error loading invitation event: " + eventId, e);
-                                    completed[0]++;
-                                    if (completed[0] == total && findViewById(android.R.id.content).getRootView() != null) {
-                                        updateAllEntriesUI();
-                                    }
-                                });
+                        Log.e(TAG, "Error processing accepted events snapshot", e);
                     }
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error loading pending invitations", e);
-                    if (findViewById(android.R.id.content).getRootView() != null) {
-                        updateAllEntriesUI();
-                    }
+                    Log.e(TAG, "Error loading accepted events", e);
                 });
+        //add accepted event ids to enteredEvents
+
+        //add cancelled event ids to enteredEvents
+        db.collectionGroup("acceptedList")
+                .whereEqualTo("userDeviceId", deviceId)
+                .get()
+                .addOnSuccessListener(acceptedSnapshot -> {
+                    /*if (getView() == null) {
+                        Log.w(TAG, "Fragment view destroyed during loadEnteredEvents");
+                        return;
+                    }*/
+
+                    try {
+                        // Collect all event IDs from accepted list
+                        if (acceptedSnapshot != null) {
+                            for (QueryDocumentSnapshot doc : acceptedSnapshot) {
+                                String eventId = doc.getString("eventId");
+                                if (eventId != null) {
+                                    eventIds.add(eventId);
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error processing accepted events snapshot", e);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error loading accepted events", e);
+                });
+
+        //add waitlisted events ids to enteredEvents
+        db.collectionGroup("waitlist")
+                .whereEqualTo("userDeviceId", deviceId)
+                .get()
+                .addOnSuccessListener(acceptedSnapshot -> {
+                    /*if (getView() == null) {
+                        Log.w(TAG, "Fragment view destroyed during loadEnteredEvents");
+                        return;
+                    }*/
+
+                    try {
+                        // Collect all event IDs from accepted list
+                        if (acceptedSnapshot != null) {
+                            for (QueryDocumentSnapshot doc : acceptedSnapshot) {
+                                String eventId = doc.getString("eventId");
+                                if (eventId != null) {
+                                    eventIds.add(eventId);
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error processing accepted events snapshot", e);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error loading accepted events", e);
+                });
+        System.out.println("Debug: events");
+        for (String eventId : eventIds) {
+            System.out.println(eventId);
+        }
+        //sort by ids descending
+
+        //load events
+        loadEventDetails(eventIds);
+
     }
 
     private void loadEventDetails(Set<String> eventIds) {
