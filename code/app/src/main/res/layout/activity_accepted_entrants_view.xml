@@ -3,16 +3,16 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#F5F5F5">
+    android:background="@color/UI_color_1_light"
+    android:orientation="vertical">
 
     <!-- Header -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/holo_green_dark"
-        android:padding="16dp"
-        android:elevation="4dp">
+        android:background="@color/UI_color_2_dark"
+        android:elevation="4dp"
+        android:padding="16dp">
 
         <ImageButton
             android:id="@+id/btnBack"
@@ -21,9 +21,9 @@
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_close_clear_cancel"
             android:contentDescription="Back"
-            app:tint="@android:color/white" />
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            app:tint="@color/UI_color_2_text_light" />
 
         <TextView
             android:id="@+id/tvEventName"
@@ -31,7 +31,7 @@
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:text="Enrolled Entrants"
-            android:textColor="@android:color/white"
+            android:textColor="@color/UI_color_2_text_light"
             android:textSize="20sp"
             android:textStyle="bold" />
     </RelativeLayout>
@@ -40,23 +40,23 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@color/UI_color_1_med"
         android:orientation="vertical"
-        android:padding="16dp"
-        android:background="@android:color/white">
+        android:padding="16dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:layout_marginBottom="8dp"
             android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
+            android:orientation="horizontal">
 
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@android:drawable/checkbox_on_background"
                 android:layout_marginEnd="8dp"
-                app:tint="@android:color/holo_green_dark" />
+                android:src="@android:drawable/checkbox_on_background"
+                app:tint="@color/UI_color_2_dark" />
 
             <TextView
                 android:id="@+id/tvAcceptedListCount"
@@ -64,9 +64,9 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Total Enrolled: 0"
+                android:textColor="@color/UI_color_1_text_light"
                 android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/black" />
+                android:textStyle="bold" />
 
             <!-- Map View Button -->
             <Button
@@ -86,12 +86,12 @@
                 android:id="@+id/btnExportCsv"
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
-                android:text="📄 Export CSV"
-                android:textSize="12sp"
-                android:textColor="@android:color/white"
-                android:backgroundTint="@android:color/holo_green_dark"
+                android:backgroundTint="@color/UI_color_2_dark"
                 android:paddingStart="12dp"
-                android:paddingEnd="12dp" />
+                android:paddingEnd="12dp"
+                android:text="📄 Export CSV"
+                android:textColor="@android:color/white"
+                android:textSize="12sp" />
         </LinearLayout>
 
         <!-- Capacity Info -->
@@ -100,8 +100,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Capacity: 0 / 0"
+            android:textColor="@color/UI_color_1_text_light"
             android:textSize="14sp"
-            android:textColor="@android:color/darker_gray"
             android:visibility="gone" />
     </LinearLayout>
 
@@ -118,8 +118,8 @@
         android:gravity="center"
         android:text="No enrolled entrants yet\n\n📋 Run the raffle to select participants\n✉️ Selected participants must accept their invitations"
         android:textAlignment="center"
+        android:textColor="@color/UI_color_1_text_dark"
         android:textSize="16sp"
-        android:textColor="@android:color/darker_gray"
         android:visibility="gone" />
 
     <LinearLayout
