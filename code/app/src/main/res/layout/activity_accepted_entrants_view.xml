@@ -3,14 +3,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/UI_color_1_light"
     android:orientation="vertical">
 
     <!-- Header -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/UI_color_2_dark"
+        android:background="@color/background_color"
         android:elevation="4dp"
         android:padding="16dp">
 
@@ -20,10 +19,9 @@
             android:layout_height="40dp"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:background="@color/button_color"
             android:contentDescription="Back"
-            android:src="@android:drawable/ic_menu_close_clear_cancel"
-            app:tint="@color/UI_color_2_text_light" />
+            android:src="@android:drawable/ic_menu_close_clear_cancel" />
 
         <TextView
             android:id="@+id/tvEventName"
@@ -31,7 +29,7 @@
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:text="Enrolled Entrants"
-            android:textColor="@color/UI_color_2_text_light"
+            android:textColor="@color/text_color_colored"
             android:textSize="20sp"
             android:textStyle="bold" />
     </RelativeLayout>
@@ -40,7 +38,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/UI_color_1_med"
+        android:background="@color/container_color"
         android:orientation="vertical"
         android:padding="16dp">
 
@@ -56,7 +54,7 @@
                 android:layout_height="24dp"
                 android:layout_marginEnd="8dp"
                 android:src="@android:drawable/checkbox_on_background"
-                app:tint="@color/UI_color_2_dark" />
+                app:tint="@color/button_color" />
 
             <TextView
                 android:id="@+id/tvAcceptedListCount"
@@ -64,7 +62,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Total Enrolled: 0"
-                android:textColor="@color/UI_color_1_text_light"
+                android:textColor="@color/text_color_dark"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
@@ -86,11 +84,11 @@
                 android:id="@+id/btnExportCsv"
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
-                android:backgroundTint="@color/UI_color_2_dark"
+                android:backgroundTint="@color/button_color"
                 android:paddingStart="12dp"
                 android:paddingEnd="12dp"
                 android:text="📄 Export CSV"
-                android:textColor="@android:color/white"
+                android:textColor="@color/text_color_light"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -100,7 +98,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Capacity: 0 / 0"
-            android:textColor="@color/UI_color_1_text_light"
+            android:textColor="@color/text_color_dark"
             android:textSize="14sp"
             android:visibility="gone" />
     </LinearLayout>
@@ -118,7 +116,7 @@
         android:gravity="center"
         android:text="No enrolled entrants yet\n\n📋 Run the raffle to select participants\n✉️ Selected participants must accept their invitations"
         android:textAlignment="center"
-        android:textColor="@color/UI_color_1_text_dark"
+        android:textColor="@color/text_color_dark"
         android:textSize="16sp"
         android:visibility="gone" />
 
