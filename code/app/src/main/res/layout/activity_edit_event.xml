@@ -4,11 +4,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/background_color"
     tools:context=".EditEventActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@color/background_color"
         android:orientation="vertical"
         android:padding="24dp">
 
@@ -27,14 +29,14 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Back"
                 android:src="@android:drawable/ic_menu_close_clear_cancel"
-                android:tint="?attr/colorPrimary" />
+                android:tint="@color/button_color" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_centerInParent="true"
                 android:text="Edit Event"
-                android:textColor="?attr/colorPrimary"
+                android:textColor="@color/text_color_colored"
                 android:textSize="24sp"
                 android:textStyle="bold" />
         </RelativeLayout>
@@ -44,7 +46,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
             android:text="Update your event details below"
-            android:textColor="@android:color/darker_gray"
+            android:textColor="@color/text_color_medium"
             android:textSize="14sp" />
 
         <!-- Event Poster -->
@@ -54,6 +56,7 @@
             android:layout_marginLeft="20dp"
             android:layout_marginBottom="8dp"
             android:text="Event Poster"
+            android:textColorLink="@color/text_color_dark"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -79,7 +82,9 @@
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Change Poster Image" />
+                android:text="Change Poster Image"
+                android:textColor="@color/button_color"
+                app:strokeColor="@color/button_color" />
 
         </LinearLayout>
 
@@ -88,7 +93,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_margin="20dp"
-            app:cardBackgroundColor="#CAD6FF"
+            app:cardBackgroundColor="@color/container_color"
             app:cardCornerRadius="20dp"
             app:cardElevation="8dp">
 
@@ -107,9 +112,14 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:hint="Event Name *"
-                    app:boxStrokeColor="#6851A4"
+                    android:textColorHint="@color/button_color"
+                    app:boxStrokeColor="@color/button_color"
                     app:boxStrokeWidth="2dp"
-                    app:boxStrokeWidthFocused="3dp">
+                    app:boxStrokeWidthFocused="3dp"
+                    app:counterTextColor="@color/button_color"
+                    app:helperTextTextColor="@color/button_color"
+                    app:hintTextColor="@color/button_color"
+                    app:placeholderTextColor="@color/button_color">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etEventName"
@@ -124,9 +134,14 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:hint="Description *"
-                    app:boxStrokeColor="#6850A4"
+                    android:textColorHint="@color/button_color"
+                    app:boxStrokeColor="@color/button_color"
                     app:boxStrokeWidth="2dp"
-                    app:boxStrokeWidthFocused="3dp">
+                    app:boxStrokeWidthFocused="3dp"
+                    app:counterTextColor="@color/button_color"
+                    app:helperTextTextColor="@color/button_color"
+                    app:hintTextColor="@color/button_color"
+                    app:placeholderTextColor="@color/button_color">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etEventDescription"
@@ -143,9 +158,14 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:hint="Event Capacity (Final List Size) *"
-                    app:boxStrokeColor="#6850a4"
+                    android:textColorHint="@color/button_color"
+                    app:boxStrokeColor="@color/button_color"
                     app:boxStrokeWidth="2dp"
-                    app:boxStrokeWidthFocused="3dp">
+                    app:boxStrokeWidthFocused="3dp"
+                    app:counterTextColor="@color/button_color"
+                    app:helperTextTextColor="@color/button_color"
+                    app:hintTextColor="@color/button_color"
+                    app:placeholderTextColor="@color/button_color">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etCapacity"
@@ -160,9 +180,14 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:hint="Max Waitlist Size (Optional)"
-                    app:boxStrokeColor="#6850a4"
+                    android:textColorHint="@color/button_color"
+                    app:boxStrokeColor="@color/button_color"
                     app:boxStrokeWidth="2dp"
-                    app:boxStrokeWidthFocused="3dp">
+                    app:boxStrokeWidthFocused="3dp"
+                    app:counterTextColor="@color/button_color"
+                    app:helperTextTextColor="@color/button_color"
+                    app:hintTextColor="@color/button_color"
+                    app:placeholderTextColor="@color/button_color">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etMaxWaitlist"
@@ -176,6 +201,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     android:text="Registration Opens *"
+                    android:textColor="@color/text_color_dark"
                     android:textSize="14sp"
                     android:textStyle="bold" />
 
@@ -192,18 +218,20 @@
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="8dp"
                         android:layout_weight="1"
-                        android:text="Select Start Date" />
+                        android:text="Select Start Date"
+                        android:textColor="@color/button_color"
+                        app:strokeColor="@color/button_color" />
 
                     <TextView
                         android:id="@+id/tvRegistrationStartDateDisplay"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:background="@android:color/darker_gray"
+                        android:background="@color/text_color_medium"
                         android:gravity="center"
                         android:padding="12dp"
                         android:text="Not selected"
-                        android:textColor="@android:color/white"
+                        android:textColor="@color/text_color_light"
                         android:textSize="14sp" />
                 </LinearLayout>
 
@@ -212,6 +240,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
                     android:text="Final Registration Date *"
+                    android:textColor="@color/text_color_dark"
                     android:textSize="14sp"
                     android:textStyle="bold" />
 
@@ -220,7 +249,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     android:text="Registration closes on this date. You can then run the raffle manually."
-                    android:textColor="#85000000"
+                    android:textColor="@color/text_color_medium"
                     android:textSize="12sp" />
 
                 <LinearLayout
@@ -236,18 +265,20 @@
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="8dp"
                         android:layout_weight="1"
-                        android:text="Select Registration Deadline" />
+                        android:text="Select Registration Deadline"
+                        android:textColor="@color/button_color"
+                        app:strokeColor="@color/button_color" />
 
                     <TextView
                         android:id="@+id/tvRaffleDateDisplay"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:background="@android:color/darker_gray"
+                        android:background="@color/text_color_medium"
                         android:gravity="center"
                         android:padding="12dp"
                         android:text="Not selected"
-                        android:textColor="@android:color/white"
+                        android:textColor="@color/text_color_light"
                         android:textSize="14sp" />
                 </LinearLayout>
 
@@ -256,6 +287,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     android:text="Event Date *"
+                    android:textColor="@color/text_color_dark"
                     android:textSize="14sp"
                     android:textStyle="bold" />
 
@@ -272,18 +304,20 @@
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="8dp"
                         android:layout_weight="1"
-                        android:text="Select Event Date" />
+                        android:text="Select Event Date"
+                        android:textColor="@color/button_color"
+                        app:strokeColor="@color/button_color" />
 
                     <TextView
                         android:id="@+id/tvEventDateDisplay"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:background="@android:color/darker_gray"
+                        android:background="@color/text_color_medium"
                         android:gravity="center"
                         android:padding="12dp"
                         android:text="Not selected"
-                        android:textColor="@android:color/white"
+                        android:textColor="@color/text_color_light"
                         android:textSize="14sp" />
                 </LinearLayout>
 
@@ -299,12 +333,15 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Require Geolocation?"
+                        android:textColor="@color/text_color_dark"
                         android:textSize="16sp" />
 
                     <com.google.android.material.switchmaterial.SwitchMaterial
                         android:id="@+id/switchGeoLocation"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
+                        android:layout_height="wrap_content"
+                        app:thumbTint="@color/text_color_light"
+                        app:trackTint="@color/button_color" />
                 </LinearLayout>
 
                 <TextView
@@ -313,7 +350,7 @@
                     android:layout_gravity="start"
                     android:layout_marginBottom="16dp"
                     android:text="* Required fields"
-                    android:textColor="#85000000"
+                    android:textColor="@color/text_color_medium"
                     android:textSize="12sp" />
 
                 <TextView
@@ -321,6 +358,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     android:text="Lottery Selection Guidelines"
+                    android:textColor="@color/text_color_dark"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
@@ -328,10 +366,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
+                    android:lineSpacingExtra="2dp"
                     android:text="Explain how participants will be selected (optional)\n\nExample: Random selection from all registered participants. All entrants have equal chance of being selected."
-                    android:textColor="#85000000"
-                    android:textSize="12sp"
-                    android:lineSpacingExtra="2dp" />
+                    android:textColor="@color/text_color_medium"
+                    android:textSize="12sp" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
@@ -339,10 +377,15 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="24dp"
                     android:hint="Selection Criteria"
-                    app:boxStrokeColor="#6850a4"
+                    android:textColorHint="@color/button_color"
+                    app:boxStrokeColor="@color/button_color"
                     app:boxStrokeWidth="2dp"
                     app:boxStrokeWidthFocused="3dp"
-                    app:hintEnabled="true">
+                    app:counterTextColor="@color/button_color"
+                    app:helperTextTextColor="@color/button_color"
+                    app:hintEnabled="true"
+                    app:hintTextColor="@color/button_color"
+                    app:placeholderTextColor="@color/button_color">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etSelectionCriteria"
@@ -352,8 +395,8 @@
                         android:inputType="textMultiLine|textCapSentences"
                         android:maxLines="8"
                         android:minLines="4"
-                        android:scrollbars="vertical"
-                        android:padding="12dp" />
+                        android:padding="12dp"
+                        android:scrollbars="vertical" />
                 </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
 
@@ -368,10 +411,10 @@
             android:layout_marginTop="30dp"
             android:layout_marginRight="20dp"
             android:layout_marginBottom="30dp"
+            android:backgroundTint="@android:color/holo_orange_dark"
             android:text="Update Event"
-            android:textColor="@android:color/white"
-            android:textSize="18sp"
-            android:backgroundTint="@android:color/holo_orange_dark" />
+            android:textColor="@color/text_color_light"
+            android:textSize="18sp" />
 
     </LinearLayout>
 </ScrollView>
