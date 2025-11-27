@@ -6,6 +6,7 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -17,6 +18,7 @@ import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -26,15 +28,17 @@ import java.util.List;
 import java.util.Set;
 
 public class EventHistoryActivity extends AppCompatActivity {
-    private static final String TAG = "HomeFragment";
-    private static final String PREFS = "app_prefs";
-    private EventArrayAdapter enteredEventsAdapter;
+    private static final String TAG = "EventHistoryActivity";
+
+    // UI Components
     private ListView entriesList;
     private TextView entriesEmpty;
     private ImageButton btnBack;
-    private FirebaseFirestore db;
+
+    // Data & Firebase
+    private EventArrayAdapter adapter;
     private ArrayList<Event> enteredEvents;
-    private String deviceID;
+    private FirebaseFirestore db;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -43,231 +47,137 @@ public class EventHistoryActivity extends AppCompatActivity {
 
         db = FirebaseFirestore.getInstance();
 
+        // Initializing
         entriesList = findViewById(R.id.entriesList);
         entriesEmpty = findViewById(R.id.entriesEmpty);
         btnBack = findViewById(R.id.btnBack);
 
-        //set up entries list
         enteredEvents = new ArrayList<>();
-        enteredEventsAdapter = new EventArrayAdapter(getApplicationContext(), enteredEvents);
+        adapter = new EventArrayAdapter(this, enteredEvents);
+        entriesList.setAdapter(adapter);
 
-        //show entries
-        //view.post(() -> {
-            //if (findViewById(android.R.id.content).getRootView() != null && isAdded()) {
-                loadEvents();
-            //}
-        //});
+        //  get deviceId from intent
+        String deviceId = getIntent().getStringExtra("deviceId");
 
+        if (deviceId != null) {
+            loadAllEntries(deviceId);
+        } else {
+            Log.e(TAG, "No Device ID passed to activity");
+            Toast.makeText(this, "Error: User ID missing", Toast.LENGTH_SHORT).show();
+        }
 
-        //close activity
+        // back button
         btnBack.setOnClickListener(v -> onBackPressed());
     }
 
-
-    private void loadEvents() {
-        if (findViewById(android.R.id.content).getRootView() == null) {
-            Log.w(TAG, "Fragment view is null, skipping loadEvents");
-            return;
-        }
-
-        String deviceId = getIntent().getStringExtra("deviceId");
-
-        // Load events user has entered (accepted invitations)
-        loadAllEntries(deviceId);
-    }
-    
     private void loadAllEntries(String deviceId) {
-        if (findViewById(android.R.id.content).getRootView() == null) {
-            Log.w(TAG, "Fragment view is null, skipping loadAllEntries");
-            return;
-        }
 
-        if (enteredEvents == null) {
-            enteredEvents = new ArrayList<>();
-        }
-        
-        enteredEvents.clear();
+        // get invited, accepted, waitlisted, and canceled events
+        Task<QuerySnapshot> taskInvites = db.collectionGroup("invitation_list")
+                .whereEqualTo("userDeviceId", deviceId).get();
 
-        Task invited = db.collectionGroup("invitation_list").whereEqualTo("userDeviceId", deviceId).get();
-        Task accepted = db.collectionGroup("acceptedList").whereEqualTo("userDeviceId", deviceId).get();
-        Task cancelled = db.collectionGroup("cancelled_list").whereEqualTo("userDeviceId", deviceId).get();
-        Task waitlisted = db.collectionGroup("waitlist").whereEqualTo("userDeviceId", deviceId).get();
+        Task<QuerySnapshot> taskAccepted = db.collectionGroup("acceptedList")
+                .whereEqualTo("userDeviceId", deviceId).get();
 
-        if (enteredEvents == null) {
-            enteredEvents = new ArrayList<>();
-        }
-        Set<String> eventIds = new HashSet<>();
+        Task<QuerySnapshot> taskWaitlist = db.collectionGroup("waitlist")
+                .whereEqualTo("userDeviceId", deviceId).get();
 
-        //add invited event ids to enteredEvents
-        db.collectionGroup("invitation_list")
-                .whereEqualTo("userDeviceId", deviceId)
-                .get()
-                .addOnSuccessListener(acceptedSnapshot -> {
-                    /*if (getView() == null) {
-                        Log.w(TAG, "Fragment view destroyed during loadEnteredEvents");
-                        return;
-                    }*/
+        /*currently unimplemented: canceled_events requires a COLLECTION_GROUP_ASC index
+        Task<QuerySnapshot> taskCancelled = db.collectionGroup("cancelled_list")
+                .whereEqualTo("userDeviceId", deviceId).get();*/
 
-                    try {
-                        // Collect all event IDs from accepted list
-                        if (acceptedSnapshot != null) {
-                            for (QueryDocumentSnapshot doc : acceptedSnapshot) {
+        // Wait for ALL tasks to complete
+        Tasks.whenAllSuccess(taskInvites, taskAccepted, taskWaitlist)
+                .addOnSuccessListener(results -> {
+
+
+                    if (isDestroyed() || isFinishing()) return;
+
+                    Set<String> uniqueEventIds = new HashSet<>();
+
+                    // 'results' is a list containing the result of each task in order
+                    List<QuerySnapshot> snapshots = (List<QuerySnapshot>) (List<?>) results;
+
+                    for (QuerySnapshot snapshot : snapshots) {
+                        if (snapshot != null) {
+                            for (QueryDocumentSnapshot doc : snapshot) {
                                 String eventId = doc.getString("eventId");
                                 if (eventId != null) {
-                                    eventIds.add(eventId);
+                                    uniqueEventIds.add(eventId);
                                 }
                             }
                         }
-                    } catch (Exception e) {
-                        Log.e(TAG, "Error processing accepted events snapshot", e);
+                    }
+
+                    Log.d(TAG, "Total unique events found: " + uniqueEventIds.size());
+
+                    if (uniqueEventIds.isEmpty()) {
+                        updateUIState(); // Show empty state
+                    } else {
+                        loadEventDetails(uniqueEventIds);
                     }
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error loading accepted events", e);
+                    Log.e(TAG, "Error querying lists", e);
+                    Toast.makeText(EventHistoryActivity.this, "Failed to load lists. Check Logs for Index link.", Toast.LENGTH_LONG).show();
                 });
-        //add accepted event ids to enteredEvents
-
-        //add cancelled event ids to enteredEvents
-        db.collectionGroup("acceptedList")
-                .whereEqualTo("userDeviceId", deviceId)
-                .get()
-                .addOnSuccessListener(acceptedSnapshot -> {
-                    /*if (getView() == null) {
-                        Log.w(TAG, "Fragment view destroyed during loadEnteredEvents");
-                        return;
-                    }*/
-
-                    try {
-                        // Collect all event IDs from accepted list
-                        if (acceptedSnapshot != null) {
-                            for (QueryDocumentSnapshot doc : acceptedSnapshot) {
-                                String eventId = doc.getString("eventId");
-                                if (eventId != null) {
-                                    eventIds.add(eventId);
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        Log.e(TAG, "Error processing accepted events snapshot", e);
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error loading accepted events", e);
-                });
-
-        //add waitlisted events ids to enteredEvents
-        db.collectionGroup("waitlist")
-                .whereEqualTo("userDeviceId", deviceId)
-                .get()
-                .addOnSuccessListener(acceptedSnapshot -> {
-                    /*if (getView() == null) {
-                        Log.w(TAG, "Fragment view destroyed during loadEnteredEvents");
-                        return;
-                    }*/
-
-                    try {
-                        // Collect all event IDs from accepted list
-                        if (acceptedSnapshot != null) {
-                            for (QueryDocumentSnapshot doc : acceptedSnapshot) {
-                                String eventId = doc.getString("eventId");
-                                if (eventId != null) {
-                                    eventIds.add(eventId);
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        Log.e(TAG, "Error processing accepted events snapshot", e);
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error loading accepted events", e);
-                });
-        System.out.println("Debug: events");
-        for (String eventId : eventIds) {
-            System.out.println(eventId);
-        }
-        //sort by ids descending
-
-        //load events
-        loadEventDetails(eventIds);
-
     }
 
     private void loadEventDetails(Set<String> eventIds) {
-        if (findViewById(android.R.id.content).getRootView() == null) {
-            Log.w(TAG, "Fragment view is null, skipping loadEventDetails");
-            return;
+        List<Task<DocumentSnapshot>> tasks = new ArrayList<>();
+
+        // Create a fetch task for every single event ID found
+        for (String id : eventIds) {
+            tasks.add(db.collection("events").document(id).get());
         }
 
-        if (eventIds == null || eventIds.isEmpty()) {
-            updateAllEntriesUI();
-            return;
-        }
+        // Wait for all individual event fetches to complete
+        Tasks.whenAllSuccess(tasks)
+                .addOnSuccessListener(objects -> {
+                    if (isDestroyed() || isFinishing()) return;
 
-        final int[] completed = {0};
-        final int total = eventIds.size();
+                    enteredEvents.clear();
 
-        if (enteredEvents == null) {
-            enteredEvents = new ArrayList<>();
-        }
-        enteredEvents.clear();
+                    // Convert results
+                    List<DocumentSnapshot> snapshots = (List<DocumentSnapshot>) (List<?>) objects;
 
-        for (String eventId : eventIds) {
-            db.collection("events").document(eventId)
-                    .get()
-                    .addOnSuccessListener(eventDoc -> {
-                        if (findViewById(android.R.id.content).getRootView() == null) {
-                            return;
-                        }
-
-                        if (eventDoc != null && eventDoc.exists()) {
-                            try {
-                                Event event = parseEvent(eventDoc);
-                                if (event != null && enteredEvents != null) {
-                                    enteredEvents.add(event);
-                                }
-                            } catch (Exception e) {
-                                Log.e(TAG, "Error parsing entered event", e);
+                    for (DocumentSnapshot doc : snapshots) {
+                        if (doc.exists()) {
+                            Event event = parseEvent(doc);
+                            if (event != null) {
+                                enteredEvents.add(event);
                             }
                         }
+                    }
 
-                        completed[0]++;
-                        if (completed[0] == total && findViewById(android.R.id.content).getRootView() != null) {
-                            // Sort by event date
-                            try {
-                                if (enteredEvents != null) {
-                                    enteredEvents.sort((e1, e2) -> {
-                                        try {
-                                            if (e1 == null || e2 == null) return 0;
-                                            if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
-                                            return e1.getEventDate().compareTo(e2.getEventDate());
-                                        } catch (Exception e) {
-                                            Log.e(TAG, "Error sorting entered events", e);
-                                            return 0;
-                                        }
-                                    });
-                                }
-                            } catch (Exception e) {
-                                Log.e(TAG, "Error sorting entered events list", e);
-                            }
-                            updateAllEntriesUI();
-                        }
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e(TAG, "Error loading event: " + eventId, e);
-                        completed[0]++;
-                        if (completed[0] == total && findViewById(android.R.id.content).getRootView() != null) {
-                            updateAllEntriesUI();
-                        }
-                    });
+                    // Sort events (Newest Date first)
+                    if (!enteredEvents.isEmpty()) {
+                        enteredEvents.sort((e1, e2) -> {
+                            if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
+                            return e2.getEventDate().compareTo(e1.getEventDate());
+                        });
+                    }
+
+                    updateUIState();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error loading event details", e);
+                });
+    }
+
+    private void updateUIState() {
+        if (enteredEvents.isEmpty()) {
+            entriesEmpty.setVisibility(View.VISIBLE);
+            entriesList.setVisibility(View.GONE);
+        } else {
+            entriesEmpty.setVisibility(View.GONE);
+            entriesList.setVisibility(View.VISIBLE);
+            adapter.notifyDataSetChanged();
         }
     }
 
     private Event parseEvent(DocumentSnapshot document) {
-        if (document == null || !document.exists()) {
-            Log.w(TAG, "Attempted to parse null or non-existent document");
-            return null;
-        }
+        if (document == null || !document.exists()) return null;
 
         try {
             Event event = new Event();
@@ -288,81 +198,27 @@ public class EventHistoryActivity extends AppCompatActivity {
             Boolean geoLocation = document.getBoolean("geoLocationRequired");
             event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
 
-            // Convert Date to Calendar with null checks
             Date registrationStartDate = document.getDate("registrationStartDate");
             if (registrationStartDate != null) {
                 Calendar regStartCal = Calendar.getInstance();
                 regStartCal.setTime(registrationStartDate);
                 event.setRegistrationStartDate(regStartCal);
-            } else {
-                event.setRegistrationStartDate(null);
             }
-
+            
             Date eventDate = document.getDate("eventDate");
             if (eventDate != null) {
-                Calendar eventCal = Calendar.getInstance();
-                eventCal.setTime(eventDate);
-                event.setEventDate(eventCal);
+                Calendar evtCal = Calendar.getInstance();
+                evtCal.setTime(eventDate);
+                event.setEventDate(evtCal);
             } else {
-                event.setEventDate(null);
-            }
-
-            Date raffleDate = document.getDate("raffleDate");
-            if (raffleDate != null) {
-                Calendar raffleCal = Calendar.getInstance();
-                raffleCal.setTime(raffleDate);
-                event.setRaffleDate(raffleCal);
-            } else {
-                event.setRaffleDate(null);
+                // Fallback to current date if missing
+                event.setEventDate(Calendar.getInstance());
             }
 
             return event;
         } catch (Exception e) {
-            Log.e(TAG, "Error parsing event document: " + document.getId(), e);
+            Log.e(TAG, "Error parsing event", e);
             return null;
         }
-    }
-
-    private void updateAllEntriesUI() {
-        if (findViewById(android.R.id.content).getRootView() == null) {
-            Log.w(TAG, "Activity view is null, skipping updateEnteredEventsUI");
-            return;
-        }
-
-        try {
-            if (enteredEvents == null) {
-                enteredEvents = new ArrayList<>();
-            }
-
-            if (enteredEvents.isEmpty()) {
-                if (entriesEmpty != null) {
-                    entriesEmpty.setVisibility(View.VISIBLE);
-                }
-                if (entriesList != null) {
-                    entriesList.setVisibility(View.GONE);
-                }
-            } else {
-                if (entriesEmpty != null) {
-                    entriesEmpty.setVisibility(View.GONE);
-                }
-                if (entriesList != null) {
-                    entriesList.setVisibility(View.VISIBLE);
-                }
-                if (enteredEventsAdapter != null) {
-                    enteredEventsAdapter.notifyDataSetChanged();
-                    /*if (entriesList != null) {
-                        setListViewHeightBasedOnChildren(entriesList);
-                    }*/
-                }
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error updating event history UI", e);
-        }
-    }
-
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-        finish();
     }
 }
