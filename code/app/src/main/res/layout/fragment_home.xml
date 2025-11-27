@@ -5,7 +5,7 @@
     android:id="@+id/fragment_home"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_color"
+    android:background="@color/UI_color_2_light"
     tools:context=".HomeFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -29,7 +29,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Hi, welcome back!"
-                android:textColor="@color/text_color_colored"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -38,7 +37,7 @@
                 android:id="@+id/imageButton2"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
-                android:backgroundTint="@color/container_color"
+                android:backgroundTint="#CAD6FF"
                 android:scaleType="fitCenter"
                 android:src="@drawable/qr_icon"
                 app:layout_constraintBottom_toBottomOf="parent"
@@ -89,7 +88,7 @@
                         android:paddingBottom="30dp"
                         android:text="No pending invitations"
                         android:textAlignment="center"
-                        android:textColor="@color/text_color_medium"
+                        android:textColor="#77000000"
                         android:textSize="16sp"
                         android:textStyle="italic"
                         android:visibility="gone" />
@@ -119,7 +118,7 @@
                         android:layout_marginLeft="10dp"
                         android:layout_marginBottom="5dp"
                         android:text="Entered Events"
-                        android:textColor="@color/text_color_colored"
+                        android:textColor="#2260FF"
                         android:textSize="20sp"
                         android:textStyle="bold" />
 
@@ -132,7 +131,7 @@
                         android:paddingBottom="30dp"
                         android:text="No Events Entered"
                         android:textAlignment="center"
-                        android:textColor="@color/text_color_medium"
+                        android:textColor="#77000000"
                         android:textSize="16sp"
                         android:textStyle="italic"
                         android:visibility="gone" />
@@ -141,7 +140,7 @@
                         android:id="@+id/enteredEventsList"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@color/container_color"
+                        android:background="#cad6ff"
                         android:divider="@null"
                         android:paddingTop="10dp"
                         android:paddingBottom="10dp"
@@ -171,7 +170,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Upcoming Events"
-                            android:textColor="@color/text_color_colored"
+                            android:textColor="#2260FF"
                             android:textSize="20sp"
                             android:textStyle="bold" />
 
@@ -180,7 +179,7 @@
                             android:layout_width="40dp"
                             android:layout_height="40dp"
                             android:layout_marginEnd="10dp"
-                            android:backgroundTint="@color/container_color"
+                            android:backgroundTint="#CAD6FF"
                             android:contentDescription="Filter events"
                             android:src="@drawable/ic_filter_24" />
                     </LinearLayout>
@@ -189,12 +188,12 @@
                         android:id="@+id/upcomingEventsEmpty"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@color/container_color"
+                        android:background="#cad6ff"
                         android:paddingTop="30dp"
                         android:paddingBottom="30dp"
                         android:text="No Events Entered"
                         android:textAlignment="center"
-                        android:textColor="@color/text_color_medium"
+                        android:textColor="#77000000"
                         android:textSize="16sp"
                         android:textStyle="italic"
                         android:visibility="gone" />

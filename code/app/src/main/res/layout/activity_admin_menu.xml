@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_color"
+    android:background="@color/UI_color_2_dark"
     android:orientation="vertical"
     tools:context=".AdminMenuActivity">
 
@@ -16,7 +16,7 @@
         android:padding="16dp"
         android:text="← Back to Profile"
         android:textAllCaps="false"
-        android:textColor="@color/button_color" />
+        android:textColor="@color/UI_color_2_text_light" />
 
     <TextView
         android:layout_width="match_parent"
@@ -24,7 +24,7 @@
         android:layout_marginBottom="10dp"
         android:text="Admin Menu"
         android:textAlignment="center"
-        android:textColor="@color/text_color_colored"
+        android:textColor="@color/UI_color_2_text_light"
         android:textSize="24sp"
         android:textStyle="bold" />
 
@@ -32,10 +32,10 @@
         android:id="@+id/adminTabLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:backgroundTint="@color/background_color"
-        app:tabIndicatorColor="@color/button_color"
-        app:tabSelectedTextColor="@color/button_color"
-        app:tabTextColor="@color/text_color_dark">
+        android:backgroundTint="@color/UI_color_1_med"
+        app:tabIndicatorColor="@color/UI_color_1_text_light"
+        app:tabSelectedTextColor="@color/UI_color_1_text_light"
+        app:tabTextColor="@color/UI_color_1_text_dark">
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
@@ -57,6 +57,7 @@
         android:id="@+id/adminNotifsList"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@color/UI_color_1_light"
         android:visibility="visible" />
 
     <ListView
@@ -64,6 +65,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:background="@color/UI_color_1_light"
         android:visibility="gone">
 
     </ListView>
@@ -73,6 +75,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:background="@color/UI_color_1_light"
         android:padding="10dp"
         android:visibility="gone" />
 
