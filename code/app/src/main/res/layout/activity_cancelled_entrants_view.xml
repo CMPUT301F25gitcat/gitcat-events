@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/UI_color_1_light"
+    android:background="@color/background_color"
     android:orientation="vertical">
 
     <!-- Header -->
@@ -23,7 +23,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Back"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
-            app:tint="@color/UI_color_2_text_light" />
+            app:tint="@color/button_color" />
 
         <TextView
             android:id="@+id/tvEventName"
@@ -31,7 +31,7 @@
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:text="Cancelled Entrants"
-            android:textColor="@color/UI_color_2_text_light"
+            android:textColor="@color/text_color_colored"
             android:textSize="20sp"
             android:textStyle="bold" />
     </RelativeLayout>
@@ -40,7 +40,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/UI_color_1_med"
+        android:background="@color/container_color"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:padding="16dp">
@@ -50,14 +50,14 @@
             android:layout_height="24dp"
             android:layout_marginEnd="8dp"
             android:src="@android:drawable/ic_delete"
-            app:tint="@color/UI_color_1_text_light" />
+            app:tint="@color/button_color" />
 
         <TextView
             android:id="@+id/tvCancelledListCount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Total Cancelled: 0"
-            android:textColor="@color/UI_color_1_text_light"
+            android:textColor="@color/text_color_dark"
             android:textSize="16sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -74,7 +74,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="@color/UI_color_1_light"
+        android:background="@color/background_color"
         android:clipToPadding="false"
         android:padding="8dp" />
 
@@ -87,7 +87,7 @@
         android:gravity="center"
         android:text="No cancelled entrants\n\n✓ All invited entrants have either accepted or are still pending"
         android:textAlignment="center"
-        android:textColor="@color/UI_color_1_text_dark"
+        android:textColor="@color/text_color_dark"
         android:textSize="16sp"
         android:visibility="gone" />
 
