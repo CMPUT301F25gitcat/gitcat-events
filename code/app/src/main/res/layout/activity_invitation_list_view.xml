@@ -62,8 +62,19 @@
     </LinearLayout>
 
     <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@android:color/darker_gray" />
 
     <!-- Invitation List RecyclerView -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvInvitationList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:padding="8dp" />
 
     <!-- Empty State -->
     <TextView
@@ -76,65 +87,7 @@
         android:textAlignment="center"
         android:textColor="@color/text_color_medium"
         android:textSize="16sp"
-        android:visibility="gone" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@android:color/darker_gray" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvInvitationList"
-            android:layout_width="match_parent"
-            android:layout_height="388dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:padding="8dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="250dp"
-            android:orientation="vertical">
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/textInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="40dp">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/invitationListNotifTitleText"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:hint="Notification Title*" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/textInputLayout2"
-                android:layout_width="match_parent"
-                android:layout_height="140dp">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/invitationListNotifDescription"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:hint="Notification Description" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <Button
-                android:id="@+id/button2"
-                android:layout_width="match_parent"
-                android:layout_height="70dp"
-                android:layout_marginTop="0dp"
-                android:backgroundTint="#9C27B0"
-                android:text="Send Notifications To Entrants"
-                app:cornerRadius="0dp" />
-        </LinearLayout>
-    </LinearLayout>
+        android:visibility="visible" />
 
 </LinearLayout>
 

@@ -23,7 +23,7 @@
         android:layout_height="wrap_content"
         android:background="@color/button_color"
         app:itemIconTint="@color/text_color_light"
-        app:itemRippleColor="@color/container_color"
+        app:itemRippleColor="@color/text_color_light"
         app:itemTextColor="@color/text_color_light"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="@+id/frameLayout"
