@@ -6,4 +6,16 @@
     <color name="purple_500">#9C27B0</color>
     <color name="filter_active_orange">#FF6B35</color>
     <color name="text_default_blue">#2260FF</color>
+
+    <color name="UI_color_1_text_light">#FFFBF8</color>
+    <color name="UI_color_1_text_dark">#45392F</color>
+    <color name="UI_color_2_text_light">#F8FFF8</color>
+    <color name="UI_color_2_text_dark">#54614F</color>
+
+    <color name="UI_color_1_dark">#cb997e</color>
+    <color name="UI_color_1_med">#ddbea9</color>
+    <color name="UI_color_1_light">#ffe8d6</color>
+    <color name="UI_color_2_dark">#6b705c</color>
+    <color name="UI_color_2_med">#a5a58d</color>
+    <color name="UI_color_2_light">#b7b7a4</color>
 </resources>
