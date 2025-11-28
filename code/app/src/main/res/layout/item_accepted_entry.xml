@@ -55,11 +55,11 @@
                 android:id="@+id/tvName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
                 android:text="John Doe"
+                android:textColor="@color/text_color_dark"
                 android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/black"
-                android:layout_marginBottom="4dp" />
+                android:textStyle="bold" />
 
             <!-- Email -->
             <LinearLayout
@@ -71,17 +71,17 @@
                 <ImageView
                     android:layout_width="16dp"
                     android:layout_height="16dp"
-                    android:src="@android:drawable/ic_dialog_email"
                     android:layout_marginEnd="4dp"
-                    app:tint="@android:color/darker_gray" />
+                    android:src="@android:drawable/ic_dialog_email"
+                    app:tint="@color/text_color_medium" />
 
                 <TextView
                     android:id="@+id/tvEmail"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="john.doe@example.com"
-                    android:textSize="14sp"
-                    android:textColor="@android:color/darker_gray" />
+                    android:textColor="@color/text_color_medium"
+                    android:textSize="14sp" />
             </LinearLayout>
 
             <!-- Phone -->
@@ -94,17 +94,17 @@
                 <ImageView
                     android:layout_width="16dp"
                     android:layout_height="16dp"
-                    android:src="@android:drawable/stat_sys_phone_call"
                     android:layout_marginEnd="4dp"
-                    app:tint="@android:color/darker_gray" />
+                    android:src="@android:drawable/stat_sys_phone_call"
+                    app:tint="@color/text_color_medium" />
 
                 <TextView
                     android:id="@+id/tvPhone"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="+1 (555) 123-4567"
-                    android:textSize="14sp"
-                    android:textColor="@android:color/darker_gray" />
+                    android:textColor="@color/text_color_medium"
+                    android:textSize="14sp" />
             </LinearLayout>
 
             <!-- Draw Round -->
@@ -112,21 +112,21 @@
                 android:id="@+id/tvDrawRound"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
                 android:text="Draw Round: 1"
-                android:textSize="12sp"
-                android:textColor="@android:color/darker_gray"
-                android:layout_marginBottom="4dp" />
+                android:textColor="@color/text_color_medium"
+                android:textSize="12sp" />
 
             <!-- Invited Date -->
             <TextView
                 android:id="@+id/tvInvitedDate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
                 android:text="Invited: Dec 15, 2024 at 10:30 AM"
+                android:textColor="@color/text_color_medium"
                 android:textSize="12sp"
-                android:textColor="@android:color/darker_gray"
-                android:textStyle="italic"
-                android:layout_marginBottom="4dp" />
+                android:textStyle="italic" />
 
             <!-- Accepted Date (highlighted) -->
             <TextView
