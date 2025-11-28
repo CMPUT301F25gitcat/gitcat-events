@@ -76,7 +76,7 @@
         android:textAlignment="center"
         android:textColor="@color/text_color_medium"
         android:textSize="16sp"
-        android:visibility="visible" />
+        android:visibility="gone" />
 
     <LinearLayout
         android:layout_width="match_parent"
