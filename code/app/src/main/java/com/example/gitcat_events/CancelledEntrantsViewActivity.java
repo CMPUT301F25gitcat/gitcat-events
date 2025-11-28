@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
@@ -29,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Activity to display the cancelled/declined entrants for an event (organizer only)
@@ -102,48 +104,64 @@ public class CancelledEntrantsViewActivity extends AppCompatActivity {
         loadCancelledList();
     }
     private void addNotificationToFirestore(String title, String description, String eventId) {
+        Log.d("actually went here", eventId);
         if (title.equals("")) {
             Toast.makeText(this, "Must create title for the notification.", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        DocumentReference countDocRef = db.collection("events").document(eventId).collection("cancelled_list").document("count");
-        DocumentReference notifIdDocRef = db.collection("events").document(eventId).collection("cancelled_list").document("notifID");
+        CollectionReference notifRef = db.collection("notifications");
+        DocumentReference countRef = db.collection("notifications").document("count");
+        CollectionReference listRef = db.collection("events").document(eventId).collection("cancelled_list");
+        listRef.get().addOnSuccessListener(queryDocumentSnapshots -> {
+            final int usersCount = queryDocumentSnapshots.size();
+            final AtomicInteger foundUsers = new AtomicInteger(0);
+            ArrayList<DocumentReference> users = new ArrayList<>();
+            for (QueryDocumentSnapshot userInEvent : queryDocumentSnapshots) {
+                String id = userInEvent.getId();
+                db.collection("profiles").whereEqualTo("deviceId", id).get().addOnSuccessListener(queryDocumentSnapshots1 -> {
+                    if (!queryDocumentSnapshots1.isEmpty()) {
+                        DocumentSnapshot profile = queryDocumentSnapshots1.getDocuments().get(0);
+                        if (!profile.contains("hasNotificationsEnabled")){
+                            profile.getReference().update("hasNotificationsEnabled", "true");
+                            users.add(profile.getReference());
+                        } else if (profile.getString("hasNotificationsEnabled").equals("true")) {
+                            users.add(profile.getReference());
+                        }
+                    }
+                    int found = foundUsers.incrementAndGet();
+                    if (found == usersCount) {
+                        db.runTransaction(transaction -> {
+                            DocumentSnapshot snapshot = transaction.get(countRef);
+                            Long count = snapshot.getLong("count");
+                            if (count == null) {
+                                count = 0L;
+                                Map<String, Integer> newCount = new HashMap<>();
+                                newCount.put("count", 0);
+                                transaction.set(countRef, newCount);
+                            }
+                            int notifCount = Math.toIntExact(count);
+                            for (DocumentReference user : users) {
+                                Map<String, Object> notif = new HashMap<>();
+                                notif.put("deviceId", user.getId());
+                                notif.put("title", title);
+                                notif.put("description", description);
+                                notif.put("timestamp", FieldValue.serverTimestamp());
+                                transaction.set(notifRef.document(String.valueOf(notifCount)), notif);
+                                notifCount++;
+                            }
+                            transaction.update(countRef, "count", notifCount);
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("title", title);
-        data.put("description", description);
-        data.put("timestamp", FieldValue.serverTimestamp());
+                            return notifCount;
+                        }).addOnSuccessListener(result -> {
+                            Toast.makeText(this, "Notification sent!", Toast.LENGTH_SHORT).show();
+                        }).addOnFailureListener(e -> {
+                            Toast.makeText(this, "Failed to add notification!", Toast.LENGTH_SHORT).show();
+                        });
+                    }
 
-        db.runTransaction(transaction -> {
-            // Get the count document
-            DocumentSnapshot countSnapshot = transaction.get(countDocRef);
-
-            long currentCount = 0;
-            if (!countSnapshot.exists()) {
-                Map<String, Object> countData = new HashMap<>();
-                countData.put("count", 1L); // Start with 1
-                transaction.set(countDocRef, countData);
-            } else {
-                currentCount = countSnapshot.getLong("count");
-                transaction.update(countDocRef, "count", currentCount + 1);
+                });
             }
-
-            Map<String, Object> notifIdData = new HashMap<>();
-            notifIdData.put("createdAt", FieldValue.serverTimestamp());
-            notifIdData.put("lastUpdated", FieldValue.serverTimestamp());
-            transaction.set(notifIdDocRef, notifIdData, SetOptions.merge());
-
-            DocumentReference notifDocRef = notifIdDocRef.collection("notifItems").document(String.valueOf(currentCount));
-            transaction.set(notifDocRef, data);
-
-            return currentCount;
-        }).addOnSuccessListener(result -> {
-            Log.d("TAG", "Notification added successfully with count: " + result);
-            Toast.makeText(this, "Notification send to cancelled entrants!", Toast.LENGTH_SHORT).show();
-        }).addOnFailureListener(e -> {
-            Log.w("TAG", "Transaction failure: ", e);
-            Toast.makeText(this, "Failed to add notification!", Toast.LENGTH_SHORT).show();
         });
     }
     private void loadCancelledList() {

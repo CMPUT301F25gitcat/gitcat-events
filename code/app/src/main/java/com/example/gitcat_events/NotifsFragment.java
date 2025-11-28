@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
+import androidx.navigation.internal.AtomicInt;
 
 import android.provider.Settings;
 import android.util.Log;
@@ -20,7 +21,10 @@ import com.example.gitcat_events.core.model.Notif;
 import com.example.gitcat_events.features.event.ui.NotifArrayAdapter;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
+import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -32,6 +36,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class NotifsFragment extends Fragment {
 
@@ -86,62 +91,101 @@ public class NotifsFragment extends Fragment {
         notifList = new ArrayList<>();
         notifAdapter = new NotifArrayAdapter(getContext(), notifList);
         notifListView.setAdapter(notifAdapter);
-        for (String list : new String[]{"acceptedList", "waitlist","cancelled_list"}) {
 
-            db.collection("events").get()
-                    .addOnSuccessListener(queryDocumentSnapshots -> {
-                                final int totalEvents = queryDocumentSnapshots.size();
-                                final int[] completedEvents = {0};
-                                for (QueryDocumentSnapshot event : queryDocumentSnapshots) {
-                                    String eventId = event.getId();
-                                    db.collection("events")
-                                            .document(eventId)
-                                            .collection(list)
-                                            .get()
-                                            .addOnSuccessListener(acceptedListSnapshot -> {
-                                                        boolean userFound = false;
-                                                        for (QueryDocumentSnapshot profile : acceptedListSnapshot) {
-                                                            if (profile.getId().equals(userId)) {
-                                                                userFound = true;
-                                                                break;
-                                                            }
-                                                        }
-                                                        if (userFound) {
-                                                            db.collection("events")
-                                                                    .document(eventId)
-                                                                    .collection(list)
-                                                                    .document("notifID")
-                                                                    .collection("notifItems")
-                                                                    .get()
-                                                                    .addOnSuccessListener(notifSnapshot -> {
-                                                                                for (QueryDocumentSnapshot notif : notifSnapshot) {
-                                                                                    String title = notif.getString("title");
-                                                                                    String description = notif.getString("description");
-                                                                                    Date timestamp = notif.getDate("timestamp");
+        CollectionReference profilesRef = db.collection("profiles");
+        profilesRef.get().addOnSuccessListener(queryDocumentSnapshots -> {
+            AtomicInteger found = new AtomicInteger(0);
+            int totalUsers = queryDocumentSnapshots.size();
+            db.collection("profiles").whereEqualTo("deviceId", userId).get().addOnSuccessListener(queryDocumentSnapshots1 -> {
+                if (!queryDocumentSnapshots1.isEmpty()) {
+                    String uid = queryDocumentSnapshots1.getDocuments().get(0).getId();
 
-                                                                                    Notif newNotif = new Notif(title, description, timestamp);
-                                                                                    notifList.add(newNotif);
-                                                                                    Collections.sort(notifList, new Comparator<Notif>() {
-                                                                                        @Override
-                                                                                        public int compare(Notif notif, Notif t1) {
-                                                                                            return t1.getDate().compareTo(notif.getDate());
-                                                                                        }
-                                                                                    });
-                                                                                    notifAdapter.notifyDataSetChanged();
-                                                                                }
-                                                                            }
-                                                                    );
+                    db.collection("notifications")
+                            .whereEqualTo("deviceId", uid)
+                            .get()
+                            .addOnSuccessListener(notificationsSnapshot -> {
+                                List<DocumentSnapshot> userNotifications = notificationsSnapshot.getDocuments();
 
-                                                        }
-                                                    }
-                                            );
+                                for (DocumentSnapshot notification : userNotifications) {
+                                    String title = notification.getString("title");
+                                    String description = notification.getString("description");
+                                    Date timestamp = notification.getDate("timestamp");
+                                    Notif newNotif = new Notif(title, description, timestamp);
+                                    notifList.add(newNotif);
+                                    Collections.sort(notifList, new Comparator<Notif>() {
+                                        @Override
+                                        public int compare(Notif notif, Notif t1) {
+                                            return t1.getDate().compareTo(notif.getDate());
+                                        }
+                                    });
+                                    notifAdapter.notifyDataSetChanged();
                                 }
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e("Notifications", "Error getting notifications: " + e.getMessage());
+                            });
+                }
+            });
+        });
 
-                            }
-                    );
 
 
-        }
+//        for (String list : new String[]{"acceptedList", "waitlist","cancelled_list"}) {
+//
+//            db.collection("events").get()
+//                    .addOnSuccessListener(queryDocumentSnapshots -> {
+//                                final int totalEvents = queryDocumentSnapshots.size();
+//                                final int[] completedEvents = {0};
+//                                for (QueryDocumentSnapshot event : queryDocumentSnapshots) {
+//                                    String eventId = event.getId();
+//                                    db.collection("events")
+//                                            .document(eventId)
+//                                            .collection(list)
+//                                            .get()
+//                                            .addOnSuccessListener(acceptedListSnapshot -> {
+//                                                        boolean userFound = false;
+//                                                        for (QueryDocumentSnapshot profile : acceptedListSnapshot) {
+//                                                            if (profile.getId().equals(userId)) {
+//                                                                userFound = true;
+//                                                                break;
+//                                                            }
+//                                                        }
+//                                                        if (userFound) {
+//                                                            db.collection("events")
+//                                                                    .document(eventId)
+//                                                                    .collection(list)
+//                                                                    .document("notifID")
+//                                                                    .collection("notifItems")
+//                                                                    .get()
+//                                                                    .addOnSuccessListener(notifSnapshot -> {
+//                                                                                for (QueryDocumentSnapshot notif : notifSnapshot) {
+//                                                                                    String title = notif.getString("title");
+//                                                                                    String description = notif.getString("description");
+//                                                                                    Date timestamp = notif.getDate("timestamp");
+//
+//                                                                                    Notif newNotif = new Notif(title, description, timestamp);
+//                                                                                    notifList.add(newNotif);
+//                                                                                    Collections.sort(notifList, new Comparator<Notif>() {
+//                                                                                        @Override
+//                                                                                        public int compare(Notif notif, Notif t1) {
+//                                                                                            return t1.getDate().compareTo(notif.getDate());
+//                                                                                        }
+//                                                                                    });
+//                                                                                    notifAdapter.notifyDataSetChanged();
+//                                                                                }
+//                                                                            }
+//                                                                    );
+//
+//                                                        }
+//                                                    }
+//                                            );
+//                                }
+//
+//                            }
+//                    );
+//
+//
+//        }
         return view;
     }
 
