@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
+    app:cardBackgroundColor="@color/text_color_light"
     app:cardCornerRadius="8dp"
     app:cardElevation="2dp">
 
@@ -18,13 +19,13 @@
             android:id="@+id/tvPosition"
             android:layout_width="48dp"
             android:layout_height="48dp"
+            android:layout_marginEnd="16dp"
+            android:background="@android:drawable/dialog_holo_light_frame"
             android:gravity="center"
             android:text="#1"
-            android:textSize="18sp"
-            android:textStyle="bold"
             android:textColor="@color/purple_500"
-            android:background="@android:drawable/dialog_holo_light_frame"
-            android:layout_marginEnd="16dp" />
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
         <!-- User Info -->
         <LinearLayout
@@ -38,56 +39,56 @@
                 android:id="@+id/tvName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
                 android:text="John Doe"
+                android:textColor="@color/text_color_dark"
                 android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/black"
-                android:layout_marginBottom="4dp" />
+                android:textStyle="bold" />
 
             <!-- Email -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="2dp">
+                android:layout_marginBottom="2dp"
+                android:orientation="horizontal">
 
                 <ImageView
                     android:layout_width="16dp"
                     android:layout_height="16dp"
-                    android:src="@android:drawable/ic_dialog_email"
                     android:layout_marginEnd="4dp"
-                    app:tint="@android:color/darker_gray" />
+                    android:src="@android:drawable/ic_dialog_email"
+                    app:tint="@color/text_color_medium" />
 
                 <TextView
                     android:id="@+id/tvEmail"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="john.doe@example.com"
-                    android:textSize="14sp"
-                    android:textColor="@android:color/darker_gray" />
+                    android:textColor="@color/text_color_medium"
+                    android:textSize="14sp" />
             </LinearLayout>
 
             <!-- Phone -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="4dp">
+                android:layout_marginBottom="4dp"
+                android:orientation="horizontal">
 
                 <ImageView
                     android:layout_width="16dp"
                     android:layout_height="16dp"
-                    android:src="@android:drawable/stat_sys_phone_call"
                     android:layout_marginEnd="4dp"
-                    app:tint="@android:color/darker_gray" />
+                    android:src="@android:drawable/stat_sys_phone_call"
+                    app:tint="@color/text_color_medium" />
 
                 <TextView
                     android:id="@+id/tvPhone"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="+1 (555) 123-4567"
-                    android:textSize="14sp"
-                    android:textColor="@android:color/darker_gray" />
+                    android:textColor="@color/text_color_medium"
+                    android:textSize="14sp" />
             </LinearLayout>
 
             <!-- Joined Date -->
@@ -96,8 +97,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Joined: Dec 15, 2024 at 10:30 AM"
+                android:textColor="@color/text_color_medium"
                 android:textSize="12sp"
-                android:textColor="@android:color/darker_gray"
                 android:textStyle="italic" />
 
         </LinearLayout>

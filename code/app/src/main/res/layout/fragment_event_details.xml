@@ -4,8 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
-    android:background="#FFF">
+    android:background="@color/background_color"
+    android:fillViewport="true">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -19,7 +19,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Event"
-            android:textColor="#2260FF"
+            android:textColor="@color/text_color_colored"
             android:textSize="20sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
@@ -42,7 +42,7 @@
             android:layout_height="wrap_content"
             android:layout_margin="20dp"
             android:background="#CAD6FF"
-            app:cardBackgroundColor="#CAD6FF"
+            app:cardBackgroundColor="@color/container_color"
             app:cardCornerRadius="10dp"
             app:cardElevation="8dp"
             app:layout_constraintTop_toBottomOf="@+id/ivEventPoster"
@@ -58,34 +58,38 @@
                     android:id="@+id/eventDetailsName"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="TextView" />
+                    android:text="TextView"
+                    android:textColor="@color/text_color_dark" />
 
                 <TextView
                     android:id="@+id/eventDetailsDate"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="TextView" />
+                    android:text="TextView"
+                    android:textColor="@color/text_color_dark" />
 
                 <TextView
                     android:id="@+id/eventDetailsSpots"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="TextView" />
+                    android:text="TextView"
+                    android:textColor="@color/text_color_dark" />
 
                 <TextView
                     android:id="@+id/eventDetailsDesc"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="TextView" />
+                    android:text="TextView"
+                    android:textColor="@color/text_color_dark" />
 
                 <TextView
                     android:id="@+id/tvSelectionCriteria"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Selection criteria will appear here..."
-                    android:textSize="14sp"
                     android:lineSpacingExtra="2dp"
-                    android:textColor="@android:color/black"/>
+                    android:text="Selection criteria will appear here..."
+                    android:textColor="@color/text_color_dark"
+                    android:textSize="14sp" />
             </LinearLayout>
 
         </androidx.cardview.widget.CardView>
@@ -97,9 +101,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="Waiting List: 0"
+            android:textColor="@color/text_color_dark"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@android:color/black"
             android:visibility="visible"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -112,8 +116,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text=""
-            android:textSize="14sp"
             android:textColor="@android:color/holo_green_dark"
+            android:textSize="14sp"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -125,11 +129,11 @@
             android:layout_width="0dp"
             android:layout_height="60dp"
             android:layout_marginStart="40dp"
-            android:layout_marginEnd="40dp"
             android:layout_marginTop="16dp"
+            android:layout_marginEnd="40dp"
             android:text="Join Waiting List"
+            android:textColor="@color/text_color_light"
             android:textSize="16sp"
-            android:textColor="@android:color/white"
             android:visibility="visible"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -145,7 +149,7 @@
             android:layout_marginEnd="40dp"
             android:backgroundTint="@android:color/holo_purple"
             android:text="🎲 Run Raffle"
-            android:textColor="@android:color/white"
+            android:textColor="@color/text_color_light"
             android:textSize="16sp"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
@@ -162,7 +166,7 @@
             android:layout_marginEnd="40dp"
             android:backgroundTint="@android:color/holo_blue_dark"
             android:text="📋 View Waiting List"
-            android:textColor="@android:color/white"
+            android:textColor="@color/text_color_light"
             android:textSize="16sp"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
@@ -175,12 +179,12 @@
             android:layout_width="0dp"
             android:layout_height="60dp"
             android:layout_marginStart="40dp"
-            android:layout_marginEnd="40dp"
             android:layout_marginTop="12dp"
-            android:text="✉️ View Invited Entrants"
-            android:textSize="16sp"
-            android:textColor="@android:color/white"
+            android:layout_marginEnd="40dp"
             android:backgroundTint="@android:color/holo_purple"
+            android:text="✉️ View Invited Entrants"
+            android:textColor="@color/text_color_light"
+            android:textSize="16sp"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -196,7 +200,7 @@
             android:layout_marginEnd="40dp"
             android:backgroundTint="@android:color/holo_green_dark"
             android:text="✅ View Enrolled Entrants"
-            android:textColor="@android:color/white"
+            android:textColor="@color/text_color_light"
             android:textSize="16sp"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
@@ -214,7 +218,7 @@
             android:layout_marginEnd="40dp"
             android:backgroundTint="@android:color/holo_red_dark"
             android:text="❌ View Cancelled Entrants"
-            android:textColor="@android:color/white"
+            android:textColor="@color/text_color_light"
             android:textSize="16sp"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
@@ -232,7 +236,7 @@
             android:layout_marginEnd="40dp"
             android:backgroundTint="@android:color/holo_orange_dark"
             android:text="✏️ Edit Event"
-            android:textColor="@android:color/white"
+            android:textColor="@color/text_color_light"
             android:textSize="16sp"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
@@ -245,10 +249,10 @@
             android:id="@+id/invitationButtons"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
             android:layout_marginStart="40dp"
-            android:layout_marginEnd="40dp"
             android:layout_marginTop="16dp"
+            android:layout_marginEnd="40dp"
+            android:orientation="horizontal"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -258,23 +262,23 @@
                 android:id="@+id/btnAcceptInvitation"
                 android:layout_width="0dp"
                 android:layout_height="60dp"
-                android:layout_weight="1"
                 android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:backgroundTint="@android:color/holo_green_dark"
                 android:text="✓ Accept"
-                android:textSize="16sp"
-                android:textColor="@android:color/white"
-                android:backgroundTint="@android:color/holo_green_dark"/>
+                android:textColor="@color/text_color_light"
+                android:textSize="16sp" />
 
             <Button
                 android:id="@+id/btnDeclineInvitation"
                 android:layout_width="0dp"
                 android:layout_height="60dp"
-                android:layout_weight="1"
                 android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:backgroundTint="@android:color/holo_red_dark"
                 android:text="✗ Decline"
-                android:textSize="16sp"
-                android:textColor="@android:color/white"
-                android:backgroundTint="@android:color/holo_red_dark"/>
+                android:textColor="@color/text_color_light"
+                android:textSize="16sp" />
         </LinearLayout>
 
         <!-- Back Button -->
@@ -284,9 +288,9 @@
             android:layout_height="48dp"
             android:layout_margin="16dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_close_clear_cancel"
             android:contentDescription="Back"
-            android:tint="@android:color/black"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:tint="@color/button_color"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -299,6 +303,7 @@
             android:layout_marginEnd="40dp"
             android:backgroundTint="#BC2B2B"
             android:text="Delete Event"
+            android:textColor="@color/text_color_light"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"

@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@color/background_color"
     android:orientation="vertical"
     android:padding="24dp">
 
@@ -12,7 +13,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="24dp"
         android:text="Filter Events"
-        android:textColor="#2260FF"
+        android:textColor="@color/text_color_colored"
         android:textSize="24sp"
         android:textStyle="bold" />
 
@@ -22,6 +23,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:text="Start Date"
+        android:textColor="@color/text_color_dark"
         android:textSize="14sp"
         android:textStyle="bold" />
 
@@ -38,18 +40,20 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            android:text="Select Start Date" />
+            android:text="Select Start Date"
+            android:textColor="@color/button_color"
+            app:strokeColor="@color/button_color" />
 
         <TextView
             android:id="@+id/tvStartDateDisplay"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="@android:color/darker_gray"
+            android:background="@color/text_color_medium"
             android:gravity="center"
             android:padding="12dp"
             android:text="Not selected"
-            android:textColor="@android:color/white"
+            android:textColor="@color/text_color_light"
             android:textSize="14sp" />
     </LinearLayout>
 
@@ -59,6 +63,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:text="End Date"
+        android:textColor="@color/text_color_dark"
         android:textSize="14sp"
         android:textStyle="bold" />
 
@@ -75,18 +80,20 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            android:text="Select End Date" />
+            android:text="Select End Date"
+            android:textColor="@color/button_color"
+            app:strokeColor="@color/button_color" />
 
         <TextView
             android:id="@+id/tvEndDateDisplay"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="@android:color/darker_gray"
+            android:background="@color/text_color_medium"
             android:gravity="center"
             android:padding="12dp"
             android:text="Not selected"
-            android:textColor="@android:color/white"
+            android:textColor="@color/text_color_light"
             android:textSize="14sp" />
     </LinearLayout>
 
@@ -113,7 +120,9 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            android:text="Clear Filters" />
+            android:text="Clear Filters"
+            android:textColor="@color/button_color"
+            app:strokeColor="@color/button_color" />
 
         <Button
             android:id="@+id/btnApplyFilter"
@@ -121,7 +130,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Apply Filter" />
+            android:backgroundTint="@color/button_color"
+            android:text="Apply Filter"
+            android:textColor="@color/text_color_light" />
     </LinearLayout>
 
 </LinearLayout>

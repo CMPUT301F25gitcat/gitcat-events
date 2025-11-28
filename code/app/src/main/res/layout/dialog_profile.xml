@@ -1,40 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:padding="16dp" android:orientation="vertical"
-    android:layout_width="match_parent" android:layout_height="wrap_content">
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/background_color"
+    android:orientation="vertical"
+    android:padding="16dp">
 
     <!-- Profile Picture Preview and Selection -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
         android:gravity="center"
+        android:orientation="horizontal"
         android:paddingBottom="16dp">
-        
+
         <ImageView
             android:id="@+id/ivDialogProfilePicture"
             android:layout_width="80dp"
             android:layout_height="80dp"
-            android:scaleType="centerCrop"
+            android:background="@android:color/darker_gray"
             android:contentDescription="Profile Picture Preview"
-            android:background="@android:color/darker_gray"/>
+            android:scaleType="centerCrop" />
     </LinearLayout>
-    
+
     <Button
         android:id="@+id/btnSelectProfilePicture"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:backgroundTint="@color/button_color"
         android:text="Select Profile Picture"
-        android:layout_marginBottom="16dp"/>
+        android:textColor="@color/text_color_light" />
 
-    <EditText android:id="@+id/etName"  android:hint="@string/name"
-        android:layout_width="match_parent" android:layout_height="wrap_content"/>
+    <EditText
+        android:id="@+id/etName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/name" />
 
-    <EditText android:id="@+id/etEmail" android:hint="@string/email"
-        android:inputType="textEmailAddress"
-        android:layout_width="match_parent" android:layout_height="wrap_content"/>
+    <EditText
+        android:id="@+id/etEmail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/email"
+        android:inputType="textEmailAddress" />
 
-    <EditText android:id="@+id/etPhone" android:hint="@string/phone_optional"
-        android:inputType="phone"
-        android:layout_width="match_parent" android:layout_height="wrap_content"/>
+    <EditText
+        android:id="@+id/etPhone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/phone_optional"
+        android:inputType="phone" />
 </LinearLayout>
