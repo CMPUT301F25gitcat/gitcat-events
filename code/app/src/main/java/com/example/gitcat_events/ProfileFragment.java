@@ -63,7 +63,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
     private ImageView ivFragmentProfilePicture;
     private Button btnFragmentViewFullProfile, btnFragmentDeleteProfile, adminBtn;
     private Profile currentProfile;
-    private Switch notificationsToggle;
+    private Button notificationsToggle;
     private CompoundButton.OnCheckedChangeListener notificationsToggleListener;
 
     public ProfileFragment() {
@@ -99,27 +99,8 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
         btnFragmentViewFullProfile = view.findViewById(R.id.btnFragmentViewFullProfile);
         btnFragmentDeleteProfile = view.findViewById(R.id.btnFragmentDeleteProfile);
         adminBtn = view.findViewById(R.id.adminMenuBtn);
-        notificationsToggle = view.findViewById(R.id.notificationsToggle);
+        notificationsToggle = view.findViewById(R.id.notificationToggleButton);
         String deviceId = getOrCreateDeviceId();
-        notificationsToggleListener = new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                db.collection("profiles").whereEqualTo("deviceId", deviceId).get().addOnSuccessListener(queryDocumentSnapshots1 -> {
-                    if (!queryDocumentSnapshots1.isEmpty()) {
-                        String uid = queryDocumentSnapshots1.getDocuments().get(0).getId();
-                        DocumentReference profileRef = db.collection("profiles").document(uid);
-                        db.runTransaction(transaction -> {
-                            if (notificationsToggle.isChecked()) {
-                                profileRef.update("hasNotificationsEnabled", "false");
-                            } else {
-                                profileRef.update("hasNotificationsEnabled", "true");
-                            }
-                            return notificationsToggle;
-                        });
-                    }
-                });
-            }
-        };
         db.collection("profiles").whereEqualTo("deviceId", deviceId).get().addOnSuccessListener(queryDocumentSnapshots1 -> {
             if (!queryDocumentSnapshots1.isEmpty()) {
                 String uid = queryDocumentSnapshots1.getDocuments().get(0).getId();
@@ -128,24 +109,36 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                     DocumentSnapshot snapshot = transaction.get(profileRef);
                     if (!snapshot.contains("hasNotificationsEnabled")) {
                         profileRef.update("hasNotificationsEnabled", "true");
-
-                        notificationsToggle.setChecked(false);
-                        notificationsToggle.jumpDrawablesToCurrentState();
-
+                        notificationsToggle.setText("Toggle Notifications (On)");
                     } else if (snapshot.getString("hasNotificationsEnabled").equals("true")){
-
-                        notificationsToggle.setChecked(false);
-                        notificationsToggle.jumpDrawablesToCurrentState();
-
+                        notificationsToggle.setText("Toggle Notifications (On)");
                     } else{
-                        Log.d("went here2", "went here 2");
-                        CompoundButton.OnCheckedChangeListener listener = notificationsToggleListener;
-
-                        notificationsToggle.setChecked(true);
+                        notificationsToggle.setText("Toggle Notifications (Off)");
                     }
                     return notificationsToggle;
                 });
             }});
+        notificationsToggle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                db.collection("profiles").whereEqualTo("deviceId", deviceId).get().addOnSuccessListener(queryDocumentSnapshots1 -> {
+                    if (!queryDocumentSnapshots1.isEmpty()) {
+                        String uid = queryDocumentSnapshots1.getDocuments().get(0).getId();
+                        DocumentReference profileRef = db.collection("profiles").document(uid);
+
+                        String currentText = notificationsToggle.getText().toString();
+                        if (currentText.contains("(On)")) {
+                            profileRef.update("hasNotificationsEnabled", "false");
+                            notificationsToggle.setText("Toggle Notifications (Off)");
+                        } else {
+                            profileRef.update("hasNotificationsEnabled", "true");
+                            notificationsToggle.setText("Toggle Notifications (On)");
+                        }
+                    }
+                });
+            }
+        });
+
 
 
 

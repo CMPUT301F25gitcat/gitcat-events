@@ -107,13 +107,12 @@
         android:layout_marginTop="8dp"
         android:text="View Event History" />
 
-    <Switch
-        android:id="@+id/notificationsToggle"
+    <Button
+        android:id="@+id/notificationToggleButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Disable notifications"
-        android:textSize="14sp" />
+        android:text="Toggle Notifications (On)" />
 
     <Button
         android:id="@+id/adminMenuBtn"
