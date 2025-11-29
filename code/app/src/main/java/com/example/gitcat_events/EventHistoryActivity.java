@@ -82,12 +82,11 @@ public class EventHistoryActivity extends AppCompatActivity {
         Task<QuerySnapshot> taskWaitlist = db.collectionGroup("waitlist")
                 .whereEqualTo("userDeviceId", deviceId).get();
 
-        /*currently unimplemented: canceled_events requires a COLLECTION_GROUP_ASC index
         Task<QuerySnapshot> taskCancelled = db.collectionGroup("cancelled_list")
-                .whereEqualTo("userDeviceId", deviceId).get();*/
+                .whereEqualTo("userDeviceId", deviceId).get();
 
         // Wait for ALL tasks to complete
-        Tasks.whenAllSuccess(taskInvites, taskAccepted, taskWaitlist)
+        Tasks.whenAllSuccess(taskInvites, taskAccepted, taskWaitlist, taskCancelled)
                 .addOnSuccessListener(results -> {
 
 
