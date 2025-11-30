@@ -534,6 +534,21 @@ public class EventDetails extends Fragment {
                 event.setRaffleDate(raffleCal);
             }
 
+            // Read eventTypes from Firestore (List<String>)
+            @SuppressWarnings("unchecked")
+            List<Object> eventTypesObj = (List<Object>) document.get("eventTypes");
+            if (eventTypesObj != null) {
+                List<String> eventTypes = new ArrayList<>();
+                for (Object obj : eventTypesObj) {
+                    if (obj instanceof String) {
+                        eventTypes.add((String) obj);
+                    }
+                }
+                event.setEventTypes(eventTypes.isEmpty() ? null : eventTypes);
+            } else {
+                event.setEventTypes(null);
+            }
+
             return event;
         } catch (Exception e) {
             Log.e(TAG, "Error parsing event document: " + document.getId(), e);
