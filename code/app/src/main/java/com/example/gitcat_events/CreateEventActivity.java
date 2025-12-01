@@ -352,6 +352,10 @@ public class CreateEventActivity extends AppCompatActivity {
             String docId = String.valueOf(next);
             DocumentReference eventRef = db.collection("events").document(docId);
 
+            // Generate QR code URL (deep link to event details)
+            String qrCodeUrl = "gitcatevents://event/" + next;
+            event.setQrCodeUrl(qrCodeUrl);
+
             // Prepare event data
             Map<String, Object> data = new HashMap<>();
             data.put("name", event.getName());
@@ -367,6 +371,7 @@ public class CreateEventActivity extends AppCompatActivity {
             data.put("organizerDeviceId", event.getOrganizerDeviceId());
             data.put("selectionCriteria", event.getSelectionCriteria());
             data.put("eventId", next);
+            data.put("qrCodeUrl", qrCodeUrl);
 
             transaction.set(eventRef, data);
 

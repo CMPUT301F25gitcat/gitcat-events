@@ -157,6 +157,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         currentEvent.setPoster(document.getString("poster"));
         currentEvent.setOrganizerDeviceId(document.getString("organizerDeviceId"));
         currentEvent.setSelectionCriteria(document.getString("selectionCriteria"));
+        currentEvent.setQrCodeUrl(document.getString("qrCodeUrl"));
         
         Boolean geoLocation = document.getBoolean("geoLocationRequired");
         currentEvent.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
