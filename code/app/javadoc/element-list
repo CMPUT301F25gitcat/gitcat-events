@@ -1,0 +1,9 @@
+com.example.gitcat_events
+com.example.gitcat_events.classTests
+com.example.gitcat_events.core.model
+com.example.gitcat_events.features.admin
+com.example.gitcat_events.features.entrant.ui
+com.example.gitcat_events.features.event.ui
+com.example.gitcat_events.integrationTests
+com.example.gitcat_events.organizerTests
+com.example.gitcat_events.uiTests
