@@ -30,6 +30,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.WriteBatch;
 
+import java.io.Writer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -39,6 +40,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+
+import android.graphics.Color;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 
 public class EventDetails extends Fragment {
 
@@ -60,6 +67,11 @@ public class EventDetails extends Fragment {
     private ImageButton btnBack;
     private Button btnAcceptInvitation, btnDeclineInvitation;
     private ViewGroup invitationButtons;
+
+    private ImageView ivQRCode;
+    private TextView tvQRCodeLabel;
+    private Button btnDownloadQR;
+    private Bitmap qrCodeBitmap; // Store bitmap for download functionality
 
     public EventDetails() {}
 
@@ -107,6 +119,20 @@ public class EventDetails extends Fragment {
         invitationButtons = view.findViewById(R.id.invitationButtons);
         deleteEventBtn = view.findViewById(R.id.adminDeleteEvent);
 
+        ivQRCode = view.findViewById(R.id.ivQRCode);
+        tvQRCodeLabel = view.findViewById(R.id.tvQRCodeLabel);
+        btnDownloadQR = view.findViewById(R.id.btnDownloadQR);
+        
+        // Set up download QR button click listener
+        if (btnDownloadQR != null) {
+            btnDownloadQR.setOnClickListener(v -> launchQRCodeDisplayActivity());
+        }
+        
+        // Set up QR code image click listener (optional - also launches full activity)
+        if (ivQRCode != null) {
+            ivQRCode.setOnClickListener(v -> launchQRCodeDisplayActivity());
+        }
+        
         // Display event details
         displayEvent();
         
@@ -167,8 +193,7 @@ public class EventDetails extends Fragment {
                 deleteEvent(Integer.parseInt(event.getDocumentId()));
             });
         }
-
-
+        
         return view;
     }
 
@@ -291,6 +316,9 @@ public class EventDetails extends Fragment {
                     Log.d(TAG, "Edit Event button visible: " + (btnEditEvent.getVisibility() == View.VISIBLE));
                 }
                 
+                //we check the raffle status and show the qr code to the organizer only if the raffle has not been run yet.
+                checkRaffleStatusAndShowQRCode();
+                
                 // Show organizer status
                 showOrganizerStatus();
                 return;
@@ -298,6 +326,7 @@ public class EventDetails extends Fragment {
             
             // Not organizer, hide organizer buttons
             isOrganizer = false;
+            hideQRCodeSection();
             if (btnRunRaffle != null) btnRunRaffle.setVisibility(View.GONE);
             if (btnViewWaitingList != null) btnViewWaitingList.setVisibility(View.GONE);
             if (btnViewInvitedEntrants != null) btnViewInvitedEntrants.setVisibility(View.GONE);
@@ -472,6 +501,10 @@ public class EventDetails extends Fragment {
                                 displayEvent();
                                 // Re-check user status in case organizer changed or other updates
                                 checkUserStatus();
+                                // Re-check raffle status and QR code if organizer
+                                if (isOrganizer) {
+                                    checkRaffleStatusAndShowQRCode();
+                                }
                                 Log.d(TAG, "Event updated from Firestore");
                             }
                         } catch (Exception e) {
@@ -1121,6 +1154,138 @@ public class EventDetails extends Fragment {
             sp.edit().putString("device_id", deviceId).apply();
         }
         return deviceId;
+    }
+
+
+
+    /**
+     * this function checks if raffle has been run and shows/hides QR code section accordingly.
+     * it only renders the QR code section to the organizer view. and they can share , download the QR code etc. 
+     */
+
+    private void checkRaffleStatusAndShowQRCode() {
+        if (event == null ||event.getDocumentId() == null || getView() == null) {
+            return;
+        }
+
+        //now we check if the raffle has been run or not by checking the drawround field in firestor respectively. 
+        db.collection("events").document(event.getDocumentId())
+                .get()
+                .addOnSuccessListener(documentSnapshot-> {
+                    if (documentSnapshot != null && documentSnapshot.exists()) {
+                        Long drawRound = documentSnapshot.getLong("drawRound");
+                        boolean raffleHasRun = (drawRound != null && drawRound > 0);
+
+
+                        if (!raffleHasRun && event.getQrCodeUrl() != null && !event.getQrCodeUrl().isEmpty()) {
+                            showQRCodeSection();
+                            generateQRCodePreview(event.getQrCodeUrl());
+                        } else {
+                            hideQRCodeSection();
+                        }
+                } else {
+                    // in the case event dosent exist or there is no sort of draw round field and we assume the raffle has not been run yet. 
+                    if (event.getQrCodeUrl() != null && !event.getQrCodeUrl().isEmpty()) {
+                        showQRCodeSection();
+                        generateQRCodePreview(event.getQrCodeUrl());
+                    } else {
+                        hideQRCodeSection();
+                    }
+                }
+            })
+            . addOnFailureListener(e -> {
+                Log.e(TAG, "Error checking raffle status", e);
+                hideQRCodeSection();
+            });
+    }
+
+
+    /**
+     * shows the QR code section for organizer view. 
+     */
+
+    private void showQRCodeSection() {
+        if (getView()==null) {
+            return;
+        }
+
+        if (tvQRCodeLabel != null) {
+            tvQRCodeLabel.setVisibility(View.VISIBLE);
+        }
+
+        if (ivQRCode != null) {
+            ivQRCode.setVisibility(View.VISIBLE);
+        }
+        if (btnDownloadQR != null) {
+            btnDownloadQR.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * this is the method to hide the QR code part. 
+     */
+    private void hideQRCodeSection() {
+        if (getView() == null) {
+            return;
+        }
+
+        if (tvQRCodeLabel != null) {
+            tvQRCodeLabel.setVisibility(View.GONE);
+        }
+        if (ivQRCode != null) {
+            ivQRCode.setVisibility(View.GONE);
+        }
+        if (btnDownloadQR != null) {
+            btnDownloadQR.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * Generates a QR code bitmap from URL stored in firebase and renders it . 
+     * this is used to display the QR code preview in the event details fragment and saved to firestore.
+     * @param qrCodeUrl
+     */
+    private void generateQRCodePreview(String qrCodeUrl) {
+        if (getView()==null || qrCodeUrl == null || qrCodeUrl.isEmpty() || ivQRCode == null) {
+            return;
+        }
+
+        try {
+            QRCodeWriter writer = new QRCodeWriter();
+            BitMatrix bitMatrix = writer.encode(qrCodeUrl, BarcodeFormat.QR_CODE, 512, 512);
+
+            int width = bitMatrix.getWidth();
+            int height = bitMatrix.getHeight();
+            qrCodeBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    qrCodeBitmap.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE);
+                }
+            }
+            ivQRCode.setImageBitmap(qrCodeBitmap);
+        } catch (WriterException e) {
+            Log.e(TAG, "Error generating QR code preview", e);
+            Toast.makeText(requireContext(), "Failed to generate QR code", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * launches the QRCode display activity for full QR code functionality (download, share, etc.)
+     * this reuses the existing activity which is present. 
+     */
+
+    private void launchQRCodeDisplayActivity() {
+        if (event == null || event.getDocumentId() == null || event.getQrCodeUrl() == null) {
+            Toast.makeText(requireContext(), "QR code not available", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(requireContext(), QRCodeDisplayActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
+        intent.putExtra("eventName", event.getName());
+        intent.putExtra("qrCodeUrl", event.getQrCodeUrl());
+        startActivity(intent);
     }
     
     @Override

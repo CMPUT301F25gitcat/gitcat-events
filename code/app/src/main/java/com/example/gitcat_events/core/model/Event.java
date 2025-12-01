@@ -352,7 +352,7 @@ public class Event implements Serializable {
     }
 
     /**
-     * Gets the QR code URL for the event
+     * gets the QR code URL for the event
      * 
      * @return the QR code URL (deep link) for the event (can be null)
      */
@@ -362,7 +362,7 @@ public class Event implements Serializable {
     }
 
     /**
-     * Sets the QR code URL for the event
+     * sets the QR code URL for the event
      * 
      * @param qrCodeUrl the QR code URL (deep link) for the event
      */
