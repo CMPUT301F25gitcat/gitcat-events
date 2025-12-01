@@ -65,7 +65,7 @@
         android:layout_marginTop="25dp"
         android:text="Loading..."
         android:textAlignment="center"
-        android:textColor="#84000000"
+        android:textColor="@color/text_color_medium"
         android:textSize="20sp"
         android:textStyle="bold|italic" />
 
@@ -97,11 +97,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
+        android:background="@android:drawable/edit_text"
         android:hint="Search events by name..."
         android:inputType="text"
-        android:visibility="gone"
-        android:background="@android:drawable/edit_text"
-        android:padding="12dp" />
+        android:padding="12dp"
+        android:textColor="@color/text_color_dark"
+        android:visibility="gone" />
 
     <ListView
         android:id="@+id/adminEventsList"
