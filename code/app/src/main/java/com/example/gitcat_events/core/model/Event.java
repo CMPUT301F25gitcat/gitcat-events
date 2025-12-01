@@ -4,7 +4,9 @@ import androidx.annotation.Nullable;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -41,6 +43,9 @@ public class Event implements Serializable {
     private String organizerDeviceId; // Device ID of the organizer (permanent identifier)
     @Nullable 
     private String selectionCriteria; // Guidelines/criteria for lottery selection
+    
+    @Nullable
+    private List<String> eventTypes; // Categories/interests for the event (sports, arts, music, education, family, other)
     
     //private QRCode qrCode; -- QRCode class is not done yet
 
@@ -321,6 +326,25 @@ public class Event implements Serializable {
      */
     public void setSelectionCriteria(@Nullable String selectionCriteria) {
         this.selectionCriteria = selectionCriteria;
+    }
+
+    /**
+     * Gets the event types/categories for an event
+     * 
+     * @return the list of event types (can be null)
+     */
+    @Nullable
+    public List<String> getEventTypes() {
+        return eventTypes;
+    }
+
+    /**
+     * Sets the event types/categories for an event
+     * 
+     * @param eventTypes the list of event types (can be null)
+     */
+    public void setEventTypes(@Nullable List<String> eventTypes) {
+        this.eventTypes = eventTypes;
     }
 
     /**

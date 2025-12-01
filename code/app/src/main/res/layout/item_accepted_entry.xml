@@ -142,6 +142,18 @@
 
         </LinearLayout>
 
+        <!-- View on Map button (only visible when this accepted entrant has coordinates) -->
+        <ImageButton
+            android:id="@+id/btnViewOnMap"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="View on Map"
+            android:src="@android:drawable/ic_dialog_map"
+            android:tint="@android:color/holo_blue_dark"
+            android:visibility="gone" />
+
     </LinearLayout>
 
 </androidx.cardview.widget.CardView>

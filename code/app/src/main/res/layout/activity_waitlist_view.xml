@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -40,16 +41,16 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
         android:background="@android:color/white"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="16dp">
 
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@android:drawable/ic_menu_sort_by_size"
             android:layout_marginEnd="8dp"
+            android:src="@android:drawable/ic_menu_sort_by_size"
             app:tint="@color/purple_500" />
 
         <TextView
@@ -57,27 +58,17 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Total Entrants: 0"
+            android:textColor="@color/black"
             android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="@color/black" />
+            android:textStyle="bold" />
     </LinearLayout>
 
     <!-- Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@android:color/darker_gray" />
 
     <!-- Waitlist RecyclerView -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvWaitlist"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="8dp"
-        android:clipToPadding="false" />
 
     <!-- Empty State -->
+
     <TextView
         android:id="@+id/tvWaitlistEmpty"
         android:layout_width="match_parent"
@@ -88,6 +79,67 @@
         android:textSize="16sp"
         android:textColor="@android:color/darker_gray"
         android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@android:color/darker_gray" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvWaitlist"
+            android:layout_width="match_parent"
+            android:layout_height="388dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:padding="8dp">
+
+        </androidx.recyclerview.widget.RecyclerView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="250dp"
+            android:orientation="vertical">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/textInputLayout"
+                android:layout_width="match_parent"
+                android:layout_height="70dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/waitingListNotifTitleText"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:hint="Notification Title*" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/textInputLayout2"
+                android:layout_width="match_parent"
+                android:layout_height="110dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/waitingListNotifDescription"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:hint="Notification Description" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <Button
+                android:id="@+id/waitingListSendNotif"
+                android:layout_width="match_parent"
+                android:layout_height="70dp"
+                android:layout_marginTop="0dp"
+                android:backgroundTint="#9C27B0"
+                android:text="Send Notifications To Entrants"
+                app:cornerRadius="0dp" />
+        </LinearLayout>
+
+    </LinearLayout>
 
 </LinearLayout>
 

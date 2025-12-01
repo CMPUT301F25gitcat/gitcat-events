@@ -16,6 +16,69 @@
         android:textSize="24sp"
         android:textStyle="bold" />
 
+    <!-- Interests Section -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="Interests"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="16dp">
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxFilterSports"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Sports"
+            android:textSize="16sp" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxFilterArts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Arts"
+            android:textSize="16sp" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxFilterMusic"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Music"
+            android:textSize="16sp" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxFilterEducation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Education"
+            android:textSize="16sp" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxFilterFamily"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Family"
+            android:textSize="16sp" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxFilterOther"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Other"
+            android:textSize="16sp" />
+    </LinearLayout>
+
     <!-- Start Date Section -->
     <TextView
         android:layout_width="wrap_content"
