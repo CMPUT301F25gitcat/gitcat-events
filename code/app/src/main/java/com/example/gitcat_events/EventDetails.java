@@ -1066,7 +1066,7 @@ public class EventDetails extends Fragment {
 
     /**
      * Entry point from the UI when the user taps "Accept Invitation".
-     * We always show our own consent dialog first for geo-enabled events.
+     * We ALWAYS show our own consent dialog first.
      * If the user agrees, we optionally request OS location permission (if needed),
      * then proceed to accept the invitation and best-effort attach location.
      * If they decline, we accept without recording coordinates.
@@ -1074,15 +1074,6 @@ public class EventDetails extends Fragment {
     private void acceptInvitation() {
         if (event == null) return;
 
-        final boolean geoRequired = event.getGeoLocationRequired() != null && event.getGeoLocationRequired();
-
-        if (!geoRequired) {
-            // No geo requirement for this event: just accept without any location flow.
-            acceptInvitationInternal();
-            return;
-        }
-
-        // Show a simple consent dialog every time for geo-enabled events
         new AlertDialog.Builder(requireContext())
                 .setTitle("Share approximate location?")
                 .setMessage("If you agree, we'll record an approximate location when you accept so the organizer " +
