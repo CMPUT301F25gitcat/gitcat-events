@@ -57,9 +57,15 @@ public class NotifArrayAdapter extends ArrayAdapter<Notif> {
         TextView notifDescription = view.findViewById(R.id.notifDescription);
         TextView notifDate = view.findViewById((R.id.notifDate));
 
-        notifTitle.setText(notif.getTitle());
+        notifTitle.setText("Event: " + notif.getTitle());
         notifDescription.setText(notif.getDescription());
-        notifDate.setText(notif.getDate().toString());
+        String year = Integer.toString(notif.getDate().getYear()+1900);
+        String month = Integer.toString(notif.getDate().getMonth()+1);
+        String day = Integer.toString(notif.getDate().getDate());
+        String hour = Integer.toString(notif.getDate().getHours());
+        String minute = Integer.toString(notif.getDate().getMinutes());
+        String formattedDate = year+"-"+month+"-"+day+" "+hour+":"+minute;
+        notifDate.setText(formattedDate);
 
         return view;
     }
