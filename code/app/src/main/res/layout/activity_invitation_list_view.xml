@@ -64,6 +64,16 @@
     <!-- Divider -->
 
     <!-- Invitation List RecyclerView -->
+<<<<<<< HEAD
+=======
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvInvitationList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:padding="8dp" />
+>>>>>>> 0b4f5133957c5d682882212c0328b6bdff28849f
 
     <!-- Empty State -->
     <TextView
