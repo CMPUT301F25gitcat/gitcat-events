@@ -5,9 +5,11 @@ import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
+import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.example.gitcat_events.MainActivity;
 import com.example.gitcat_events.R;
@@ -26,39 +28,167 @@ public class NavigationBarTests {
 
     @Before
     public void skipIntroIfPresent() {
-        try {
-            onView(withId(R.id.btnSkip)).perform(click());
-        } catch (Exception e) {
-            // Ignore if skip button not visible
-        }
-    }
+        // Clear SharedPreferences to ensure fresh state
+        InstrumentationRegistry.getInstrumentation()
+                .getTargetContext()
+                .getSharedPreferences("GitCatEventsPrefs", android.content.Context.MODE_PRIVATE)
+                .edit()
+                .clear()
+                .apply();
 
-    @Test
-    public void testHomeMenuDisplaysHomeFragment() {
+        // Wait for activity to start
         try {
             Thread.sleep(2000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
+        // Check if SetupProfileActivity is displayed (indicated by "Welcome!" text)
+        boolean setupProfileVisible = false;
+        for (int i = 0; i < 10; i++) {
+            try {
+                onView(withText("Welcome!")).check(matches(isDisplayed()));
+                setupProfileVisible = true;
+                break;
+            } catch (Exception e) {
+                // Not visible yet, wait and retry
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ie) {
+                    ie.printStackTrace();
+                }
+            }
+        }
+
+        if (setupProfileVisible) {
+            // Click skip button to create minimal profile
+            try {
+                onView(withId(R.id.btnSkip)).perform(click());
+                
+                // Wait for profile creation and MainActivity to appear
+                // Poll for bottom navigation which indicates MainActivity is displayed
+                boolean mainActivityVisible = false;
+                for (int i = 0; i < 20; i++) {
+                    try {
+                        onView(withId(R.id.home)).check(matches(isDisplayed()));
+                        mainActivityVisible = true;
+                        break;
+                    } catch (Exception e) {
+                        // Not visible yet, wait and retry
+                        try {
+                            Thread.sleep(500);
+                        } catch (InterruptedException ie) {
+                            ie.printStackTrace();
+                        }
+                    }
+                }
+                
+                if (!mainActivityVisible) {
+                    // Give it more time
+                    Thread.sleep(3000);
+                }
+            } catch (Exception e) {
+                // Skip button not found or click failed, continue anyway
+                e.printStackTrace();
+            }
+        } else {
+            // SetupProfileActivity not shown, assume profile already exists
+            // Wait a bit for MainActivity to be ready
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Helper method to ensure navigation bar is visible and ready
+     */
+    private void ensureNavigationReady() {
+        // Wait for navigation bar to be visible
+        boolean navigationReady = false;
+        for (int i = 0; i < 10; i++) {
+            try {
+                onView(withId(R.id.home)).check(matches(isDisplayed()));
+                navigationReady = true;
+                break;
+            } catch (Exception e) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ie) {
+                    ie.printStackTrace();
+                }
+            }
+        }
+        
+        if (!navigationReady) {
+            // Give it more time
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    public void testHomeMenuDisplaysHomeFragment() {
+        ensureNavigationReady();
         onView(withId(R.id.home)).perform(click());
+        
+        // Wait for fragment to load
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        
         onView(withId(R.id.fragment_home)).check(matches(isDisplayed()));
     }
 
     @Test
     public void testNotifsMenuDisplaysNotifsFragment() {
+        ensureNavigationReady();
         onView(withId(R.id.notifs)).perform(click());
+        
+        // Wait for fragment to load
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        
         onView(withId(R.id.fragment_notifs)).check(matches(isDisplayed()));
     }
 
     @Test
     public void testCreateMenuDisplaysCreateFragment() {
+        ensureNavigationReady();
         onView(withId(R.id.create)).perform(click());
+        
+        // Wait for fragment to load
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        
         onView(withId(R.id.fragment_create)).check(matches(isDisplayed()));
     }
 
     @Test
     public void testProfileMenuDisplaysProfileFragment() {
+        ensureNavigationReady();
         onView(withId(R.id.profile)).perform(click());
+        
+        // Wait for fragment to load
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        
         onView(withId(R.id.fragment_profile)).check(matches(isDisplayed()));
     }
 }
