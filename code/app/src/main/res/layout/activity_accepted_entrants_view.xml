@@ -68,6 +68,19 @@
                 android:textStyle="bold"
                 android:textColor="@color/black" />
 
+            <!-- Map View Button -->
+            <Button
+                android:id="@+id/btnMapView"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="Map View"
+                android:textSize="12sp"
+                android:textColor="@android:color/white"
+                android:backgroundTint="@android:color/holo_blue_dark"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:layout_marginEnd="8dp" />
+
             <!-- Export CSV Button -->
             <Button
                 android:id="@+id/btnExportCsv"

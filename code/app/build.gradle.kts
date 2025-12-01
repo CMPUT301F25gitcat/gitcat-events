@@ -46,6 +46,8 @@ dependencies {
     implementation(libs.constraintlayout)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+    // Location services (for capturing where accepted entrants joined from)
+    implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation(libs.navigation.fragment)
     implementation(libs.navigation.ui)
     implementation(libs.cardview)

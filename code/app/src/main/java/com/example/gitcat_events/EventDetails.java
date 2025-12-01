@@ -1,14 +1,19 @@
 package com.example.gitcat_events;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import android.util.Base64;
@@ -33,6 +38,11 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
+import com.google.android.gms.tasks.Task;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -48,14 +58,18 @@ public class EventDetails extends Fragment {
 
     private static final String TAG = "EventDetailsFragment";
     private static final String PREFS = "app_prefs";
+    private static final int REQUEST_LOCATION_FOR_ACCEPT_INVITE = 1001;
 
     private Event event;
     private FirebaseFirestore db;
+    // Used only when attaching location to accepted entrants (not for waitlist)
+    private FusedLocationProviderClient fusedLocationClient;
     private ListenerRegistration waitlistListener;
     private ListenerRegistration eventListener; // Real-time event update listener
     private boolean isOnWaitlist = false;
     private boolean isOrganizer = false;
     private boolean hasInvitation = false;
+    private boolean pendingAcceptAfterPermission = false;
     
     private ImageView ivEventPoster;
     private TextView tvEventName, tvEventDate, tvEventSpots, tvEventDesc;
@@ -82,6 +96,12 @@ public class EventDetails extends Fragment {
             event = (Event) getArguments().getSerializable("event");
         }
         db = FirebaseFirestore.getInstance();
+        try {
+            fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext());
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to initialize FusedLocationProviderClient", e);
+            fusedLocationClient = null;
+        }
     }
 
     @Override
@@ -164,13 +184,8 @@ public class EventDetails extends Fragment {
             // Notify HomeFragment to refresh (it will reload in onResume)
         });
 
-        // set up delete btn
-        if(getIsAdmin(getContext())){
-            deleteEventBtn.setVisibility(View.VISIBLE);
-            deleteEventBtn.setOnClickListener(v -> {
-                deleteEvent(Integer.parseInt(event.getDocumentId()));
-            });
-        }
+        // set up delete button click listener (visibility is handled in checkUserStatus)
+        deleteEventBtn.setOnClickListener(v -> deleteEventByDocumentId());
 
 
         return view;
@@ -182,37 +197,31 @@ public class EventDetails extends Fragment {
                 .getBoolean(KEY_IS_ADMIN, false);
     }
 
-    private void deleteEvent(int eventId) {
+    /**
+     * Delete this event by its Firestore document ID.
+     * Called by organizers/admins from the event details screen.
+     */
+    private void deleteEventByDocumentId() {
+        if (event == null || event.getDocumentId() == null) {
+            Toast.makeText(getContext(), "Cannot delete: event not loaded.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String documentId = event.getDocumentId();
+
         db.collection("events")
-                .whereEqualTo("eventId", eventId)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    if (querySnapshot.isEmpty()) {
-                        Toast.makeText(getContext(), "No event found with eventId: " + eventId, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
+                .document(documentId)
+                .delete()
+                .addOnSuccessListener(v -> {
+                    // notify home page so they can reload event list
+                    Bundle result = new Bundle();
+                    result.putSerializable("deletedEvent", event);
+                    getParentFragmentManager().setFragmentResult("detail_closed", result);
 
-                    WriteBatch batch = db.batch();
-
-                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
-                        batch.delete(doc.getReference());
-                    }
-
-                    batch.commit()
-                            .addOnSuccessListener(v -> {
-
-                                    // notify home page so they can reload event list
-                                Bundle result = new Bundle();
-                                result.putSerializable("deletedEvent", event);
-                                getParentFragmentManager().setFragmentResult("detail_closed", result);
-
-                                Toast.makeText(getContext(), "Event deleted: " + eventId, Toast.LENGTH_SHORT).show();
-                            })
-                            .addOnFailureListener(e ->
-                                    Toast.makeText(getContext(), "Failed to delete event: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                    Toast.makeText(getContext(), "Event deleted.", Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e ->
-                        Toast.makeText(getContext(), "Error querying event: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                        Toast.makeText(getContext(), "Failed to delete event: " + e.getMessage(), Toast.LENGTH_LONG).show());
     }
 
 
@@ -294,6 +303,10 @@ public class EventDetails extends Fragment {
                     btnEditEvent.setVisibility(View.VISIBLE);
                     Log.d(TAG, "Edit Event button visible: " + (btnEditEvent.getVisibility() == View.VISIBLE));
                 }
+                if (deleteEventBtn != null) {
+                    deleteEventBtn.setVisibility(View.VISIBLE);
+                    Log.d(TAG, "Delete Event button visible: " + (deleteEventBtn.getVisibility() == View.VISIBLE));
+                }
                 
                 // Show organizer status
                 showOrganizerStatus();
@@ -308,6 +321,7 @@ public class EventDetails extends Fragment {
             if (btnViewEnrolledEntrants != null) btnViewEnrolledEntrants.setVisibility(View.GONE);
             if (btnViewCancelledEntrants != null) btnViewCancelledEntrants.setVisibility(View.GONE);
             if (btnEditEvent != null) btnEditEvent.setVisibility(View.GONE);
+            if (deleteEventBtn != null) deleteEventBtn.setVisibility(View.GONE);
             
             // Show join button by default (will be hidden if user has invitation)
             if (btnJoinWaitingList != null) btnJoinWaitingList.setVisibility(View.VISIBLE);
@@ -649,9 +663,9 @@ public class EventDetails extends Fragment {
 
     private void addToWaitlist(String deviceId) {
         if (event == null || event.getDocumentId() == null) return;
-        
+
         WaitListEntry entry = new WaitListEntry(event.getDocumentId(), deviceId);
-        
+
         Map<String, Object> data = new HashMap<>();
         data.put("eventId", entry.getEventId());
         data.put("userDeviceId", entry.getUserDeviceId());
@@ -1052,7 +1066,67 @@ public class EventDetails extends Fragment {
         }
     }
 
+    /**
+     * Entry point from the UI when the user taps "Accept Invitation".
+     * For geo-enabled events, we show a consent dialog; for others, we just accept.
+     */
     private void acceptInvitation() {
+        if (event == null) return;
+
+        boolean geoRequired = event.getGeoLocationRequired() != null && event.getGeoLocationRequired();
+
+        if (!geoRequired) {
+            // No geolocation requirement: accept immediately without any location flow.
+            acceptInvitationInternal();
+            return;
+        }
+
+        // Geo is required: ask the user if they want to share approximate location.
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Share approximate location?")
+                .setMessage("If you agree, we'll record an approximate location when you accept so the organizer " +
+                        "can see anonymized clusters of where entrants joined from. You can still join if you decline.")
+                .setPositiveButton("Share Location", (dialog, which) -> {
+                    startLocationAwareAcceptance();
+                })
+                .setNegativeButton("No thanks", (dialog, which) -> {
+                    // User explicitly declined sharing location: accept without coordinates.
+                    acceptInvitationInternal();
+                })
+                .setCancelable(true)
+                .show();
+    }
+
+    /**
+     * User has consented to share location for this acceptance.
+     * Check OS permission; if missing, request it, otherwise proceed directly.
+     */
+    private void startLocationAwareAcceptance() {
+        Context context = requireContext();
+
+        boolean fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+        boolean coarseGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+
+        if (!fineGranted && !coarseGranted) {
+            // Ask OS for permission; we'll resume in onRequestPermissionsResult.
+            pendingAcceptAfterPermission = true;
+            requestPermissions(
+                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION},
+                    REQUEST_LOCATION_FOR_ACCEPT_INVITE
+            );
+        } else {
+            // Permission already granted: proceed and best-effort attach location.
+            acceptInvitationInternal();
+        }
+    }
+
+    /**
+     * Core logic to move from invitation_list to acceptedList and best-effort attach location.
+     * This is called after permission has been granted (or if not needed).
+     */
+    private void acceptInvitationInternal() {
         if (event == null || event.getDocumentId() == null) return;
         
         String deviceId = getOrCreateDeviceId();
@@ -1065,43 +1139,182 @@ public class EventDetails extends Fragment {
                 .addOnSuccessListener(doc -> {
                     if (doc.exists()) {
                         Map<String, Object> invitationData = doc.getData();
-                        
-                        // Create accepted list entry
+
+                        // Build base accepted data from invitation
                         Map<String, Object> acceptedData = new HashMap<>(invitationData);
                         acceptedData.put("status", "accepted");
                         acceptedData.put("acceptedAt", System.currentTimeMillis());
-                        
-                        // Batch operation: add to acceptedList and remove from invitation_list
-                        WriteBatch batch = db.batch();
-                        
-                        // Add to acceptedList
-                        DocumentReference acceptedRef = 
-                            db.collection("events").document(event.getDocumentId())
-                                .collection("acceptedList").document(deviceId);
-                        batch.set(acceptedRef, acceptedData);
-                        
-                        // Remove from invitation_list
-                        DocumentReference invitationRef = 
-                            db.collection("events").document(event.getDocumentId())
-                                .collection("invitation_list").document(deviceId);
-                        batch.delete(invitationRef);
-                        
-                        // Commit batch
-                        batch.commit()
-                                .addOnSuccessListener(v -> {
-                                    showSuccess("✓ Invitation accepted! You're registered for this event.");
-                                    hasInvitation = false;
-                                    hideInvitationButtons();
-                                })
-                                .addOnFailureListener(e -> {
-                                    showError("Failed to accept invitation. Please try again.");
-                                    Log.e(TAG, "Error accepting invitation", e);
+
+                        // If geolocation is required, best-effort attach location for the accepted entrant
+                        if (event.getGeoLocationRequired() != null && event.getGeoLocationRequired()
+                                && fusedLocationClient != null) {
+                            try {
+                                // Prioritize getCurrentLocation() to get fresh, accurate current location (Edmonton, Vancouver, etc.)
+                                Task<android.location.Location> currentLocationTask = fusedLocationClient.getCurrentLocation(
+                                        Priority.PRIORITY_HIGH_ACCURACY, // Use high accuracy for best results
+                                        null
+                                );
+                                
+                                currentLocationTask.addOnSuccessListener(currentLocation -> {
+                                    if (currentLocation != null) {
+                                        acceptedData.put("latitude", currentLocation.getLatitude());
+                                        acceptedData.put("longitude", currentLocation.getLongitude());
+                                        Log.d(TAG, "Got current location: " + currentLocation.getLatitude() + ", " + currentLocation.getLongitude());
+                                        writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                    } else {
+                                        // getCurrentLocation returned null, try getLastLocation() as fallback
+                                        Log.d(TAG, "getCurrentLocation returned null, trying getLastLocation() fallback");
+                                        fusedLocationClient.getLastLocation()
+                                                .addOnSuccessListener(fallbackLocation -> {
+                                                    if (fallbackLocation != null && isLocationFresh(fallbackLocation)) {
+                                                        acceptedData.put("latitude", fallbackLocation.getLatitude());
+                                                        acceptedData.put("longitude", fallbackLocation.getLongitude());
+                                                        Log.d(TAG, "Got fresh fallback location from getLastLocation: " + fallbackLocation.getLatitude() + ", " + fallbackLocation.getLongitude());
+                                                    } else {
+                                                        if (fallbackLocation != null) {
+                                                            Log.w(TAG, "Fallback location is too old/stale (" + 
+                                                                    ((System.currentTimeMillis() - fallbackLocation.getTime()) / 1000 / 60) + 
+                                                                    " minutes old), rejecting. Accepting without coordinates.");
+                                                        } else {
+                                                            Log.w(TAG, "Both location methods returned null, accepting without coordinates");
+                                                        }
+                                                    }
+                                                    writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                                })
+                                                .addOnFailureListener(fallbackError -> {
+                                                    Log.e(TAG, "Fallback getLastLocation also failed, accepting without coordinates", fallbackError);
+                                                    writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                                });
+                                    }
+                                }).addOnFailureListener(e -> {
+                                    Log.w(TAG, "getCurrentLocation failed, trying getLastLocation() fallback: " + e.getMessage());
+                                    // Fallback to getLastLocation() if getCurrentLocation() fails
+                                    fusedLocationClient.getLastLocation()
+                                            .addOnSuccessListener(fallbackLocation -> {
+                                                if (fallbackLocation != null && isLocationFresh(fallbackLocation)) {
+                                                    acceptedData.put("latitude", fallbackLocation.getLatitude());
+                                                    acceptedData.put("longitude", fallbackLocation.getLongitude());
+                                                    Log.d(TAG, "Got fresh location from getLastLocation fallback: " + fallbackLocation.getLatitude() + ", " + fallbackLocation.getLongitude());
+                                                } else {
+                                                    if (fallbackLocation != null) {
+                                                        Log.w(TAG, "Fallback location is too old/stale (" + 
+                                                                ((System.currentTimeMillis() - fallbackLocation.getTime()) / 1000 / 60) + 
+                                                                " minutes old), rejecting. Accepting without coordinates.");
+                                                    } else {
+                                                        Log.w(TAG, "Both location methods failed, accepting without coordinates");
+                                                    }
+                                                }
+                                                writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                            })
+                                            .addOnFailureListener(fallbackError -> {
+                                                Log.e(TAG, "Both location methods failed, accepting without coordinates", fallbackError);
+                                                writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                            });
                                 });
+                            } catch (SecurityException se) {
+                                Log.w(TAG, "Location permission not granted for accepted entrant", se);
+                                writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                            } catch (Exception e) {
+                                Log.e(TAG, "Unexpected error getting location for accepted entrant", e);
+                                writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                            }
+                        } else {
+                            // No geo requirement or no location client; just write without coordinates
+                            writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                        }
                     }
                 })
                 .addOnFailureListener(e -> {
                     showError("Error loading invitation. Please try again.");
                     Log.e(TAG, "Error loading invitation", e);
+                });
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == REQUEST_LOCATION_FOR_ACCEPT_INVITE) {
+            boolean granted = false;
+            if (grantResults.length > 0) {
+                for (int result : grantResults) {
+                    if (result == PackageManager.PERMISSION_GRANTED) {
+                        granted = true;
+                        break;
+                    }
+                }
+            }
+
+            if (pendingAcceptAfterPermission) {
+                pendingAcceptAfterPermission = false;
+                if (granted) {
+                    // Permission granted: proceed and best-effort attach location.
+                    acceptInvitationInternal();
+                } else {
+                    // Permission denied: accept anyway, just without coordinates.
+                    Toast.makeText(requireContext(),
+                            "Location permission denied. You'll be enrolled without saving your location.",
+                            Toast.LENGTH_LONG).show();
+                    acceptInvitationInternal();
+                }
+            }
+        }
+    }
+
+    /**
+     * Checks if a location is fresh (recently obtained, within the last 5 minutes).
+     * This prevents saving stale/cached locations (like old San Francisco coordinates when user is actually in Edmonton).
+     */
+    private boolean isLocationFresh(android.location.Location location) {
+        if (location == null) return false;
+        
+        long locationTime = location.getTime();
+        long currentTime = System.currentTimeMillis();
+        long ageInMinutes = (currentTime - locationTime) / (1000 * 60);
+        
+        // Only accept locations that are less than 5 minutes old
+        // This ensures we're getting the user's actual current location, not a stale cached one
+        boolean isFresh = ageInMinutes < 5;
+        
+        if (!isFresh) {
+            Log.d(TAG, "Location is " + ageInMinutes + " minutes old (too stale), rejecting");
+        }
+        
+        return isFresh;
+    }
+
+    /**
+     * Helper to add an entry to acceptedList and remove from invitation_list in a single batch.
+     * Coordinates (latitude/longitude) may already be present in acceptedData.
+     */
+    private void writeAcceptedEntryAndRemoveInvitation(String deviceId, Map<String, Object> acceptedData) {
+        if (event == null || event.getDocumentId() == null) return;
+
+        WriteBatch batch = db.batch();
+
+        // Add to acceptedList
+        DocumentReference acceptedRef =
+                db.collection("events").document(event.getDocumentId())
+                        .collection("acceptedList").document(deviceId);
+        batch.set(acceptedRef, acceptedData);
+
+        // Remove from invitation_list
+        DocumentReference invitationRef =
+                db.collection("events").document(event.getDocumentId())
+                        .collection("invitation_list").document(deviceId);
+        batch.delete(invitationRef);
+
+        // Commit batch
+        batch.commit()
+                .addOnSuccessListener(v -> {
+                    showSuccess("✓ Invitation accepted! You're registered for this event.");
+                    hasInvitation = false;
+                    hideInvitationButtons();
+                })
+                .addOnFailureListener(e -> {
+                    showError("Failed to accept invitation. Please try again.");
+                    Log.e(TAG, "Error accepting invitation", e);
                 });
     }
     
