@@ -244,6 +244,51 @@
             app:layout_constraintTop_toBottomOf="@+id/btnViewCancelledEntrants"
             tools:visibility="visible" />
 
+        <!-- this is the section for the QR code display activity whenever the raffle has not been run yet. -->
+        <TextView
+            android:id="@+id/tvQRCodeLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="QR Code"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/btnEditEvent" />
+
+        <ImageView
+            android:id="@+id/ivQRCode"
+            android:layout_width="300dp"
+            android:layout_height="300dp"
+            android:layout_marginTop="16dp"
+            android:background="@android:color/white"
+            android:padding="16dp"
+            android:contentDescription="QR Code"
+            android:scaleType="fitCenter"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tvQRCodeLabel" />
+
+        <Button
+            android:id="@+id/btnDownloadQR"
+            android:layout_width="0dp"
+            android:layout_height="60dp"
+            android:layout_marginStart="40dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="40dp"
+            android:backgroundTint="@android:color/holo_blue_dark"
+            android:text="Download QR"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/ivQRCode" />
+
         <!-- Invitation Response Buttons (for invited entrants) -->
         <LinearLayout
             android:id="@+id/invitationButtons"

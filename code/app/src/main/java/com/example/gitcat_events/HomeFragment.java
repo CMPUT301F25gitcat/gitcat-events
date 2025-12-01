@@ -38,6 +38,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import android.content.Intent;
 
 public class HomeFragment extends Fragment {
     private static final String TAG = "HomeFragment";
@@ -183,6 +184,15 @@ public class HomeFragment extends Fragment {
         // Set up filter button click listener
         if (btnFilterEvents != null) {
             btnFilterEvents.setOnClickListener(v -> showFilterBottomSheet());
+        }
+
+
+        ImageButton btnScanQR = view.findViewById(R.id.imageButton2);
+        if (btnScanQR != null) {
+            btnScanQR.setOnClickListener(v->{
+                Intent intent = new Intent(getActivity(), QRScannerActivity.class);
+                startActivity(intent);
+            });
         }
 
         // Update filter indicator on view creation
@@ -956,6 +966,7 @@ public class HomeFragment extends Fragment {
             event.setPoster(document.getString("poster"));
             event.setOrganizerDeviceId(document.getString("organizerDeviceId"));
             event.setSelectionCriteria(document.getString("selectionCriteria"));
+            event.setQrCodeUrl(document.getString("qrCodeUrl"));
 
             Boolean geoLocation = document.getBoolean("geoLocationRequired");
             event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);

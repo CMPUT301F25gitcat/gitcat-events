@@ -387,6 +387,10 @@ public class CreateEventActivity extends AppCompatActivity {
             String docId = String.valueOf(next);
             DocumentReference eventRef = db.collection("events").document(docId);
 
+            // Generate QR code URL (deep link to event details)
+            String qrCodeUrl = "gitcatevents://event/" + next;
+            event.setQrCodeUrl(qrCodeUrl);
+
             // Prepare event data
             Map<String, Object> data = new HashMap<>();
             data.put("name", event.getName());
@@ -403,6 +407,7 @@ public class CreateEventActivity extends AppCompatActivity {
             data.put("selectionCriteria", event.getSelectionCriteria());
             data.put("eventTypes", event.getEventTypes() != null ? event.getEventTypes() : new ArrayList<>());
             data.put("eventId", next);
+            data.put("qrCodeUrl", qrCodeUrl);
 
             transaction.set(eventRef, data);
 
@@ -422,6 +427,13 @@ public class CreateEventActivity extends AppCompatActivity {
         }).addOnSuccessListener(eventId -> {
             progressDialog.dismiss();
             Toast.makeText(this, "Event created successfully!", Toast.LENGTH_LONG).show();
+
+            //launch the QR code display activity 
+            Intent qrCodeIntent = new Intent(this, QRCodeDisplayActivity.class);
+            qrCodeIntent.putExtra("eventId", eventId);
+            qrCodeIntent.putExtra("eventName", event.getName());
+            qrCodeIntent.putExtra("qrCodeUrl", event.getQrCodeUrl());
+            startActivity(qrCodeIntent);
             
             // Return to Create fragment (button stays disabled since we're leaving)
             finish();

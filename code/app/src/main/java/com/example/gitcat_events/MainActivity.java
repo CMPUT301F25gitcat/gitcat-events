@@ -4,7 +4,9 @@ import androidx.fragment.app.Fragment;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentManager;
@@ -21,6 +23,7 @@ public class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
     private static final String PREFS = "app_prefs";
     private static final String KEY_PROFILE_ID = "profile_doc_id";
+    private static final String TAG = "MainActivity";
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,9 +41,14 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        //handling deep l;inks from QR codes more or less 
+        handleDeepLink(getIntent());
+
         // add binding for bottom navigation menu
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+
 
         // Check if we should navigate to a specific fragment
         String targetFragment = getIntent().getStringExtra("fragment");
@@ -102,5 +110,27 @@ public class MainActivity extends AppCompatActivity {
         FragmentTransaction ft = fm.beginTransaction();
         ft.replace(R.id.frameLayout, fragment);
         ft.commit();
+    }
+
+
+    /**
+     * handles the deep links from QR codes 
+     */
+    private void handleDeepLink(Intent intent) {
+        Uri data = intent.getData();
+        if (data != null && "gitcatevents".equals(data.getScheme()) && "event".equals(data.getHost())) {
+            String path = data.getPath();
+            if (path != null && path.startsWith("/")) {
+                String eventId = path.substring(1);
+                if (!eventId.isEmpty()) {
+                    Log.d(TAG, "Deep link detected for event: " + eventId); // this is for internall logging purposes 
+
+                    //now we should navigate to the event details activity 
+                    Intent eventDetailsIntent = new Intent(this, EventDetailsActivity.class);
+                    eventDetailsIntent.putExtra("eventId", eventId);
+                    startActivity(eventDetailsIntent); // thus allowing the user to navigate to the event details activtiy. 
+                }
+            }
+        }
     }
 }

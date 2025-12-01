@@ -43,6 +43,8 @@ public class Event implements Serializable {
     private String organizerDeviceId; // Device ID of the organizer (permanent identifier)
     @Nullable 
     private String selectionCriteria; // Guidelines/criteria for lottery selection
+    @Nullable 
+    private String qrCodeUrl; // QR code URL (deep link) for the event
     
     @Nullable
     private List<String> eventTypes; // Categories/interests for the event (sports, arts, music, education, family, other)
@@ -371,6 +373,25 @@ public class Event implements Serializable {
         }
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         return formatter.format(this.eventDate.getTime());
+    }
+
+    /**
+     * gets the QR code URL for the event
+     * 
+     * @return the QR code URL (deep link) for the event (can be null)
+     */
+    @Nullable
+    public String getQrCodeUrl() {
+        return qrCodeUrl;
+    }
+
+    /**
+     * sets the QR code URL for the event
+     * 
+     * @param qrCodeUrl the QR code URL (deep link) for the event
+     */
+    public void setQrCodeUrl(@Nullable String qrCodeUrl) {
+        this.qrCodeUrl = qrCodeUrl;
     }
 
     /*public void setQRCode(QRCode qrCode) {

@@ -43,6 +43,7 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 import com.google.android.gms.tasks.Task;
 
+import java.io.Writer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -53,6 +54,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import android.graphics.Color;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 
 public class EventDetails extends Fragment {
 
@@ -70,7 +77,7 @@ public class EventDetails extends Fragment {
     private boolean isOrganizer = false;
     private boolean hasInvitation = false;
     private boolean pendingAcceptAfterPermission = false;
-    
+
     private ImageView ivEventPoster;
     private TextView tvEventName, tvEventDate, tvEventSpots, tvEventDesc;
     private TextView tvWaitingListCount, tvStatusMessage, tvSelectionCriteria;
@@ -78,6 +85,11 @@ public class EventDetails extends Fragment {
     private ImageButton btnBack;
     private Button btnAcceptInvitation, btnDeclineInvitation;
     private ViewGroup invitationButtons;
+
+    private ImageView ivQRCode;
+    private TextView tvQRCodeLabel;
+    private Button btnDownloadQR;
+    private Bitmap qrCodeBitmap; // Store bitmap for download functionality
 
     public EventDetails() {}
 
@@ -130,6 +142,20 @@ public class EventDetails extends Fragment {
         btnDeclineInvitation = view.findViewById(R.id.btnDeclineInvitation);
         invitationButtons = view.findViewById(R.id.invitationButtons);
         deleteEventBtn = view.findViewById(R.id.adminDeleteEvent);
+
+        ivQRCode = view.findViewById(R.id.ivQRCode);
+        tvQRCodeLabel = view.findViewById(R.id.tvQRCodeLabel);
+        btnDownloadQR = view.findViewById(R.id.btnDownloadQR);
+
+        // Set up download QR button click listener
+        if (btnDownloadQR != null) {
+            btnDownloadQR.setOnClickListener(v -> launchQRCodeDisplayActivity());
+        }
+
+        // Set up QR code image click listener (optional - also launches full activity)
+        if (ivQRCode != null) {
+            ivQRCode.setOnClickListener(v -> launchQRCodeDisplayActivity());
+        }
 
         // Display event details
         displayEvent();
@@ -307,7 +333,10 @@ public class EventDetails extends Fragment {
                     deleteEventBtn.setVisibility(View.VISIBLE);
                     Log.d(TAG, "Delete Event button visible: " + (deleteEventBtn.getVisibility() == View.VISIBLE));
                 }
-                
+
+                //we check the raffle status and show the qr code to the organizer only if the raffle has not been run yet.
+                checkRaffleStatusAndShowQRCode();
+
                 // Show organizer status
                 showOrganizerStatus();
                 return;
@@ -315,6 +344,7 @@ public class EventDetails extends Fragment {
             
             // Not organizer, hide organizer buttons
             isOrganizer = false;
+            hideQRCodeSection();
             if (btnRunRaffle != null) btnRunRaffle.setVisibility(View.GONE);
             if (btnViewWaitingList != null) btnViewWaitingList.setVisibility(View.GONE);
             if (btnViewInvitedEntrants != null) btnViewInvitedEntrants.setVisibility(View.GONE);
@@ -322,7 +352,7 @@ public class EventDetails extends Fragment {
             if (btnViewCancelledEntrants != null) btnViewCancelledEntrants.setVisibility(View.GONE);
             if (btnEditEvent != null) btnEditEvent.setVisibility(View.GONE);
             if (deleteEventBtn != null) deleteEventBtn.setVisibility(View.GONE);
-            
+
             // Show join button by default (will be hidden if user has invitation)
             if (btnJoinWaitingList != null) btnJoinWaitingList.setVisibility(View.VISIBLE);
             
@@ -490,6 +520,10 @@ public class EventDetails extends Fragment {
                                 displayEvent();
                                 // Re-check user status in case organizer changed or other updates
                                 checkUserStatus();
+                                // Re-check raffle status and QR code if organizer
+                                if (isOrganizer) {
+                                    checkRaffleStatusAndShowQRCode();
+                                }
                                 Log.d(TAG, "Event updated from Firestore");
                             }
                         } catch (Exception e) {
@@ -526,6 +560,7 @@ public class EventDetails extends Fragment {
             event.setPoster(document.getString("poster"));
             event.setOrganizerDeviceId(document.getString("organizerDeviceId"));
             event.setSelectionCriteria(document.getString("selectionCriteria"));
+            event.setQrCodeUrl(document.getString("qrCodeUrl"));
 
             Boolean geoLocation = document.getBoolean("geoLocationRequired");
             event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
@@ -1154,7 +1189,7 @@ public class EventDetails extends Fragment {
                                         Priority.PRIORITY_HIGH_ACCURACY, // Use high accuracy for best results
                                         null
                                 );
-                                
+
                                 currentLocationTask.addOnSuccessListener(currentLocation -> {
                                     if (currentLocation != null) {
                                         acceptedData.put("latitude", currentLocation.getLatitude());
@@ -1172,8 +1207,8 @@ public class EventDetails extends Fragment {
                                                         Log.d(TAG, "Got fresh fallback location from getLastLocation: " + fallbackLocation.getLatitude() + ", " + fallbackLocation.getLongitude());
                                                     } else {
                                                         if (fallbackLocation != null) {
-                                                            Log.w(TAG, "Fallback location is too old/stale (" + 
-                                                                    ((System.currentTimeMillis() - fallbackLocation.getTime()) / 1000 / 60) + 
+                                                            Log.w(TAG, "Fallback location is too old/stale (" +
+                                                                    ((System.currentTimeMillis() - fallbackLocation.getTime()) / 1000 / 60) +
                                                                     " minutes old), rejecting. Accepting without coordinates.");
                                                         } else {
                                                             Log.w(TAG, "Both location methods returned null, accepting without coordinates");
@@ -1197,8 +1232,8 @@ public class EventDetails extends Fragment {
                                                     Log.d(TAG, "Got fresh location from getLastLocation fallback: " + fallbackLocation.getLatitude() + ", " + fallbackLocation.getLongitude());
                                                 } else {
                                                     if (fallbackLocation != null) {
-                                                        Log.w(TAG, "Fallback location is too old/stale (" + 
-                                                                ((System.currentTimeMillis() - fallbackLocation.getTime()) / 1000 / 60) + 
+                                                        Log.w(TAG, "Fallback location is too old/stale (" +
+                                                                ((System.currentTimeMillis() - fallbackLocation.getTime()) / 1000 / 60) +
                                                                 " minutes old), rejecting. Accepting without coordinates.");
                                                     } else {
                                                         Log.w(TAG, "Both location methods failed, accepting without coordinates");
@@ -1268,19 +1303,19 @@ public class EventDetails extends Fragment {
      */
     private boolean isLocationFresh(android.location.Location location) {
         if (location == null) return false;
-        
+
         long locationTime = location.getTime();
         long currentTime = System.currentTimeMillis();
         long ageInMinutes = (currentTime - locationTime) / (1000 * 60);
-        
+
         // Only accept locations that are less than 5 minutes old
         // This ensures we're getting the user's actual current location, not a stale cached one
         boolean isFresh = ageInMinutes < 5;
-        
+
         if (!isFresh) {
             Log.d(TAG, "Location is " + ageInMinutes + " minutes old (too stale), rejecting");
         }
-        
+
         return isFresh;
     }
 
@@ -1404,7 +1439,139 @@ public class EventDetails extends Fragment {
         }
         return deviceId;
     }
-    
+
+
+
+    /**
+     * this function checks if raffle has been run and shows/hides QR code section accordingly.
+     * it only renders the QR code section to the organizer view. and they can share , download the QR code etc.
+     */
+
+    private void checkRaffleStatusAndShowQRCode() {
+        if (event == null ||event.getDocumentId() == null || getView() == null) {
+            return;
+        }
+
+        //now we check if the raffle has been run or not by checking the drawround field in firestor respectively.
+        db.collection("events").document(event.getDocumentId())
+                .get()
+                .addOnSuccessListener(documentSnapshot-> {
+                    if (documentSnapshot != null && documentSnapshot.exists()) {
+                        Long drawRound = documentSnapshot.getLong("drawRound");
+                        boolean raffleHasRun = (drawRound != null && drawRound > 0);
+
+
+                        if (!raffleHasRun && event.getQrCodeUrl() != null && !event.getQrCodeUrl().isEmpty()) {
+                            showQRCodeSection();
+                            generateQRCodePreview(event.getQrCodeUrl());
+                        } else {
+                            hideQRCodeSection();
+                        }
+                } else {
+                    // in the case event dosent exist or there is no sort of draw round field and we assume the raffle has not been run yet.
+                    if (event.getQrCodeUrl() != null && !event.getQrCodeUrl().isEmpty()) {
+                        showQRCodeSection();
+                        generateQRCodePreview(event.getQrCodeUrl());
+                    } else {
+                        hideQRCodeSection();
+                    }
+                }
+            })
+            . addOnFailureListener(e -> {
+                Log.e(TAG, "Error checking raffle status", e);
+                hideQRCodeSection();
+            });
+    }
+
+
+    /**
+     * shows the QR code section for organizer view.
+     */
+
+    private void showQRCodeSection() {
+        if (getView()==null) {
+            return;
+        }
+
+        if (tvQRCodeLabel != null) {
+            tvQRCodeLabel.setVisibility(View.VISIBLE);
+        }
+
+        if (ivQRCode != null) {
+            ivQRCode.setVisibility(View.VISIBLE);
+        }
+        if (btnDownloadQR != null) {
+            btnDownloadQR.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * this is the method to hide the QR code part.
+     */
+    private void hideQRCodeSection() {
+        if (getView() == null) {
+            return;
+        }
+
+        if (tvQRCodeLabel != null) {
+            tvQRCodeLabel.setVisibility(View.GONE);
+        }
+        if (ivQRCode != null) {
+            ivQRCode.setVisibility(View.GONE);
+        }
+        if (btnDownloadQR != null) {
+            btnDownloadQR.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * Generates a QR code bitmap from URL stored in firebase and renders it .
+     * this is used to display the QR code preview in the event details fragment and saved to firestore.
+     * @param qrCodeUrl
+     */
+    private void generateQRCodePreview(String qrCodeUrl) {
+        if (getView()==null || qrCodeUrl == null || qrCodeUrl.isEmpty() || ivQRCode == null) {
+            return;
+        }
+
+        try {
+            QRCodeWriter writer = new QRCodeWriter();
+            BitMatrix bitMatrix = writer.encode(qrCodeUrl, BarcodeFormat.QR_CODE, 512, 512);
+
+            int width = bitMatrix.getWidth();
+            int height = bitMatrix.getHeight();
+            qrCodeBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    qrCodeBitmap.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE);
+                }
+            }
+            ivQRCode.setImageBitmap(qrCodeBitmap);
+        } catch (WriterException e) {
+            Log.e(TAG, "Error generating QR code preview", e);
+            Toast.makeText(requireContext(), "Failed to generate QR code", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * launches the QRCode display activity for full QR code functionality (download, share, etc.)
+     * this reuses the existing activity which is present.
+     */
+
+    private void launchQRCodeDisplayActivity() {
+        if (event == null || event.getDocumentId() == null || event.getQrCodeUrl() == null) {
+            Toast.makeText(requireContext(), "QR code not available", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(requireContext(), QRCodeDisplayActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
+        intent.putExtra("eventName", event.getName());
+        intent.putExtra("qrCodeUrl", event.getQrCodeUrl());
+        startActivity(intent);
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
