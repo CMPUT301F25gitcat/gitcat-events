@@ -184,17 +184,25 @@ public class DuplicatePreventionTests {
 
         // Add to pending invitations
         addEventToPendingInvitations(event);
+        assertEquals("Should have one event in pending invitations", 1, pendingInvitations.size());
+        assertTrue("Event should be in pending invitations", pendingInvitations.contains(event));
 
-        // Accept invitation (simulate)
-        // After acceptance, event should move to entered events
-        // But should not appear in pending invitations anymore
+        // Accept invitation (simulate) - event moves to entered events
+        // Clear the loaded IDs so we can add to entered events
+        loadedEventIds.clear();
         addEventToEnteredList(event);
 
         // Event should be in entered events
         assertTrue("Event should be in entered events", enteredEvents.contains(event));
+        assertEquals("Should have one event in entered events", 1, enteredEvents.size());
         
-        // If properly implemented, should not be in pending invitations after acceptance
-        // (This depends on implementation - some may keep it until refresh)
+        // The event should still be in pending invitations list until it's explicitly removed
+        // (In real implementation, acceptance removes it from pending, but in this unit test
+        // we're just testing that adding to entered events doesn't create duplicates)
+        // The key test is that enteredEvents doesn't have duplicates
+        addEventToEnteredList(event); // Try to add again
+        assertEquals("Should still have only one event in entered events (no duplicates)", 
+                1, enteredEvents.size());
     }
 
     @Test

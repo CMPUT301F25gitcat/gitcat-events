@@ -175,11 +175,21 @@ public class ProfileManagementTests {
     }
 
     @Test
-    public void testProfileDocumentId() {
-        String documentId = "profile-doc-123";
-        testProfile.setDocumentId(documentId);
+    public void testProfileDeviceIdAsUniqueIdentifier() {
+        // Profile uses deviceId as its unique identifier (not documentId)
+        String deviceId1 = "device-123";
+        String deviceId2 = "device-456";
         
-        assertEquals("Document ID should be set", documentId, testProfile.getDocumentId());
+        Profile profile1 = new Profile();
+        profile1.setDeviceId(deviceId1);
+        
+        Profile profile2 = new Profile();
+        profile2.setDeviceId(deviceId2);
+        
+        assertEquals("First profile should have correct device ID", deviceId1, profile1.getDeviceId());
+        assertEquals("Second profile should have correct device ID", deviceId2, profile2.getDeviceId());
+        assertNotEquals("Different profiles should have different device IDs", 
+                profile1.getDeviceId(), profile2.getDeviceId());
     }
 
     @Test
