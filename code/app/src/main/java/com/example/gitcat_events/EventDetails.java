@@ -1,15 +1,19 @@
 package com.example.gitcat_events;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import android.util.Base64;
@@ -52,6 +56,7 @@ public class EventDetails extends Fragment {
 
     private static final String TAG = "EventDetailsFragment";
     private static final String PREFS = "app_prefs";
+    private static final int REQUEST_LOCATION_FOR_ACCEPT_INVITE = 1001;
 
     private Event event;
     private FirebaseFirestore db;
@@ -62,6 +67,7 @@ public class EventDetails extends Fragment {
     private boolean isOnWaitlist = false;
     private boolean isOrganizer = false;
     private boolean hasInvitation = false;
+    private boolean pendingAcceptAfterPermission = false;
     
     private ImageView ivEventPoster;
     private TextView tvEventName, tvEventDate, tvEventSpots, tvEventDesc;
@@ -88,13 +94,6 @@ public class EventDetails extends Fragment {
             event = (Event) getArguments().getSerializable("event");
         }
         db = FirebaseFirestore.getInstance();
-        try {
-            fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext());
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to initialize FusedLocationProviderClient", e);
-            fusedLocationClient = null;
-        }
-        // Initialize location client (used to record where entrants joined from)
         try {
             fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext());
         } catch (Exception e) {
@@ -1071,7 +1070,46 @@ public class EventDetails extends Fragment {
         }
     }
 
+    /**
+     * Entry point from the UI when the user taps "Accept Invitation".
+     * If geo is required, we first request location permission (if needed),
+     * then proceed to accept the invitation and best-effort attach location.
+     */
     private void acceptInvitation() {
+        if (event == null) return;
+
+        boolean geoRequired = event.getGeoLocationRequired() != null && event.getGeoLocationRequired();
+
+        if (geoRequired) {
+            Context context = requireContext();
+            boolean fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED;
+            boolean coarseGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED;
+
+            if (!fineGranted && !coarseGranted) {
+                // Ask at the moment of accepting; we'll resume once the user responds.
+                pendingAcceptAfterPermission = true;
+                requestPermissions(
+                        new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION},
+                        REQUEST_LOCATION_FOR_ACCEPT_INVITE
+                );
+                Toast.makeText(context,
+                        "We use your approximate location to show anonymized clusters on the organizer's map.",
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+        }
+
+        // Either geo not required, or permission already granted: proceed.
+        acceptInvitationInternal();
+    }
+
+    /**
+     * Core logic to move from invitation_list to acceptedList and best-effort attach location.
+     * This is called after permission has been granted (or if not needed).
+     */
+    private void acceptInvitationInternal() {
         if (event == null || event.getDocumentId() == null) return;
         
         String deviceId = getOrCreateDeviceId();
@@ -1123,6 +1161,38 @@ public class EventDetails extends Fragment {
                     showError("Error loading invitation. Please try again.");
                     Log.e(TAG, "Error loading invitation", e);
                 });
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == REQUEST_LOCATION_FOR_ACCEPT_INVITE) {
+            boolean granted = false;
+            if (grantResults.length > 0) {
+                for (int result : grantResults) {
+                    if (result == PackageManager.PERMISSION_GRANTED) {
+                        granted = true;
+                        break;
+                    }
+                }
+            }
+
+            if (pendingAcceptAfterPermission) {
+                pendingAcceptAfterPermission = false;
+                if (granted) {
+                    // Permission granted: proceed and best-effort attach location.
+                    acceptInvitationInternal();
+                } else {
+                    // Permission denied: accept anyway, just without coordinates.
+                    Toast.makeText(requireContext(),
+                            "Location permission denied. You'll be enrolled without saving your location.",
+                            Toast.LENGTH_LONG).show();
+                    acceptInvitationInternal();
+                }
+            }
+        }
     }
 
     /**
