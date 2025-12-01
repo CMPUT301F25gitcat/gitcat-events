@@ -10,6 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
+        app:cardBackgroundColor="@color/text_color_light"
         app:cardCornerRadius="10dp"
         app:cardElevation="8dp">
 
@@ -37,6 +38,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="TextView"
+                    android:textColor="@color/text_color_dark"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
@@ -44,7 +46,8 @@
                     android:id="@+id/adminImageName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="TextView" />
+                    android:text="TextView"
+                    android:textColor="@color/text_color_dark" />
             </LinearLayout>
         </LinearLayout>
     </androidx.cardview.widget.CardView>

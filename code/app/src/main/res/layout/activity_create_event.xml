@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/background_color"
     tools:context=".CreateEventActivity">
 
     <LinearLayout
@@ -16,87 +17,99 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:layout_marginBottom="16dp"
             android:gravity="center_vertical"
-            android:layout_marginBottom="16dp">
+            android:orientation="horizontal">
 
             <ImageButton
                 android:id="@+id/btnBack"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_revert"
                 android:contentDescription="Back"
-                android:tint="?attr/colorPrimary"/>
+                android:src="@android:drawable/ic_menu_revert"
+                android:tint="@color/button_color" />
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:gravity="center_vertical"
                 android:text="Create New Event"
+                android:textColor="@color/text_color_colored"
                 android:textSize="28sp"
-                android:textStyle="bold"
-                android:textColor="?attr/colorPrimary"
-                android:gravity="center_vertical"/>
+                android:textStyle="bold" />
         </LinearLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Fill in the details below to create your event"
-            android:textSize="14sp"
             android:layout_marginBottom="24dp"
-            android:textColor="@android:color/darker_gray"/>
+            android:text="Fill in the details below to create your event"
+            android:textColor="@color/text_color_medium"
+            android:textSize="14sp" />
 
         <!-- Event Poster -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
             android:text="Event Poster"
+            android:textColor="@color/text_color_dark"
             android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp"/>
+            android:textStyle="bold" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
+            android:layout_marginBottom="24dp"
             android:gravity="center_horizontal"
-            android:layout_marginBottom="24dp">
+            android:orientation="vertical">
 
             <ImageView
                 android:id="@+id/ivEventPoster"
                 android:layout_width="200dp"
                 android:layout_height="200dp"
-                android:scaleType="centerCrop"
-                android:contentDescription="Event Poster Preview"
+                android:layout_marginBottom="12dp"
                 android:background="@android:color/darker_gray"
-                android:src="@drawable/ic_launcher_foreground"
-                android:layout_marginBottom="12dp"/>
+                android:contentDescription="Event Poster Preview"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_launcher_foreground" />
 
             <Button
                 android:id="@+id/btnSelectPoster"
+                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Select Poster Image"
-                style="@style/Widget.Material3.Button.OutlinedButton"/>
+                android:textColor="@color/button_color"
+                android:textColorLink="@color/button_color"
+                app:strokeColor="@color/button_color" />
         </LinearLayout>
 
         <!-- Event Name -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
             android:hint="Event Name *"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            app:boxStrokeColor="#6851A4"
+            android:textColorHint="@color/text_color_colored"
+            app:boxStrokeColor="@color/button_color"
             app:boxStrokeWidth="2dp"
             app:boxStrokeWidthFocused="3dp"
-            android:layout_marginBottom="16dp">
+            app:counterTextColor="@color/text_color_colored"
+            app:helperTextTextColor="@color/text_color_colored"
+            app:hintTextColor="@color/text_color_colored"
+            app:placeholderTextColor="@color/text_color_colored">
+
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etEventName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textCapWords" />
+                android:inputType="textCapWords"
+                android:textColor="@color/button_color"
+                android:textColorLink="@color/button_color" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Registration Opens -->
@@ -105,6 +118,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Registration Opens *"
+            android:textColor="@color/text_color_dark"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -121,18 +135,20 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:text="Select Start Date" />
+                android:text="Select Start Date"
+                android:textColor="@color/button_color"
+                app:strokeColor="@color/button_color" />
 
             <TextView
                 android:id="@+id/tvRegistrationStartDateDisplay"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:background="@android:color/darker_gray"
+                android:background="@color/text_color_medium"
                 android:gravity="center"
                 android:padding="12dp"
                 android:text="Not selected"
-                android:textColor="@android:color/white"
+                android:textColor="@color/text_color_light"
                 android:textSize="14sp" />
         </LinearLayout>
 
@@ -142,6 +158,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="4dp"
             android:text="Final Registration Date *"
+            android:textColor="@color/text_color_dark"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -150,7 +167,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Registration closes on this date. You can then run the raffle manually."
-            android:textColor="#85000000"
+            android:textColor="@color/text_color_medium"
             android:textSize="12sp" />
 
         <LinearLayout
@@ -166,18 +183,20 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:text="Select Registration Deadline" />
+                android:text="Select Registration Deadline"
+                android:textColor="@color/button_color"
+                app:strokeColor="@color/button_color" />
 
             <TextView
                 android:id="@+id/tvRaffleDateDisplay"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:background="@android:color/darker_gray"
+                android:background="@color/text_color_medium"
                 android:gravity="center"
                 android:padding="12dp"
                 android:text="Not selected"
-                android:textColor="@android:color/white"
+                android:textColor="@color/text_color_light"
                 android:textSize="14sp" />
         </LinearLayout>
 
@@ -187,6 +206,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Event Date *"
+            android:textColor="@color/text_color_dark"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -203,18 +223,20 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:text="Select Event Date" />
+                android:text="Select Event Date"
+                android:textColor="@color/button_color"
+                app:strokeColor="@color/button_color" />
 
             <TextView
                 android:id="@+id/tvEventDateDisplay"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:background="@android:color/darker_gray"
+                android:background="@color/text_color_medium"
                 android:gravity="center"
                 android:padding="12dp"
                 android:text="Not selected"
-                android:textColor="@android:color/white"
+                android:textColor="@color/text_color_light"
                 android:textSize="14sp" />
         </LinearLayout>
 
@@ -240,18 +262,20 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:text="Select Event Type" />
+                android:text="Select Event Type"
+                android:textColor="@color/button_color"
+                app:strokeColor="@color/button_color" />
 
             <TextView
                 android:id="@+id/tvEventTypeDisplay"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:background="@android:color/darker_gray"
+                android:background="@color/text_color_medium"
                 android:gravity="center"
                 android:padding="12dp"
                 android:text="Not selected"
-                android:textColor="@android:color/white"
+                android:textColor="@color/text_color_light"
                 android:textSize="14sp" />
         </LinearLayout>
 
@@ -268,93 +292,125 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Require Geolocation?"
+                android:textColor="@color/text_color_medium"
                 android:textSize="16sp" />
 
             <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/switchGeoLocation"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                app:thumbTint="@color/text_color_light"
+                app:trackTint="@color/button_color" />
         </LinearLayout>
 
         <!-- Description -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
             android:hint="Description *"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_marginBottom="16dp">
+            android:textColorHint="@color/button_color"
+            app:boxStrokeColor="@color/button_color"
+            app:counterTextColor="@color/button_color"
+            app:helperTextTextColor="@color/button_color"
+            app:hintTextColor="@color/button_color"
+            app:placeholderTextColor="@color/button_color">
+
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etEventDescription"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:gravity="top"
                 android:inputType="textMultiLine"
-                android:minLines="3"
-                android:gravity="top"/>
+                android:minLines="3" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Capacity -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
             android:hint="Event Capacity (Final List Size) *"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_marginBottom="16dp">
+            android:textColorHint="@color/button_color"
+            app:boxStrokeColor="@color/button_color"
+            app:counterTextColor="@color/button_color"
+            app:helperTextTextColor="@color/button_color"
+            app:hintTextColor="@color/button_color"
+            app:placeholderTextColor="@color/button_color">
+
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etCapacity"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="number"/>
+                android:inputType="number" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Max Waitlist Size -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
             android:hint="Max Waitlist Size (Optional)"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_marginBottom="16dp">
+            android:textColorHint="@color/button_color"
+            app:boxStrokeColor="@color/button_color"
+            app:counterTextColor="@color/button_color"
+            app:helperTextTextColor="@color/button_color"
+            app:hintTextColor="@color/button_color"
+            app:placeholderTextColor="@color/button_color">
+
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etMaxWaitlist"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="number"/>
+                android:inputType="number" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Selection Criteria -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
             android:hint="Selection Criteria (Optional)"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_marginBottom="16dp">
+            android:textColorHint="@color/button_color"
+            app:boxStrokeColor="@color/button_color"
+            app:counterTextColor="@color/button_color"
+            app:helperTextTextColor="@color/button_color"
+            app:hintTextColor="@color/button_color"
+            app:placeholderTextColor="@color/button_color">
+
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etSelectionCriteria"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textMultiLine"
-                android:minLines="2"
                 android:gravity="top"
-                android:hint="Describe how participants will be selected (e.g., random lottery, first-come-first-served)"/>
+                android:hint="Describe how participants will be selected (e.g., random lottery, first-come-first-served)"
+                android:inputType="textMultiLine"
+                android:minLines="2" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Required Fields Note -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="* Required fields"
             android:layout_gravity="start"
-            android:textSize="12sp"
-            android:textColor="@android:color/darker_gray"
-            android:layout_marginBottom="16dp"/>
+            android:layout_marginBottom="16dp"
+            android:text="* Required fields"
+            android:textColor="@color/text_color_medium"
+            android:textSize="12sp" />
 
         <!-- Create Button -->
         <Button
             android:id="@+id/btnCreateEvent"
             android:layout_width="match_parent"
             android:layout_height="60dp"
+            android:backgroundTint="@color/button_color"
             android:text="Create Event"
-            android:textSize="18sp"
-            android:textColor="@android:color/white"/>
+            android:textColor="@android:color/white"
+            android:textSize="18sp" />
 
     </LinearLayout>
 </ScrollView>

@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@color/background_color"
     android:orientation="vertical"
     android:padding="24dp">
 
@@ -12,7 +13,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="24dp"
         android:text="Select Event Type"
-        android:textColor="#2260FF"
+        android:textColor="@color/text_color_colored"
         android:textSize="24sp"
         android:textStyle="bold" />
 
@@ -22,15 +23,15 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
         android:text="Select one or more event types:"
-        android:textSize="14sp"
-        android:textColor="@android:color/darker_gray" />
+        android:textColor="@color/text_color_medium"
+        android:textSize="14sp" />
 
     <!-- Checkboxes for Event Types -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_marginBottom="24dp">
+        android:layout_marginBottom="24dp"
+        android:orientation="vertical">
 
         <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/checkboxSports"
@@ -38,7 +39,10 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Sports"
-            android:textSize="16sp" />
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
 
         <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/checkboxArts"
@@ -46,7 +50,10 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Arts"
-            android:textSize="16sp" />
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
 
         <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/checkboxMusic"
@@ -54,7 +61,10 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Music"
-            android:textSize="16sp" />
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
 
         <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/checkboxEducation"
@@ -62,7 +72,10 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Education"
-            android:textSize="16sp" />
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
 
         <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/checkboxFamily"
@@ -70,14 +83,20 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Family"
-            android:textSize="16sp" />
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
 
         <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/checkboxOther"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Other"
-            android:textSize="16sp" />
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
     </LinearLayout>
 
     <!-- Selected Types Display -->
@@ -87,8 +106,8 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
         android:text="No types selected"
+        android:textColor="@color/text_color_medium"
         android:textSize="12sp"
-        android:textColor="@android:color/darker_gray"
         android:textStyle="italic" />
 
     <!-- Action Buttons -->
@@ -104,7 +123,9 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            android:text="Cancel" />
+            android:text="Cancel"
+            android:textColor="@color/button_color"
+            app:strokeColor="@color/button_color" />
 
         <Button
             android:id="@+id/btnDone"
@@ -112,7 +133,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Done" />
+            android:backgroundTint="@color/button_color"
+            android:text="Done"
+            android:textColor="@color/text_color_light" />
     </LinearLayout>
 
 </LinearLayout>

@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/background_color"
     tools:context=".EventDetailsActivity">
 
     <LinearLayout
@@ -27,7 +28,7 @@
                 android:padding="16dp"
                 android:text="← Back to Home"
                 android:textAllCaps="false"
-                android:textColor="?attr/colorPrimary" />
+                android:textColor="@color/button_color" />
         </LinearLayout>
 
         <!-- Event Poster -->
@@ -53,6 +54,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@color/container_color"
                 android:orientation="vertical"
                 android:paddingLeft="20dp"
                 android:paddingTop="10dp"
@@ -66,7 +68,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:text="Event Name"
-                    android:textColor="?attr/colorPrimary"
+                    android:textColor="@color/text_color_colored"
                     android:textSize="28sp"
                     android:textStyle="bold" />
 
@@ -78,6 +80,7 @@
                     android:layout_marginBottom="24dp"
                     android:lineSpacingMultiplier="1.2"
                     android:text="Event description..."
+                    android:textColor="@color/text_color_dark"
                     android:textSize="16sp" />
 
                 <!-- Event Info Section -->
@@ -86,6 +89,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
                     android:text="Event Information"
+                    android:textColor="@color/text_color_dark"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -100,6 +104,7 @@
                         android:layout_width="140dp"
                         android:layout_height="wrap_content"
                         android:text="Event Date:"
+                        android:textColor="@color/text_color_dark"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -123,6 +128,7 @@
                         android:layout_width="140dp"
                         android:layout_height="wrap_content"
                         android:text="Registration Closes:"
+                        android:textColor="@color/text_color_dark"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -169,6 +175,7 @@
                         android:layout_width="140dp"
                         android:layout_height="wrap_content"
                         android:text="Waiting List:"
+                        android:textColor="@color/text_color_dark"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -178,7 +185,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="0"
-                        android:textColor="?attr/colorPrimary"
+                        android:textColor="@color/text_color_colored"
                         android:textSize="14sp" />
                 </LinearLayout>
 
@@ -193,6 +200,7 @@
                         android:layout_width="140dp"
                         android:layout_height="wrap_content"
                         android:text="Geolocation:"
+                        android:textColor="@color/text_color_dark"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -202,6 +210,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Not required"
+                        android:textColor="@color/text_color_dark"
                         android:textSize="14sp" />
                 </LinearLayout>
 
@@ -210,8 +219,9 @@
                     android:id="@+id/btnJoinWaitingList"
                     android:layout_width="match_parent"
                     android:layout_height="60dp"
+                    android:backgroundTint="@color/button_color"
                     android:text="Join Waiting List"
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/text_color_light"
                     android:textSize="18sp" />
 
                 <!-- Status Message -->

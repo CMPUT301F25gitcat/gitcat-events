@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/background_color"
     android:orientation="vertical"
     tools:context=".AdminMenuActivity">
 
@@ -15,7 +16,7 @@
         android:padding="16dp"
         android:text="← Back to Profile"
         android:textAllCaps="false"
-        android:textColor="?attr/colorPrimary" />
+        android:textColor="@color/button_color" />
 
     <TextView
         android:layout_width="match_parent"
@@ -23,13 +24,18 @@
         android:layout_marginBottom="10dp"
         android:text="Admin Menu"
         android:textAlignment="center"
+        android:textColor="@color/text_color_colored"
         android:textSize="24sp"
         android:textStyle="bold" />
 
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/adminTabLayout"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:backgroundTint="@color/background_color"
+        app:tabIndicatorColor="@color/button_color"
+        app:tabSelectedTextColor="@color/button_color"
+        app:tabTextColor="@color/text_color_dark">
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"

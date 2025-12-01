@@ -10,6 +10,7 @@
         android:layout_height="match_parent"
         android:layout_gravity="center_vertical"
         android:layout_margin="10dp"
+        app:cardBackgroundColor="@color/text_color_light"
         app:cardCornerRadius="10dp"
         app:cardElevation="8dp">
 
@@ -32,7 +33,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:padding="10dp"
-                    app:cardBackgroundColor="#CAD6FF"
+                    app:cardBackgroundColor="@color/container_color"
                     app:cardCornerRadius="10dp"
                     app:contentPadding="10dp">
 
@@ -46,6 +47,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="8dp"
                             android:text="TextView"
+                            android:textColor="@color/text_color_dark"
                             android:textSize="20sp"
                             app:layout_constraintBottom_toTopOf="@+id/notifDescription"
                             app:layout_constraintStart_toStartOf="parent"
@@ -56,6 +58,7 @@
                             android:layout_width="118dp"
                             android:layout_height="62dp"
                             android:text="TextView"
+                            android:textColor="@color/text_color_dark"
                             android:textSize="14sp"
                             app:layout_constraintBottom_toBottomOf="parent"
                             app:layout_constraintEnd_toEndOf="parent"
@@ -67,6 +70,7 @@
                             android:layout_height="32dp"
                             android:layout_marginTop="8dp"
                             android:text="TextView"
+                            android:textColor="@color/text_color_dark"
                             app:layout_constraintBottom_toBottomOf="parent"
                             app:layout_constraintStart_toStartOf="parent"
                             app:layout_constraintTop_toBottomOf="@+id/notifTitle" />
