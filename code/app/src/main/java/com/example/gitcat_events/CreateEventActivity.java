@@ -248,8 +248,25 @@ public class CreateEventActivity extends AppCompatActivity {
             return;
         }
 
-        int capacity = Integer.parseInt(capacityStr);
-        Integer maxWaitlist = maxWaitlistStr.isEmpty() ? null : Integer.parseInt(maxWaitlistStr);
+        int capacity;
+        try {
+            capacity = Integer.parseInt(capacityStr);
+        } catch (NumberFormatException e) {
+            etCapacity.setError("Invalid number");
+            btnCreateEvent.setEnabled(true);
+            return;
+        }
+        
+        Integer maxWaitlist = null;
+        if (!maxWaitlistStr.isEmpty()) {
+            try {
+                maxWaitlist = Integer.parseInt(maxWaitlistStr);
+            } catch (NumberFormatException e) {
+                etMaxWaitlist.setError("Invalid number");
+                btnCreateEvent.setEnabled(true);
+                return;
+            }
+        }
 
         // Validate date order: registrationStart <= raffleDate <= eventDate
         // Normalize dates to start of day for comparison (ignore time)
@@ -297,13 +314,14 @@ public class CreateEventActivity extends AppCompatActivity {
             return;
         }
 
-        // Validate capacity vs waitlist
-        if (maxWaitlist != null && capacity > maxWaitlist) {
-            Toast.makeText(this, "Event capacity cannot exceed max waitlist size", Toast.LENGTH_LONG).show();
-            etCapacity.setError("Capacity too large");
+        // Validate maxWaitlist is positive if provided
+        if (maxWaitlist != null && maxWaitlist <= 0) {
+            Toast.makeText(this, "Max waitlist size must be a positive number", Toast.LENGTH_LONG).show();
+            etMaxWaitlist.setError("Must be positive");
             btnCreateEvent.setEnabled(true);
             return;
         }
+        
         if (!ok) {
             // Re-enable button if validation fails
             btnCreateEvent.setEnabled(true);

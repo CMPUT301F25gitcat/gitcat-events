@@ -906,7 +906,18 @@ public class HomeFragment extends Fragment {
                             try {
                                 Event event = parseEvent(eventDoc);
                                 if (event != null && enteredEvents != null) {
-                                    enteredEvents.add(event);
+                                    // Check for duplicates before adding
+                                    boolean isDuplicate = false;
+                                    for (Event existingEvent : enteredEvents) {
+                                        if (existingEvent != null && existingEvent.getDocumentId() != null &&
+                                                existingEvent.getDocumentId().equals(event.getDocumentId())) {
+                                            isDuplicate = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!isDuplicate) {
+                                        enteredEvents.add(event);
+                                    }
                                 }
                             } catch (Exception e) {
                                 Log.e(TAG, "Error parsing entered event", e);

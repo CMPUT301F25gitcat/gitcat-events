@@ -77,6 +77,7 @@ public class EventDetails extends Fragment {
     private boolean isOrganizer = false;
     private boolean hasInvitation = false;
     private boolean pendingAcceptAfterPermission = false;
+    private boolean isAcceptingInvitation = false; // Prevent multiple simultaneous accept operations
 
     private ImageView ivEventPoster;
     private TextView tvEventName, tvEventDate, tvEventSpots, tvEventDesc;
@@ -375,9 +376,13 @@ public class EventDetails extends Fragment {
                         boolean wasOnWaitlist = isOnWaitlist;
                         isOnWaitlist = (documentSnapshot != null && documentSnapshot.exists());
                         
-                        // Update button if status changed or if no invitation
-                        if (wasOnWaitlist != isOnWaitlist || !hasInvitation) {
-                            updateButtonForWaitlistStatus();
+                        Log.d(TAG, "Waitlist status changed - wasOnWaitlist: " + wasOnWaitlist + ", isOnWaitlist: " + isOnWaitlist + ", hasInvitation: " + hasInvitation);
+                        
+                        // Update button if status changed (don't update if user has invitation - invitation buttons handle that)
+                        if (wasOnWaitlist != isOnWaitlist) {
+                            if (!hasInvitation) {
+                                updateButtonForWaitlistStatus();
+                            }
                         }
                     });
         } catch (Exception e) {
@@ -446,8 +451,14 @@ public class EventDetails extends Fragment {
     }
     
     private void updateButtonForWaitlistStatus() {
-        if (getView() == null || btnJoinWaitingList == null) return;
+        // Check if view is available
+        View view = getView();
+        if (view == null || btnJoinWaitingList == null) {
+            Log.w(TAG, "Cannot update button - view or button is null");
+            return;
+        }
         
+        // Firebase callbacks are already on main thread, but ensure we're on UI thread
         try {
             // Simple toggle: Join or Leave based on waitlist status
             if (isOnWaitlist) {
@@ -458,12 +469,14 @@ public class EventDetails extends Fragment {
                     tvStatusMessage.setText("You're on the waiting list");
                     tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
                 }
+                Log.d(TAG, "Button updated to 'Leave Waiting List' - isOnWaitlist: " + isOnWaitlist);
             } else {
                 btnJoinWaitingList.setText("Join Waiting List");
                 btnJoinWaitingList.setBackgroundTintList(getResources().getColorStateList(android.R.color.holo_blue_dark));
                 if (tvStatusMessage != null) {
                     tvStatusMessage.setVisibility(View.GONE);
                 }
+                Log.d(TAG, "Button updated to 'Join Waiting List' - isOnWaitlist: " + isOnWaitlist);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error updating button for waitlist status", e);
@@ -711,11 +724,14 @@ public class EventDetails extends Fragment {
                 .document(deviceId)
                 .set(data)
                 .addOnSuccessListener(v -> {
-                    showSuccess("Successfully joined the waiting list!");
+                    if (getView() == null) return;
                     isOnWaitlist = true;
+                    Log.d(TAG, "Successfully added to waitlist, updating UI - isOnWaitlist: " + isOnWaitlist);
+                    showSuccess("Successfully joined the waiting list!");
                     updateButtonForWaitlistStatus();
                 })
                 .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to join waitlist", e);
                     Toast.makeText(requireContext(), "Failed to join: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
@@ -1107,6 +1123,12 @@ public class EventDetails extends Fragment {
      */
     private void acceptInvitation() {
         if (event == null) return;
+        
+        // Prevent multiple simultaneous accept operations
+        if (isAcceptingInvitation) {
+            Log.d(TAG, "Accept invitation already in progress, ignoring duplicate request");
+            return;
+        }
 
         boolean geoRequired = event.getGeoLocationRequired() != null && event.getGeoLocationRequired();
 
@@ -1163,6 +1185,13 @@ public class EventDetails extends Fragment {
      */
     private void acceptInvitationInternal() {
         if (event == null || event.getDocumentId() == null) return;
+        
+        // Prevent multiple simultaneous accept operations
+        if (isAcceptingInvitation) {
+            Log.d(TAG, "Accept invitation already in progress, ignoring duplicate request");
+            return;
+        }
+        isAcceptingInvitation = true;
         
         String deviceId = getOrCreateDeviceId();
         
@@ -1257,9 +1286,9 @@ public class EventDetails extends Fragment {
                             // No geo requirement or no location client; just write without coordinates
                             writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
                         }
-                    }
                 })
                 .addOnFailureListener(e -> {
+                    isAcceptingInvitation = false;
                     showError("Error loading invitation. Please try again.");
                     Log.e(TAG, "Error loading invitation", e);
                 });
@@ -1343,11 +1372,13 @@ public class EventDetails extends Fragment {
         // Commit batch
         batch.commit()
                 .addOnSuccessListener(v -> {
+                    isAcceptingInvitation = false;
                     showSuccess("✓ Invitation accepted! You're registered for this event.");
                     hasInvitation = false;
                     hideInvitationButtons();
                 })
                 .addOnFailureListener(e -> {
+                    isAcceptingInvitation = false;
                     showError("Failed to accept invitation. Please try again.");
                     Log.e(TAG, "Error accepting invitation", e);
                 });
