@@ -12,9 +12,8 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="16dp">
-<<<<<<< HEAD
 
-        <!-- Profile Picture -->
+            <!-- Profile Picture -->
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -134,120 +133,13 @@
         android:textColor="@color/text_color_light"
         android:visibility="gone" />
 
-=======
-
         <!-- Profile Picture -->
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="horizontal"
-            android:paddingBottom="16dp">
+            <!-- Name -->
 
-            <ImageView
-                android:id="@+id/ivFragmentProfilePicture"
-                android:layout_width="120dp"
-                android:layout_height="120dp"
-                android:background="@android:color/darker_gray"
-                android:contentDescription="Profile Picture"
-                android:scaleType="centerCrop" />
-        </LinearLayout>
+            <!-- Email -->
 
-        <!-- Name -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/name"
-            android:textColor="@color/text_color_medium"
-            android:textSize="14sp" />
+            <!-- Phone -->
 
-        <TextView
-            android:id="@+id/tvFragmentName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingBottom="8dp"
-            android:text="—"
-            android:textColor="@color/text_color_dark"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <!-- Email -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/email"
-            android:textColor="@color/text_color_medium"
-            android:textSize="14sp" />
-
-        <TextView
-            android:id="@+id/tvFragmentEmail"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingBottom="8dp"
-            android:text="—"
-            android:textColor="@color/text_color_dark"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <!-- Phone -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/phone"
-            android:textColor="@color/text_color_medium"
-            android:textSize="14sp" />
-
-        <TextView
-            android:id="@+id/tvFragmentPhone"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingBottom="8dp"
-            android:text="—"
-            android:textColor="@color/text_color_medium"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/btnFragmentViewFullProfile"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:backgroundTint="@color/button_color"
-            android:text="Edit Profile"
-            android:textColor="@color/text_color_light" />
-
-        <Button
-            android:id="@+id/btnFragmentDeleteProfile"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:backgroundTint="#D32F2F"
-            android:text="Delete Profile"
-            android:textColor="@color/text_color_light" />
-
-        <Button
-            android:id="@+id/eventHistoryBtn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:backgroundTint="@color/button_color"
-            android:text="View Event History"
-            android:textColor="@color/text_color_light" />
-
-        <Button
-            android:id="@+id/adminMenuBtn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="50dp"
-            android:backgroundTint="@color/button_color"
-            android:text="Admin Menu"
-            android:textColor="@color/text_color_light"
-            android:visibility="gone" />
-
->>>>>>> 0b4f5133957c5d682882212c0328b6bdff28849f
     </LinearLayout>
 </ScrollView>
