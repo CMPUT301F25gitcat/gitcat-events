@@ -181,9 +181,10 @@ public class HomeFragment extends Fragment {
             btnFilterEvents.setOnClickListener(v -> showFilterBottomSheet());
         }
 
+
         ImageButton btnScanQR = view.findViewById(R.id.imageButton2);
         if (btnScanQR != null) {
-            btnScanQR.setOnClickListener(v -> {
+            btnScanQR.setOnClickListener(v->{
                 Intent intent = new Intent(getActivity(), QRScannerActivity.class);
                 startActivity(intent);
             });
