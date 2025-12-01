@@ -47,6 +47,7 @@ public class HomeFragment extends Fragment {
     private ArrayList<Event> upcomingEvents;
     private ArrayList<Event> enteredEvents;
     private ArrayList<Event> pendingInvitations;
+    private boolean isLoadingPendingInvitations = false; // Flag to prevent concurrent loads
 
     private EventArrayAdapter upcomingEventsAdapter;
     private EventArrayAdapter enteredEventsAdapter;
@@ -242,6 +243,14 @@ public class HomeFragment extends Fragment {
             return;
         }
         
+        // Prevent concurrent loads
+        if (isLoadingPendingInvitations) {
+            Log.d(TAG, "Already loading pending invitations, skipping duplicate call");
+            return;
+        }
+        
+        isLoadingPendingInvitations = true;
+        
         if (pendingInvitations == null) {
             pendingInvitations = new ArrayList<>();
         }
@@ -258,6 +267,7 @@ public class HomeFragment extends Fragment {
                     }
                     
                     if (invitationSnapshot == null || invitationSnapshot.isEmpty()) {
+                        isLoadingPendingInvitations = false;
                         updatePendingInvitationsUI();
                         return;
                     }
@@ -275,11 +285,13 @@ public class HomeFragment extends Fragment {
                         }
                     } catch (Exception e) {
                         Log.e(TAG, "Error processing invitation snapshot", e);
+                        isLoadingPendingInvitations = false;
                         updatePendingInvitationsUI();
                         return;
                     }
                     
                     if (invitationEventIds.isEmpty()) {
+                        isLoadingPendingInvitations = false;
                         updatePendingInvitationsUI();
                         return;
                     }
@@ -325,6 +337,20 @@ public class HomeFragment extends Fragment {
                                         try {
                                             synchronized (pendingInvitations) {
                                                 if (pendingInvitations != null) {
+                                                    // Remove any duplicates that might have slipped through
+                                                    Set<String> seenIds = new HashSet<>();
+                                                    ArrayList<Event> uniqueEvents = new ArrayList<>();
+                                                    for (Event event : pendingInvitations) {
+                                                        if (event != null && event.getDocumentId() != null) {
+                                                            if (!seenIds.contains(event.getDocumentId())) {
+                                                                seenIds.add(event.getDocumentId());
+                                                                uniqueEvents.add(event);
+                                                            }
+                                                        }
+                                                    }
+                                                    pendingInvitations.clear();
+                                                    pendingInvitations.addAll(uniqueEvents);
+                                                    
                                                     pendingInvitations.sort((e1, e2) -> {
                                                         try {
                                                             if (e1 == null || e2 == null) return 0;
@@ -340,6 +366,7 @@ public class HomeFragment extends Fragment {
                                         } catch (Exception e) {
                                             Log.e(TAG, "Error sorting pending invitations list", e);
                                         }
+                                        isLoadingPendingInvitations = false;
                                         updatePendingInvitationsUI();
                                     }
                                 })
@@ -347,6 +374,7 @@ public class HomeFragment extends Fragment {
                                     Log.e(TAG, "Error loading invitation event: " + eventId, e);
                                     completed[0]++;
                                     if (completed[0] == total && getView() != null) {
+                                        isLoadingPendingInvitations = false;
                                         updatePendingInvitationsUI();
                                     }
                                 });
@@ -354,6 +382,7 @@ public class HomeFragment extends Fragment {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error loading pending invitations", e);
+                    isLoadingPendingInvitations = false;
                     if (getView() != null) {
                         updatePendingInvitationsUI();
                     }
