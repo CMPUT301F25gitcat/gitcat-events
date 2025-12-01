@@ -233,6 +233,52 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:background="@color/text_color_medium"
+<<<<<<< HEAD
+                android:gravity="center"
+                android:padding="12dp"
+                android:text="Not selected"
+                android:textColor="@color/text_color_light"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- Event Type -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Event Type *"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnSelectEventType"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:text="Select Event Type"
+                android:textColor="@color/button_color"
+                app:strokeColor="@color/button_color" />
+
+            <TextView
+                android:id="@+id/tvEventTypeDisplay"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+<<<<<<< Updated upstream
+                android:background="@android:color/darker_gray"
+=======
+>>>>>>> 0b4f5133957c5d682882212c0328b6bdff28849f
+=======
+                android:background="@color/text_color_medium"
+>>>>>>> Stashed changes
                 android:gravity="center"
                 android:padding="12dp"
                 android:text="Not selected"
