@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -14,15 +15,23 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.gitcat_events.core.model.Profile;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.SetOptions;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Activity to display the waiting list for an event (organizer only)
@@ -41,6 +50,9 @@ public class WaitlistViewActivity extends AppCompatActivity {
     private String eventName;
     private WaitlistAdapter adapter;
     private List<WaitlistEntryDisplay> waitlistEntries;
+    private TextInputEditText notifTitle;
+    private TextInputEditText notifDescription;
+    private Button sendNotifButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +77,9 @@ public class WaitlistViewActivity extends AppCompatActivity {
         tvWaitlistEmpty = findViewById(R.id.tvWaitlistEmpty);
         tvWaitlistCount = findViewById(R.id.tvWaitlistCount);
         TextView tvEventName = findViewById(R.id.tvEventName);
+        notifTitle=findViewById(R.id.waitingListNotifTitleText);
+        notifDescription=findViewById(R.id.waitingListNotifDescription);
+        sendNotifButton = findViewById(R.id.waitingListSendNotif);
 
         // Set event name
         if (eventName != null) {
@@ -81,11 +96,74 @@ public class WaitlistViewActivity extends AppCompatActivity {
 
         // Setup back button
         btnBack.setOnClickListener(v -> finish());
-
+        // Setup notif button
+        sendNotifButton.setOnClickListener(view -> {
+            addNotificationToFirestore(notifTitle.getText().toString(), notifDescription.getText().toString(), eventId);
+        });
         // Load waiting list
         loadWaitlist();
     }
+    private void addNotificationToFirestore(String title, String description, String eventId) {
+        Log.d("actually went here", eventId);
+        if (title.equals("")) {
+            Toast.makeText(this, "Must create title for the notification.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
+        CollectionReference notifRef = db.collection("notifications");
+        DocumentReference countRef = db.collection("notifications").document("count");
+        CollectionReference listRef = db.collection("events").document(eventId).collection("waitlist");
+        listRef.get().addOnSuccessListener(queryDocumentSnapshots -> {
+            final int usersCount = queryDocumentSnapshots.size();
+            final AtomicInteger foundUsers = new AtomicInteger(0);
+            ArrayList<DocumentReference> users = new ArrayList<>();
+            for (QueryDocumentSnapshot userInEvent : queryDocumentSnapshots) {
+                String id = userInEvent.getId();
+                db.collection("profiles").whereEqualTo("deviceId", id).get().addOnSuccessListener(queryDocumentSnapshots1 -> {
+                    if (!queryDocumentSnapshots1.isEmpty()) {
+                        DocumentSnapshot profile = queryDocumentSnapshots1.getDocuments().get(0);
+                        if (!profile.contains("hasNotificationsEnabled")){
+                            profile.getReference().update("hasNotificationsEnabled", "true");
+                            users.add(profile.getReference());
+                        } else if (profile.getString("hasNotificationsEnabled").equals("true")) {
+                            users.add(profile.getReference());
+                        }
+                    }
+                    int found = foundUsers.incrementAndGet();
+                    if (found == usersCount) {
+                        db.runTransaction(transaction -> {
+                            DocumentSnapshot snapshot = transaction.get(countRef);
+                            Long count = snapshot.getLong("count");
+                            if (count == null) {
+                                count = 0L;
+                                Map<String, Integer> newCount = new HashMap<>();
+                                newCount.put("count", 0);
+                                transaction.set(countRef, newCount);
+                            }
+                            int notifCount = Math.toIntExact(count);
+                            for (DocumentReference user : users) {
+                                Map<String, Object> notif = new HashMap<>();
+                                notif.put("deviceId", user.getId());
+                                notif.put("title", title);
+                                notif.put("description", description);
+                                notif.put("timestamp", FieldValue.serverTimestamp());
+                                transaction.set(notifRef.document(String.valueOf(notifCount)), notif);
+                                notifCount++;
+                            }
+                            transaction.update(countRef, "count", notifCount);
+
+                            return notifCount;
+                        }).addOnSuccessListener(result -> {
+                            Toast.makeText(this, "Notification sent!", Toast.LENGTH_SHORT).show();
+                        }).addOnFailureListener(e -> {
+                            Toast.makeText(this, "Failed to add notification!", Toast.LENGTH_SHORT).show();
+                        });
+                    }
+
+                });
+            }
+        });
+    }
     private void loadWaitlist() {
         db.collection("events").document(eventId)
                 .collection("waitlist")

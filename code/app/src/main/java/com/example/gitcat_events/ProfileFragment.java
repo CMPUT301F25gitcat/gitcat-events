@@ -19,22 +19,34 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.gitcat_events.core.model.Notif;
 import com.example.gitcat_events.core.model.Profile;
 import com.example.gitcat_events.features.entrant.ui.ProfileActivity;
 import com.example.gitcat_events.features.entrant.ui.ProfileDialogFragment;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.WriteBatch;
 
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Fragment to display user profile information
@@ -51,6 +63,8 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
     private ImageView ivFragmentProfilePicture;
     private Button btnFragmentViewFullProfile, btnFragmentDeleteProfile, adminBtn;
     private Profile currentProfile;
+    private Button notificationsToggle;
+    private CompoundButton.OnCheckedChangeListener notificationsToggleListener;
 
     public ProfileFragment() {
         // Required empty public constructor
@@ -85,6 +99,50 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
         btnFragmentViewFullProfile = view.findViewById(R.id.btnFragmentViewFullProfile);
         btnFragmentDeleteProfile = view.findViewById(R.id.btnFragmentDeleteProfile);
         adminBtn = view.findViewById(R.id.adminMenuBtn);
+        notificationsToggle = view.findViewById(R.id.notificationToggleButton);
+        String deviceId = getOrCreateDeviceId();
+        db.collection("profiles").whereEqualTo("deviceId", deviceId).get().addOnSuccessListener(queryDocumentSnapshots1 -> {
+            if (!queryDocumentSnapshots1.isEmpty()) {
+                String uid = queryDocumentSnapshots1.getDocuments().get(0).getId();
+                DocumentReference profileRef = db.collection("profiles").document(uid);
+                db.runTransaction(transaction -> {
+                    DocumentSnapshot snapshot = transaction.get(profileRef);
+                    if (!snapshot.contains("hasNotificationsEnabled")) {
+                        profileRef.update("hasNotificationsEnabled", "true");
+                        notificationsToggle.setText("Toggle Notifications (On)");
+                    } else if (snapshot.getString("hasNotificationsEnabled").equals("true")){
+                        notificationsToggle.setText("Toggle Notifications (On)");
+                    } else{
+                        notificationsToggle.setText("Toggle Notifications (Off)");
+                    }
+                    return notificationsToggle;
+                });
+            }});
+        notificationsToggle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                db.collection("profiles").whereEqualTo("deviceId", deviceId).get().addOnSuccessListener(queryDocumentSnapshots1 -> {
+                    if (!queryDocumentSnapshots1.isEmpty()) {
+                        String uid = queryDocumentSnapshots1.getDocuments().get(0).getId();
+                        DocumentReference profileRef = db.collection("profiles").document(uid);
+
+                        String currentText = notificationsToggle.getText().toString();
+                        if (currentText.contains("(On)")) {
+                            profileRef.update("hasNotificationsEnabled", "false");
+                            notificationsToggle.setText("Toggle Notifications (Off)");
+                        } else {
+                            profileRef.update("hasNotificationsEnabled", "true");
+                            notificationsToggle.setText("Toggle Notifications (On)");
+                        }
+                    }
+                });
+            }
+        });
+
+
+
+
+
 
         // Setup button to open edit dialog directly
         btnFragmentViewFullProfile.setOnClickListener(v -> {
@@ -141,6 +199,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                     }
                 });
     }
+
 
     private void renderProfile(Profile profile) {
         // Handle optional name

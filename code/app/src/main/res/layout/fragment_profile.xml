@@ -108,6 +108,13 @@
         android:text="View Event History" />
 
     <Button
+        android:id="@+id/notificationToggleButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Toggle Notifications (On)" />
+
+    <Button
         android:id="@+id/adminMenuBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

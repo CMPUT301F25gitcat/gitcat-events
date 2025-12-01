@@ -24,10 +24,13 @@ import android.widget.Toast;
 
 import com.example.gitcat_events.core.model.Event;
 import com.example.gitcat_events.core.model.WaitListEntry;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
 
 import java.text.SimpleDateFormat;
@@ -39,6 +42,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class EventDetails extends Fragment {
 
@@ -825,7 +829,11 @@ public class EventDetails extends Fragment {
                     // Randomly shuffle and select
                     Collections.shuffle(waitlistUserIds);
                     List<String> selectedUsers = waitlistUserIds.subList(0, numToSelect);
-                    
+                    List<String> notSelectedUsers = waitlistUserIds.subList(numToSelect, waitlistSize);
+
+                    // Notify those who weren't selected
+                    notifyNotSelected(notSelectedUsers);
+
                     // Move selected users to invitation list
                     moveToInvitationList(selectedUsers, waitlistSize, numToSelect);
                 })
@@ -833,7 +841,54 @@ public class EventDetails extends Fragment {
                     Toast.makeText(requireContext(), "Error running raffle: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
-
+    private void notifyNotSelected(List<String> users){
+        if (users.isEmpty()){
+            return;
+        }
+        CollectionReference notifRef = db.collection("notifications");
+        DocumentReference countRef = db.collection("notifications").document("count");
+        final int usersCount = users.size();
+        final AtomicInteger foundUsers = new AtomicInteger(0);
+        ArrayList<DocumentReference> notifiedUsers = new ArrayList<>();
+        for (String user : users){
+            db.collection("profiles").whereEqualTo("deviceId", user).get().addOnSuccessListener(queryDocumentSnapshots1 -> {
+                if (!queryDocumentSnapshots1.isEmpty()) {
+                    DocumentSnapshot profile = queryDocumentSnapshots1.getDocuments().get(0);
+                    if (!profile.contains("hasNotificationsEnabled")){
+                        profile.getReference().update("hasNotificationsEnabled", "true");
+                        notifiedUsers.add(profile.getReference());
+                    } else if (profile.getString("hasNotificationsEnabled").equals("true")) {
+                        notifiedUsers.add(profile.getReference());
+                    }
+                }
+                int found = foundUsers.incrementAndGet();
+                if (found == usersCount) {
+                    db.runTransaction(transaction -> {
+                        DocumentSnapshot snapshot = transaction.get(countRef);
+                        Long count = snapshot.getLong("count");
+                        if (count == null) {
+                            count = 0L;
+                            Map<String, Integer> newCount = new HashMap<>();
+                            newCount.put("count", 0);
+                            transaction.set(countRef, newCount);
+                        }
+                        int notifCount = Math.toIntExact(count);
+                        for (DocumentReference notifiedUser : notifiedUsers) {
+                            Map<String, Object> notif = new HashMap<>();
+                            notif.put("deviceId", notifiedUser.getId());
+                            notif.put("title", "You were not invited to ".concat(event.getName()).concat("!"));
+                            notif.put("description", "You did not win the lottery for this event. Try joining more events.");
+                            notif.put("timestamp", FieldValue.serverTimestamp());
+                            transaction.set(notifRef.document(String.valueOf(notifCount)), notif);
+                            notifCount++;
+                        }
+                        transaction.update(countRef, "count", notifCount);
+                        return notifCount;
+                    });
+                }
+            });
+        }
+    }
     private void moveToInvitationList(List<String> selectedUsers, int totalWaitlist, int numSelected) {
         if (event == null || event.getDocumentId() == null) return;
         

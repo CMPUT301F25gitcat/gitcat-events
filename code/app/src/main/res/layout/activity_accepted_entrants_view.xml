@@ -93,19 +93,8 @@
     </LinearLayout>
 
     <!-- Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@android:color/darker_gray" />
 
     <!-- Accepted List RecyclerView -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvAcceptedList"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="8dp"
-        android:clipToPadding="false" />
 
     <!-- Empty State -->
     <TextView
@@ -119,6 +108,64 @@
         android:textSize="16sp"
         android:textColor="@android:color/darker_gray"
         android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@android:color/darker_gray" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvAcceptedList"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:padding="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="250dp"
+            android:orientation="vertical">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/textInputLayout"
+                android:layout_width="match_parent"
+                android:layout_height="70dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/acceptedListNotifTitleText"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:hint="Notification Title*" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/textInputLayout2"
+                android:layout_width="match_parent"
+                android:layout_height="110dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/acceptedListNotifDescription"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:hint="Notification Description" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <Button
+                android:id="@+id/AcceptedListSendNotif"
+                android:layout_width="match_parent"
+                android:layout_height="70dp"
+                android:layout_marginTop="0dp"
+                android:backgroundTint="@android:color/holo_green_dark"
+                android:text="Send Notifications To Entrants"
+                app:cornerRadius="0dp" />
+        </LinearLayout>
+    </LinearLayout>
 
 </LinearLayout>
 

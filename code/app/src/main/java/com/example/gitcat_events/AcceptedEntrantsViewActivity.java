@@ -22,9 +22,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.ServerTimestamp;
+import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.model.DocumentCollections;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -33,9 +40,13 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Activity to display the accepted/enrolled entrants for an event (organizer only)
@@ -58,6 +69,9 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
     private int eventCapacity;
     private AcceptedListAdapter adapter;
     private List<AcceptedEntryDisplay> acceptedEntries;
+    private TextInputEditText notifTitle;
+    private TextInputEditText notifDescription;
+    private Button sendNotifButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,7 +99,9 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
         tvCapacityInfo = findViewById(R.id.tvCapacityInfo);
         btnExportCsv = findViewById(R.id.btnExportCsv);
         TextView tvEventName = findViewById(R.id.tvEventName);
-
+        notifTitle=findViewById(R.id.acceptedListNotifTitleText);
+        notifDescription=findViewById(R.id.acceptedListNotifDescription);
+        sendNotifButton = findViewById(R.id.AcceptedListSendNotif);
         // Set event name
         if (eventName != null) {
             tvEventName.setText(eventName + " - Enrolled Entrants");
@@ -105,10 +121,74 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
         // Setup export CSV button
         btnExportCsv.setOnClickListener(v -> exportToCsv());
 
+        // Setup notif button
+        sendNotifButton.setOnClickListener(view -> {
+            addNotificationToFirestore(notifTitle.getText().toString(), notifDescription.getText().toString(), eventId);
+        });
         // Load accepted list
         loadAcceptedList();
     }
+    private void addNotificationToFirestore(String title, String description, String eventId) {
+        Log.d("actually went here", eventId);
+        if (title.equals("")) {
+            Toast.makeText(this, "Must create title for the notification.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
+        CollectionReference notifRef = db.collection("notifications");
+        DocumentReference countRef = db.collection("notifications").document("count");
+        CollectionReference listRef = db.collection("events").document(eventId).collection("acceptedList");
+        listRef.get().addOnSuccessListener(queryDocumentSnapshots -> {
+            final int usersCount = queryDocumentSnapshots.size();
+            final AtomicInteger foundUsers = new AtomicInteger(0);
+            ArrayList<DocumentReference> users = new ArrayList<>();
+            for (QueryDocumentSnapshot userInEvent : queryDocumentSnapshots) {
+                String id = userInEvent.getId();
+                db.collection("profiles").whereEqualTo("deviceId", id).get().addOnSuccessListener(queryDocumentSnapshots1 -> {
+                    if (!queryDocumentSnapshots1.isEmpty()) {
+                        DocumentSnapshot profile = queryDocumentSnapshots1.getDocuments().get(0);
+                        if (!profile.contains("hasNotificationsEnabled")){
+                            profile.getReference().update("hasNotificationsEnabled", "true");
+                            users.add(profile.getReference());
+                        } else if (profile.getString("hasNotificationsEnabled").equals("true")) {
+                            users.add(profile.getReference());
+                        }
+                    }
+                    int found = foundUsers.incrementAndGet();
+                    if (found == usersCount) {
+                        db.runTransaction(transaction -> {
+                            DocumentSnapshot snapshot = transaction.get(countRef);
+                            Long count = snapshot.getLong("count");
+                            if (count == null) {
+                                count = 0L;
+                                Map<String, Integer> newCount = new HashMap<>();
+                                newCount.put("count", 0);
+                                transaction.set(countRef, newCount);
+                            }
+                            int notifCount = Math.toIntExact(count);
+                            for (DocumentReference user : users) {
+                                Map<String, Object> notif = new HashMap<>();
+                                notif.put("deviceId", user.getId());
+                                notif.put("title", title);
+                                notif.put("description", description);
+                                notif.put("timestamp", FieldValue.serverTimestamp());
+                                transaction.set(notifRef.document(String.valueOf(notifCount)), notif);
+                                notifCount++;
+                            }
+                            transaction.update(countRef, "count", notifCount);
+
+                            return notifCount;
+                        }).addOnSuccessListener(result -> {
+                            Toast.makeText(this, "Notification sent!", Toast.LENGTH_SHORT).show();
+                        }).addOnFailureListener(e -> {
+                            Toast.makeText(this, "Failed to add notification!", Toast.LENGTH_SHORT).show();
+                        });
+                    }
+
+                });
+            }
+        });
+    }
     private void loadAcceptedList() {
         db.collection("events").document(eventId)
                 .collection("acceptedList")
