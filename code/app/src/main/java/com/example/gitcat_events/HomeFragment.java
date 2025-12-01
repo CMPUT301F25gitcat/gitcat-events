@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
+import android.content.Intent;
 
 public class HomeFragment extends Fragment {
     private static final String TAG = "HomeFragment";
@@ -178,6 +179,14 @@ public class HomeFragment extends Fragment {
         // Set up filter button click listener
         if (btnFilterEvents != null) {
             btnFilterEvents.setOnClickListener(v -> showFilterBottomSheet());
+        }
+
+        ImageButton btnScanQR = view.findViewById(R.id.imageButton2);
+        if (btnScanQR != null) {
+            btnScanQR.setOnClickListener(v -> {
+                Intent intent = new Intent(getActivity(), QRScannerActivity.class);
+                startActivity(intent);
+            });
         }
 
         // Update filter indicator on view creation
