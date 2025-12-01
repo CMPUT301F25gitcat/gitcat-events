@@ -39,7 +39,6 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 import com.google.android.gms.tasks.Task;
@@ -1151,13 +1150,8 @@ public class EventDetails extends Fragment {
                                 && fusedLocationClient != null) {
                             try {
                                 // Use getCurrentLocation() to get a fresh location instead of stale cached one
-                                LocationRequest locationRequest = LocationRequest.create()
-                                        .setPriority(Priority.PRIORITY_BALANCED_POWER_ACCURACY)
-                                        .setNumUpdates(1)
-                                        .setMaxUpdateDelayMillis(5000); // 5 second timeout
-                                
                                 Task<android.location.Location> locationTask = fusedLocationClient.getCurrentLocation(
-                                        locationRequest.getPriority(),
+                                        Priority.PRIORITY_BALANCED_POWER_ACCURACY,
                                         null
                                 );
                                 
