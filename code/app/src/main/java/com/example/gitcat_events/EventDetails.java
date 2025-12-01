@@ -1066,37 +1066,61 @@ public class EventDetails extends Fragment {
 
     /**
      * Entry point from the UI when the user taps "Accept Invitation".
-     * If geo is required, we first request location permission (if needed),
+     * We always show our own consent dialog first for geo-enabled events.
+     * If the user agrees, we optionally request OS location permission (if needed),
      * then proceed to accept the invitation and best-effort attach location.
+     * If they decline, we accept without recording coordinates.
      */
     private void acceptInvitation() {
         if (event == null) return;
 
-        boolean geoRequired = event.getGeoLocationRequired() != null && event.getGeoLocationRequired();
+        final boolean geoRequired = event.getGeoLocationRequired() != null && event.getGeoLocationRequired();
 
-        if (geoRequired) {
-            Context context = requireContext();
-            boolean fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-                    == PackageManager.PERMISSION_GRANTED;
-            boolean coarseGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-                    == PackageManager.PERMISSION_GRANTED;
-
-            if (!fineGranted && !coarseGranted) {
-                // Ask at the moment of accepting; we'll resume once the user responds.
-                pendingAcceptAfterPermission = true;
-                requestPermissions(
-                        new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION},
-                        REQUEST_LOCATION_FOR_ACCEPT_INVITE
-                );
-                Toast.makeText(context,
-                        "We use your approximate location to show anonymized clusters on the organizer's map.",
-                        Toast.LENGTH_LONG).show();
-                return;
-            }
+        if (!geoRequired) {
+            // No geo requirement for this event: just accept without any location flow.
+            acceptInvitationInternal();
+            return;
         }
 
-        // Either geo not required, or permission already granted: proceed.
-        acceptInvitationInternal();
+        // Show a simple consent dialog every time for geo-enabled events
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Share approximate location?")
+                .setMessage("If you agree, we'll record an approximate location when you accept so the organizer " +
+                        "can see anonymized clusters of where entrants joined from. You can still join if you decline.")
+                .setPositiveButton("Share Location", (dialog, which) -> {
+                    startLocationAwareAcceptance();
+                })
+                .setNegativeButton("No thanks", (dialog, which) -> {
+                    // User explicitly declined sharing location: accept without coordinates.
+                    acceptInvitationInternal();
+                })
+                .setCancelable(true)
+                .show();
+    }
+
+    /**
+     * User has consented to share location for this acceptance.
+     * Check OS permission; if missing, request it, otherwise proceed directly.
+     */
+    private void startLocationAwareAcceptance() {
+        Context context = requireContext();
+
+        boolean fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+        boolean coarseGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+
+        if (!fineGranted && !coarseGranted) {
+            // Ask OS for permission; we'll resume in onRequestPermissionsResult.
+            pendingAcceptAfterPermission = true;
+            requestPermissions(
+                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION},
+                    REQUEST_LOCATION_FOR_ACCEPT_INVITE
+            );
+        } else {
+            // Permission already granted: proceed and best-effort attach location.
+            acceptInvitationInternal();
+        }
     }
 
     /**
