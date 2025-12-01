@@ -47,6 +47,17 @@
             android:text="Images" />
     </com.google.android.material.tabs.TabLayout>
 
+    <TextView
+        android:id="@+id/adminLoadingText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="25dp"
+        android:text="Loading..."
+        android:textAlignment="center"
+        android:textColor="#84000000"
+        android:textSize="20sp"
+        android:textStyle="bold|italic" />
+
     <ListView
         android:id="@+id/adminNotifsList"
         android:layout_width="match_parent"
