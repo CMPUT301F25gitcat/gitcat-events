@@ -65,7 +65,7 @@
         android:layout_marginTop="25dp"
         android:text="Loading..."
         android:textAlignment="center"
-        android:textColor="#84000000"
+        android:textColor="@color/text_color_medium"
         android:textSize="20sp"
         android:textStyle="bold|italic" />
 
