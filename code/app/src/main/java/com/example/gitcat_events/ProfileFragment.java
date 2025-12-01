@@ -61,7 +61,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
     private FirebaseFirestore db;
     private TextView tvFragmentName, tvFragmentEmail, tvFragmentPhone;
     private ImageView ivFragmentProfilePicture;
-    private Button btnFragmentViewFullProfile, btnFragmentDeleteProfile, adminBtn;
+    private Button btnFragmentViewFullProfile, btnFragmentDeleteProfile, adminBtn, eventHistoryBtn;
     private Profile currentProfile;
     private Button notificationsToggle;
     private CompoundButton.OnCheckedChangeListener notificationsToggleListener;
@@ -143,6 +143,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
 
 
 
+        eventHistoryBtn = view.findViewById(R.id.eventHistoryBtn);
 
         // Setup button to open edit dialog directly
         btnFragmentViewFullProfile.setOnClickListener(v -> {
@@ -157,6 +158,9 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
         
         // Setup delete button
         btnFragmentDeleteProfile.setOnClickListener(v -> confirmAndDelete());
+
+        // Setup View Event History button
+        eventHistoryBtn.setOnClickListener(v -> viewEventHistory());
 
         // Load profile data
         loadProfile();
@@ -403,7 +407,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                             Toast.makeText(getContext(), "Save failed: " + e.getMessage(), Toast.LENGTH_LONG).show());
         }
     }
-    
+
     private void createProfileWithAutoId(Profile profile) {
         db.runTransaction(transaction -> {
             DocumentReference counterRef = db.collection("meta").document("profiles_counter");
@@ -451,7 +455,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
             }
         });
     }
-    
+
     private void saveDocId(String id) {
         if (getActivity() == null) return;
         getActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_PROFILE_ID, id).apply();
@@ -508,5 +512,11 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                 .edit()
                 .putBoolean(KEY_IS_ADMIN, isAdmin)
                 .apply();
+    }
+
+    private void viewEventHistory(){
+        Intent intent = new Intent(requireContext(), EventHistoryActivity.class);
+        intent.putExtra("deviceId", currentProfile.getDeviceId());
+        startActivity(intent);
     }
 }
