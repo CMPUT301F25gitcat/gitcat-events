@@ -35,6 +35,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -65,6 +66,7 @@ public class HomeFragment extends Fragment {
     // Filter state
     private Calendar filterStartDate;
     private Calendar filterEndDate;
+    private Set<String> filterInterests;
 
     public HomeFragment() {
         // Required empty public constructor
@@ -96,6 +98,9 @@ public class HomeFragment extends Fragment {
         enteredEvents = new ArrayList<>();
         upcomingEvents = new ArrayList<>();
         pendingInvitations = new ArrayList<>();
+        
+        // Initialize filter state
+        filterInterests = new HashSet<>();
 
         // Initialize adapters
         enteredEventsAdapter = new EventArrayAdapter(getContext(), enteredEvents);
@@ -691,11 +696,35 @@ public class HomeFragment extends Fragment {
                         }
                     }
 
-                    if (passesDateFilter) {
+                    // Apply interest filter if set (AND logic - event must have ALL selected interests)
+                    boolean passesInterestFilter = true;
+                    if (filterInterests != null && !filterInterests.isEmpty()) {
+                        List<String> eventTypes = event.getEventTypes();
+                        if (eventTypes == null || eventTypes.isEmpty()) {
+                            // Event has no types, filter it out when interests are selected
+                            passesInterestFilter = false;
+                            Log.d(TAG, "Event filtered out - no event types: " + event.getName());
+                        } else {
+                            // Event must have ALL selected interests (AND logic)
+                            // Check if eventTypes contains all filterInterests
+                            passesInterestFilter = eventTypes.containsAll(filterInterests);
+                            if (!passesInterestFilter) {
+                                Log.d(TAG, "Event filtered out by interests: " + event.getName() + 
+                                          " - Event types: " + eventTypes + ", Filter: " + filterInterests);
+                            }
+                        }
+                    }
+
+                    if (passesDateFilter && passesInterestFilter) {
                         upcomingEvents.add(event);
                         Log.d(TAG, "✓ Added event to upcoming: " + event.getName() + " (ID: " + eventId + ")");
                     } else {
-                        Log.d(TAG, "✗ Event filtered out by date range: " + event.getName());
+                        if (!passesDateFilter) {
+                            Log.d(TAG, "✗ Event filtered out by date range: " + event.getName());
+                        }
+                        if (!passesInterestFilter) {
+                            Log.d(TAG, "✗ Event filtered out by interests: " + event.getName());
+                        }
                     }
                 } else {
                     Log.d(TAG, "✗ Event filtered out: " + event.getName() + " - registrationStarted: " + registrationStarted + ", registrationOpen: " + registrationOpen);
@@ -739,9 +768,10 @@ public class HomeFragment extends Fragment {
     private void showFilterBottomSheet() {
         EventFilterBottomSheet filterSheet = EventFilterBottomSheet.newInstance(new EventFilterBottomSheet.FilterCallback() {
             @Override
-            public void onFilterApplied(Calendar startDate, Calendar endDate) {
+            public void onFilterApplied(Calendar startDate, Calendar endDate, Set<String> selectedInterests) {
                 filterStartDate = startDate != null ? (Calendar) startDate.clone() : null;
                 filterEndDate = endDate != null ? (Calendar) endDate.clone() : null;
+                filterInterests = selectedInterests != null ? new HashSet<>(selectedInterests) : new HashSet<>();
                 updateFilterIndicator();
                 // Reload events with new filter
                 loadUpcomingEvents();
@@ -751,6 +781,7 @@ public class HomeFragment extends Fragment {
             public void onFiltersCleared() {
                 filterStartDate = null;
                 filterEndDate = null;
+                filterInterests = new HashSet<>();
                 updateFilterIndicator();
                 // Reload events without filter
                 loadUpcomingEvents();
@@ -761,6 +792,11 @@ public class HomeFragment extends Fragment {
         if (filterStartDate != null || filterEndDate != null) {
             filterSheet.setInitialDates(filterStartDate, filterEndDate);
         }
+        
+        // Set initial interests if filters are already active
+        if (filterInterests != null && !filterInterests.isEmpty()) {
+            filterSheet.setInitialInterests(filterInterests);
+        }
 
         filterSheet.show(getParentFragmentManager(), "EventFilterBottomSheet");
     }
@@ -768,7 +804,8 @@ public class HomeFragment extends Fragment {
     private void updateFilterIndicator() {
         if (getView() == null || textView2 == null || getContext() == null) return;
 
-        boolean hasActiveFilters = filterStartDate != null || filterEndDate != null;
+        boolean hasActiveFilters = filterStartDate != null || filterEndDate != null || 
+                                   (filterInterests != null && !filterInterests.isEmpty());
         if (hasActiveFilters) {
             // Show visual indicator that filters are active
             textView2.setText("Upcoming Events (Filtered)");
@@ -949,6 +986,21 @@ public class HomeFragment extends Fragment {
                 event.setRaffleDate(raffleCal);
             } else {
                 event.setRaffleDate(null);
+            }
+
+            // Read eventTypes from Firestore (List<String>)
+            @SuppressWarnings("unchecked")
+            List<Object> eventTypesObj = (List<Object>) document.get("eventTypes");
+            if (eventTypesObj != null) {
+                List<String> eventTypes = new ArrayList<>();
+                for (Object obj : eventTypesObj) {
+                    if (obj instanceof String) {
+                        eventTypes.add((String) obj);
+                    }
+                }
+                event.setEventTypes(eventTypes.isEmpty() ? null : eventTypes);
+            } else {
+                event.setEventTypes(null);
             }
 
             return event;

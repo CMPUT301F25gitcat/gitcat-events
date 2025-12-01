@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:text="Select Event Type"
+        android:textColor="#2260FF"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
+    <!-- Instructions -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="Select one or more event types:"
+        android:textSize="14sp"
+        android:textColor="@android:color/darker_gray" />
+
+    <!-- Checkboxes for Event Types -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="24dp">
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxSports"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Sports"
+            android:textSize="16sp" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxArts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Arts"
+            android:textSize="16sp" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxMusic"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Music"
+            android:textSize="16sp" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxEducation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Education"
+            android:textSize="16sp" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxFamily"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Family"
+            android:textSize="16sp" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxOther"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Other"
+            android:textSize="16sp" />
+    </LinearLayout>
+
+    <!-- Selected Types Display -->
+    <TextView
+        android:id="@+id/tvSelectedTypes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="No types selected"
+        android:textSize="12sp"
+        android:textColor="@android:color/darker_gray"
+        android:textStyle="italic" />
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnCancel"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:text="Cancel" />
+
+        <Button
+            android:id="@+id/btnDone"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Done" />
+    </LinearLayout>
+
+</LinearLayout>
+

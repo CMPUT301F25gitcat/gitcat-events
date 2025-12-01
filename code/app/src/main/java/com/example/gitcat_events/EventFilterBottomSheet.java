@@ -13,20 +13,24 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
+import com.google.android.material.checkbox.MaterialCheckBox;
 
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 
 public class EventFilterBottomSheet extends BottomSheetDialogFragment {
 
     public interface FilterCallback {
-        void onFilterApplied(Calendar startDate, Calendar endDate);
+        void onFilterApplied(Calendar startDate, Calendar endDate, Set<String> selectedInterests);
         void onFiltersCleared();
     }
 
     private FilterCallback callback;
     private Calendar selectedStartDate;
     private Calendar selectedEndDate;
+    private Set<String> selectedInterests;
 
     private TextView tvStartDateDisplay;
     private TextView tvEndDateDisplay;
@@ -35,6 +39,14 @@ public class EventFilterBottomSheet extends BottomSheetDialogFragment {
     private Button btnSelectEndDate;
     private Button btnApplyFilter;
     private Button btnClearFilters;
+    
+    // Interest checkboxes
+    private MaterialCheckBox checkboxFilterSports;
+    private MaterialCheckBox checkboxFilterArts;
+    private MaterialCheckBox checkboxFilterMusic;
+    private MaterialCheckBox checkboxFilterEducation;
+    private MaterialCheckBox checkboxFilterFamily;
+    private MaterialCheckBox checkboxFilterOther;
 
     public static EventFilterBottomSheet newInstance(FilterCallback callback) {
         EventFilterBottomSheet fragment = new EventFilterBottomSheet();
@@ -49,6 +61,10 @@ public class EventFilterBottomSheet extends BottomSheetDialogFragment {
     public void setInitialDates(Calendar startDate, Calendar endDate) {
         this.selectedStartDate = startDate != null ? (Calendar) startDate.clone() : null;
         this.selectedEndDate = endDate != null ? (Calendar) endDate.clone() : null;
+    }
+
+    public void setInitialInterests(Set<String> interests) {
+        this.selectedInterests = interests != null ? new HashSet<>(interests) : new HashSet<>();
     }
 
     @Nullable
@@ -69,6 +85,19 @@ public class EventFilterBottomSheet extends BottomSheetDialogFragment {
         btnSelectEndDate = view.findViewById(R.id.btnSelectEndDate);
         btnApplyFilter = view.findViewById(R.id.btnApplyFilter);
         btnClearFilters = view.findViewById(R.id.btnClearFilters);
+        
+        // Initialize interest checkboxes
+        checkboxFilterSports = view.findViewById(R.id.checkboxFilterSports);
+        checkboxFilterArts = view.findViewById(R.id.checkboxFilterArts);
+        checkboxFilterMusic = view.findViewById(R.id.checkboxFilterMusic);
+        checkboxFilterEducation = view.findViewById(R.id.checkboxFilterEducation);
+        checkboxFilterFamily = view.findViewById(R.id.checkboxFilterFamily);
+        checkboxFilterOther = view.findViewById(R.id.checkboxFilterOther);
+        
+        // Initialize selectedInterests if not set
+        if (selectedInterests == null) {
+            selectedInterests = new HashSet<>();
+        }
 
         // Update displays with initial dates if set
         if (selectedStartDate != null) {
@@ -77,9 +106,61 @@ public class EventFilterBottomSheet extends BottomSheetDialogFragment {
         if (selectedEndDate != null) {
             updateEndDateDisplay(selectedEndDate);
         }
+        
+        // Update checkbox states with initial interests
+        updateInterestCheckboxStates();
 
         // Set up date picker for start date
         btnSelectStartDate.setOnClickListener(v -> selectStartDate());
+        
+        // Set up interest checkbox listeners
+        checkboxFilterSports.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                selectedInterests.add("Sports");
+            } else {
+                selectedInterests.remove("Sports");
+            }
+        });
+        
+        checkboxFilterArts.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                selectedInterests.add("Arts");
+            } else {
+                selectedInterests.remove("Arts");
+            }
+        });
+        
+        checkboxFilterMusic.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                selectedInterests.add("Music");
+            } else {
+                selectedInterests.remove("Music");
+            }
+        });
+        
+        checkboxFilterEducation.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                selectedInterests.add("Education");
+            } else {
+                selectedInterests.remove("Education");
+            }
+        });
+        
+        checkboxFilterFamily.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                selectedInterests.add("Family");
+            } else {
+                selectedInterests.remove("Family");
+            }
+        });
+        
+        checkboxFilterOther.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                selectedInterests.add("Other");
+            } else {
+                selectedInterests.remove("Other");
+            }
+        });
 
         // Set up date picker for end date
         btnSelectEndDate.setOnClickListener(v -> selectEndDate());
@@ -187,18 +268,29 @@ public class EventFilterBottomSheet extends BottomSheetDialogFragment {
 
         // Apply filter via callback
         if (callback != null) {
-            callback.onFilterApplied(selectedStartDate, selectedEndDate);
+            callback.onFilterApplied(selectedStartDate, selectedEndDate, selectedInterests);
         }
 
         // Dismiss the bottom sheet
         dismiss();
     }
+    
+    private void updateInterestCheckboxStates() {
+        checkboxFilterSports.setChecked(selectedInterests.contains("Sports"));
+        checkboxFilterArts.setChecked(selectedInterests.contains("Arts"));
+        checkboxFilterMusic.setChecked(selectedInterests.contains("Music"));
+        checkboxFilterEducation.setChecked(selectedInterests.contains("Education"));
+        checkboxFilterFamily.setChecked(selectedInterests.contains("Family"));
+        checkboxFilterOther.setChecked(selectedInterests.contains("Other"));
+    }
 
     private void clearFilters() {
         selectedStartDate = null;
         selectedEndDate = null;
+        selectedInterests.clear();
         updateStartDateDisplay(null);
         updateEndDateDisplay(null);
+        updateInterestCheckboxStates();
         tvFilterError.setVisibility(View.GONE);
 
         // Notify callback
