@@ -36,19 +36,25 @@
         android:id="@+id/etName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="@string/name" />
+        android:hint="@string/name"
+        android:textColor="@color/text_color_medium"
+        android:textColorHint="@color/text_color_medium" />
 
     <EditText
         android:id="@+id/etEmail"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="@string/email"
-        android:inputType="textEmailAddress" />
+        android:inputType="textEmailAddress"
+        android:textColor="@color/text_color_medium"
+        android:textColorHint="@color/text_color_medium" />
 
     <EditText
         android:id="@+id/etPhone"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="@string/phone_optional"
-        android:inputType="phone" />
+        android:inputType="phone"
+        android:textColor="@color/text_color_medium"
+        android:textColorHint="@color/text_color_medium" />
 </LinearLayout>

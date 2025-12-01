@@ -97,8 +97,7 @@
 
         <View
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@android:color/darker_gray" />
+            android:layout_height="1dp" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvCancelledList"
@@ -116,7 +115,13 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/textInputLayout"
                 android:layout_width="match_parent"
-                android:layout_height="70dp">
+                android:layout_height="70dp"
+                android:textColorHint="@color/text_color_medium"
+                app:helperTextTextColor="@color/text_color_medium"
+                app:hintTextColor="@color/text_color_medium"
+                app:placeholderTextColor="@color/text_color_medium"
+                app:prefixTextColor="@color/text_color_medium"
+                app:suffixTextColor="@color/text_color_medium">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/cancelledListNotifTitleText"
@@ -128,7 +133,13 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/textInputLayout2"
                 android:layout_width="match_parent"
-                android:layout_height="110dp">
+                android:layout_height="110dp"
+                android:textColorHint="@color/text_color_medium"
+                app:helperTextTextColor="@color/text_color_medium"
+                app:hintTextColor="@color/text_color_medium"
+                app:placeholderTextColor="@color/text_color_medium"
+                app:prefixTextColor="@color/text_color_medium"
+                app:suffixTextColor="@color/text_color_medium">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/cancelledListNotifDescription"
@@ -142,8 +153,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="70dp"
                 android:layout_marginTop="0dp"
-                android:backgroundTint="@android:color/holo_red_dark"
+                android:backgroundTint="@color/button_color"
                 android:text="Send Notifications To Entrants"
+                android:textColor="@color/text_color_light"
                 app:cornerRadius="0dp" />
         </LinearLayout>
     </LinearLayout>
