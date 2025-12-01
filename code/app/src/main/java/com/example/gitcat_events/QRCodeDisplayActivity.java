@@ -178,62 +178,45 @@ public class QRCodeDisplayActivity extends AppCompatActivity {
           return;
       }
 
-      try {
-        //creating a file name for the QR code image 
-          String fileName = "QRCode_" + (eventName != null ? eventName.replaceAll("[^a-zA-Z0-9]", "_") : "Event") + "_" + eventId + ".png";
-          
-          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            //for android 10 and above, we use the MediaStore to save the QR code image 
-              ContentValues contentValues = new ContentValues();
-              contentValues.put(MediaStore.Images.Media.DISPLAY_NAME, fileName);
-              contentValues.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
-              contentValues.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/GitCatEvents");
-
-              Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
-
-              if (uri != null) {
-                  try (OutputStream outputStream = getContentResolver().openOutputStream(uri)) {
-                      if (outputStream != null) {
-                          qrCodeBitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
-                          outputStream.flush();
-                          Toast.makeText(this, "QR code saved to Gallery", Toast.LENGTH_LONG).show();
-                      }
-                  }
-              } else {
-                  Toast.makeText(this, "Failed to save QR code", Toast.LENGTH_SHORT).show();
-              }
-          } else {
-              File picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
-              File gitcatDir = new File(picturesDir, "GitCatEvents");
-              if (!gitcatDir.exists()) {
-                  boolean created = gitcatDir.mkdirs();
-                  if (!created) {
-                      Log.w(TAG, "Failed to create GitCatEvents directory");
-                      Toast.makeText(this, "Failed to create directory", Toast.LENGTH_SHORT).show();
-                      return;
-                  }
-              }
-
-              File imageFile = new File(gitcatDir, fileName);
-              FileOutputStream outputStream = new FileOutputStream(imageFile);
-              qrCodeBitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
-              outputStream.flush();
-              outputStream.close();
-
-              //notifying the media store to scan the file 
-              Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-              Uri fileUri = Uri.fromFile(imageFile);
-              mediaScanIntent.setData(fileUri);
-              sendBroadcast(mediaScanIntent);
-              //showing a toast message to the user 
-              Toast.makeText(this, "QR code saved to Gallery: " + fileName, Toast.LENGTH_LONG).show();
-          }
-      } catch (IOException e) {
-          Log.e(TAG, "Error saving QR code to gallery", e);
-          Toast.makeText(this, "Failed to save QR code: " + e.getMessage(), Toast.LENGTH_LONG).show();
+      //creating a file for the QR code image basically. 
+      String fileName = "QRCode_" + (eventName != null ? eventName.replaceAll("[^a-zA-Z0-9]", "_") : "Event") + "_" + eventId + ".png";
+      
+      // we use media store to store the QR code image here making the assumption we wont be using older versions of android. 
+      ContentValues contentValues = new ContentValues();
+      contentValues.put(MediaStore.Images.Media.DISPLAY_NAME, fileName);
+      contentValues.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
+      
+      //adding some stuff related to relative path here. 
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+          contentValues.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/GitCatEvents");
       }
-  }
 
+      Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
+
+      if (uri != null) {
+        saveBitmapToUri(uri);
+      } else {
+        Toast.makeText(this, "Failed to get URI for QR code", Toast.LENGTH_SHORT).show();
+      }
+    }
+    /**
+     * saves the QR code Bitmap for a given URI
+     * 
+     */
+    private void saveBitmapToUri(Uri uri) {
+      try (OutputStream outputStream = getContentResolver().openOutputStream(uri)) {
+        if (outputStream != null) {
+          qrCodeBitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
+          outputStream.flush();
+          Toast.makeText(this, "QR code saved to Gallery", Toast.LENGTH_LONG).show();
+        } else {
+          Toast.makeText(this, "Failed to save QR code", Toast.LENGTH_SHORT).show();
+        }
+      } catch (IOException e) {
+        Log.e(TAG, "Error saving QR code to gallery", e);
+        Toast.makeText(this, "Failed to save QR code: " + e.getMessage(), Toast.LENGTH_LONG).show();
+      }
+    }
 
 
     /**
