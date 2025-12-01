@@ -9,6 +9,7 @@
         android:id="@+id/EventHistoryContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@color/background_color"
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -32,7 +33,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Back"
                 android:src="@android:drawable/ic_menu_close_clear_cancel"
-                app:tint="@color/black" />
+                app:tint="@color/button_color" />
 
             <TextView
                 android:id="@+id/EventHistoryTitle"
@@ -40,7 +41,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
                 android:text="Event History"
-                android:textColor="#2260FF"
+                android:textColor="@color/button_color"
                 android:textSize="40sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -49,12 +50,12 @@
             android:id="@+id/entriesEmpty"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#cad6ff"
+            android:background="@color/container_color"
             android:paddingTop="30dp"
             android:paddingBottom="30dp"
             android:text="No Events History"
             android:textAlignment="center"
-            android:textColor="#77000000"
+            android:textColor="@color/text_color_dark"
             android:textSize="16sp"
             android:textStyle="italic"
             android:visibility="gone" />
@@ -64,7 +65,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
-            android:background="#cad6ff"
+            android:background="@color/container_color"
             android:divider="@null"
             android:paddingTop="10dp"
             android:paddingBottom="10dp"
