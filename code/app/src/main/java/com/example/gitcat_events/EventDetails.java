@@ -1286,6 +1286,12 @@ public class EventDetails extends Fragment {
                             // No geo requirement or no location client; just write without coordinates
                             writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
                         }
+                    } else {
+                        // Document doesn't exist
+                        isAcceptingInvitation = false;
+                        showError("Invitation not found. It may have already been accepted or declined.");
+                        Log.w(TAG, "Invitation document does not exist");
+                    }
                 })
                 .addOnFailureListener(e -> {
                     isAcceptingInvitation = false;
