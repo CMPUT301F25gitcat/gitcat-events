@@ -287,6 +287,7 @@ public class HomeFragment extends Fragment {
                     // Load event details for each invitation
                     final int[] completed = {0};
                     final int total = invitationEventIds.size();
+                    final Set<String> loadedEventIds = new HashSet<>(); // Track loaded event IDs to prevent duplicates
                     
                     if (pendingInvitations == null) {
                         pendingInvitations = new ArrayList<>();
@@ -303,18 +304,14 @@ public class HomeFragment extends Fragment {
                                     if (eventDoc != null && eventDoc.exists()) {
                                         try {
                                             Event event = parseEvent(eventDoc);
-                                            if (event != null && pendingInvitations != null) {
-                                                // Check for duplicates before adding
-                                                boolean isDuplicate = false;
-                                                for (Event existingEvent : pendingInvitations) {
-                                                    if (existingEvent != null && existingEvent.getDocumentId() != null &&
-                                                            existingEvent.getDocumentId().equals(event.getDocumentId())) {
-                                                        isDuplicate = true;
-                                                        break;
+                                            if (event != null && pendingInvitations != null && event.getDocumentId() != null) {
+                                                // Use synchronized block to prevent race conditions
+                                                synchronized (pendingInvitations) {
+                                                    // Check if this event ID has already been loaded
+                                                    if (!loadedEventIds.contains(event.getDocumentId())) {
+                                                        loadedEventIds.add(event.getDocumentId());
+                                                        pendingInvitations.add(event);
                                                     }
-                                                }
-                                                if (!isDuplicate) {
-                                                    pendingInvitations.add(event);
                                                 }
                                             }
                                         } catch (Exception e) {
@@ -326,17 +323,19 @@ public class HomeFragment extends Fragment {
                                     if (completed[0] == total && getView() != null) {
                                         // Sort by event date
                                         try {
-                                            if (pendingInvitations != null) {
-                                                pendingInvitations.sort((e1, e2) -> {
-                                                    try {
-                                                        if (e1 == null || e2 == null) return 0;
-                                                        if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
-                                                        return e1.getEventDate().compareTo(e2.getEventDate());
-                                                    } catch (Exception e) {
-                                                        Log.e(TAG, "Error sorting pending invitations", e);
-                                                        return 0;
-                                                    }
-                                                });
+                                            synchronized (pendingInvitations) {
+                                                if (pendingInvitations != null) {
+                                                    pendingInvitations.sort((e1, e2) -> {
+                                                        try {
+                                                            if (e1 == null || e2 == null) return 0;
+                                                            if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
+                                                            return e1.getEventDate().compareTo(e2.getEventDate());
+                                                        } catch (Exception e) {
+                                                            Log.e(TAG, "Error sorting pending invitations", e);
+                                                            return 0;
+                                                        }
+                                                    });
+                                                }
                                             }
                                         } catch (Exception e) {
                                             Log.e(TAG, "Error sorting pending invitations list", e);

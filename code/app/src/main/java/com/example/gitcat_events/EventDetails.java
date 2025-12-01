@@ -355,13 +355,13 @@ public class EventDetails extends Fragment {
             if (btnEditEvent != null) btnEditEvent.setVisibility(View.GONE);
             if (deleteEventBtn != null) deleteEventBtn.setVisibility(View.GONE);
 
-            // Check if user is already enrolled (in acceptedList)
+            // Check enrollment status FIRST (highest priority)
             checkEnrollmentStatus(deviceId);
             
-            // Check if user has a pending invitation
+            // Then check if user has a pending invitation
             checkInvitationStatus(deviceId);
             
-            // Check waitlist status with real-time listener
+            // Finally check waitlist status with real-time listener
             db.collection("events").document(event.getDocumentId())
                     .collection("waitlist")
                     .document(deviceId)
@@ -483,10 +483,46 @@ public class EventDetails extends Fragment {
         
         try {
             if (invitationButtons != null) invitationButtons.setVisibility(View.GONE);
-            // Only show join button if not enrolled and no invitation
-            if (!hasInvitation && !isEnrolled && btnJoinWaitingList != null) {
-                btnJoinWaitingList.setVisibility(View.VISIBLE);
-                updateButtonForWaitlistStatus();
+            // Re-check enrollment status before showing join button
+            // Enrollment status listener will handle showing the correct UI
+            if (!hasInvitation) {
+                // Double-check enrollment status before showing join button
+                String deviceId = getOrCreateDeviceId();
+                db.collection("events").document(event.getDocumentId())
+                        .collection("acceptedList")
+                        .document(deviceId)
+                        .get()
+                        .addOnSuccessListener(doc -> {
+                            if (getView() == null) return;
+                            boolean enrolled = (doc != null && doc.exists());
+                            if (enrolled) {
+                                // User is enrolled - show enrollment message
+                                isEnrolled = true;
+                                if (btnJoinWaitingList != null) {
+                                    btnJoinWaitingList.setVisibility(View.GONE);
+                                }
+                                if (tvStatusMessage != null) {
+                                    tvStatusMessage.setVisibility(View.VISIBLE);
+                                    tvStatusMessage.setText("✓ You're already enrolled for this event");
+                                    tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+                                }
+                            } else {
+                                // User is not enrolled - show join button
+                                isEnrolled = false;
+                                if (btnJoinWaitingList != null) {
+                                    btnJoinWaitingList.setVisibility(View.VISIBLE);
+                                    updateButtonForWaitlistStatus();
+                                }
+                            }
+                        })
+                        .addOnFailureListener(e -> {
+                            Log.e(TAG, "Error checking enrollment in hideInvitationButtons", e);
+                            // On error, default to showing join button if not enrolled
+                            if (!isEnrolled && btnJoinWaitingList != null) {
+                                btnJoinWaitingList.setVisibility(View.VISIBLE);
+                                updateButtonForWaitlistStatus();
+                            }
+                        });
             }
         } catch (Exception e) {
             Log.e(TAG, "Error hiding invitation buttons", e);
