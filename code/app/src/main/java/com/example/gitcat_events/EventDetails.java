@@ -76,6 +76,7 @@ public class EventDetails extends Fragment {
     private boolean isOnWaitlist = false;
     private boolean isOrganizer = false;
     private boolean hasInvitation = false;
+    private boolean isEnrolled = false; // Track if user is enrolled (in acceptedList)
     private boolean pendingAcceptAfterPermission = false;
     private boolean isAcceptingInvitation = false; // Prevent multiple simultaneous accept operations
 
@@ -354,8 +355,8 @@ public class EventDetails extends Fragment {
             if (btnEditEvent != null) btnEditEvent.setVisibility(View.GONE);
             if (deleteEventBtn != null) deleteEventBtn.setVisibility(View.GONE);
 
-            // Show join button by default (will be hidden if user has invitation)
-            if (btnJoinWaitingList != null) btnJoinWaitingList.setVisibility(View.VISIBLE);
+            // Check if user is already enrolled (in acceptedList)
+            checkEnrollmentStatus(deviceId);
             
             // Check if user has a pending invitation
             checkInvitationStatus(deviceId);
@@ -378,9 +379,9 @@ public class EventDetails extends Fragment {
                         
                         Log.d(TAG, "Waitlist status changed - wasOnWaitlist: " + wasOnWaitlist + ", isOnWaitlist: " + isOnWaitlist + ", hasInvitation: " + hasInvitation);
                         
-                        // Update button if status changed (don't update if user has invitation - invitation buttons handle that)
+                        // Update button if status changed (don't update if user has invitation or is enrolled)
                         if (wasOnWaitlist != isOnWaitlist) {
-                            if (!hasInvitation) {
+                            if (!hasInvitation && !isEnrolled) {
                                 updateButtonForWaitlistStatus();
                             }
                         }
@@ -388,6 +389,47 @@ public class EventDetails extends Fragment {
         } catch (Exception e) {
             Log.e(TAG, "Error in checkUserStatus", e);
         }
+    }
+    
+    private void checkEnrollmentStatus(String deviceId) {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Check if user is already enrolled (in acceptedList)
+        db.collection("events").document(event.getDocumentId())
+                .collection("acceptedList")
+                .document(deviceId)
+                .addSnapshotListener((documentSnapshot, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Error checking enrollment status", error);
+                        return;
+                    }
+                    
+                    if (getView() == null) return; // Fragment view detached
+                    
+                    boolean wasEnrolled = isEnrolled;
+                    isEnrolled = (documentSnapshot != null && documentSnapshot.exists());
+                    
+                    if (isEnrolled) {
+                        // User is enrolled - show enrollment message and hide all action buttons
+                        if (btnJoinWaitingList != null) {
+                            btnJoinWaitingList.setVisibility(View.GONE);
+                        }
+                        if (invitationButtons != null) {
+                            invitationButtons.setVisibility(View.GONE);
+                        }
+                        if (tvStatusMessage != null) {
+                            tvStatusMessage.setVisibility(View.VISIBLE);
+                            tvStatusMessage.setText("✓ You're already enrolled for this event");
+                            tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+                        }
+                        Log.d(TAG, "User is enrolled in event");
+                    } else if (wasEnrolled != isEnrolled) {
+                        // User was enrolled but now not - update UI based on other status
+                        if (!hasInvitation && tvStatusMessage != null) {
+                            tvStatusMessage.setVisibility(View.GONE);
+                        }
+                    }
+                });
     }
     
     private void checkInvitationStatus(String deviceId) {
@@ -421,7 +463,7 @@ public class EventDetails extends Fragment {
     }
     
     private void showInvitationButtons() {
-        if (getView() == null) return;
+        if (getView() == null || isEnrolled) return; // Don't show if already enrolled
         
         try {
             if (btnJoinWaitingList != null) btnJoinWaitingList.setVisibility(View.GONE);
@@ -441,7 +483,8 @@ public class EventDetails extends Fragment {
         
         try {
             if (invitationButtons != null) invitationButtons.setVisibility(View.GONE);
-            if (!hasInvitation && btnJoinWaitingList != null) {
+            // Only show join button if not enrolled and no invitation
+            if (!hasInvitation && !isEnrolled && btnJoinWaitingList != null) {
                 btnJoinWaitingList.setVisibility(View.VISIBLE);
                 updateButtonForWaitlistStatus();
             }

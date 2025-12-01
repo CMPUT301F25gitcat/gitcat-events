@@ -304,7 +304,18 @@ public class HomeFragment extends Fragment {
                                         try {
                                             Event event = parseEvent(eventDoc);
                                             if (event != null && pendingInvitations != null) {
-                                                pendingInvitations.add(event);
+                                                // Check for duplicates before adding
+                                                boolean isDuplicate = false;
+                                                for (Event existingEvent : pendingInvitations) {
+                                                    if (existingEvent != null && existingEvent.getDocumentId() != null &&
+                                                            existingEvent.getDocumentId().equals(event.getDocumentId())) {
+                                                        isDuplicate = true;
+                                                        break;
+                                                    }
+                                                }
+                                                if (!isDuplicate) {
+                                                    pendingInvitations.add(event);
+                                                }
                                             }
                                         } catch (Exception e) {
                                             Log.e(TAG, "Error parsing invitation event", e);
