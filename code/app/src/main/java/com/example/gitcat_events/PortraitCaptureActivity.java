@@ -18,13 +18,3 @@ public class PortraitCaptureActivity extends CaptureActivity {
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 }
-
-
-// public class PortraitCaptureActivity extends CaptureActivity {
-//     @Override
-//     protected void onCreate(Bundle savedInstanceState) {
-//         super.onCreate(savedInstanceState);
-//         // Lock orientation to portrait
-//         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-//     }
-// }
