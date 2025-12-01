@@ -109,7 +109,6 @@ public class AdminMenuActivity extends AppCompatActivity {
                     @Override
                     public void onTabSelected(TabLayout.Tab tab) {
                         int position = tab.getPosition();
-                        System.out.println(position);
 
                         loadingText.setVisibility(View.VISIBLE);
 
@@ -156,11 +155,13 @@ public class AdminMenuActivity extends AppCompatActivity {
                     List<DocumentSnapshot> allNotifications = notificationsSnapshot.getDocuments();
 
                     for (DocumentSnapshot notification : allNotifications) {
+                        String id = notification.getId();
                         String title = notification.getString("title");
                         String description = notification.getString("description");
                         Date timestamp = notification.getDate("timestamp");
 
                         Notif newNotif = new Notif(title, description, timestamp);
+                        newNotif.setDocumentId(id);
 
                         if (newNotif.getDate() == null) {
                             continue;
@@ -194,7 +195,6 @@ public class AdminMenuActivity extends AppCompatActivity {
                     }
                     profileAdapter.notifyDataSetChanged();
                     loadingText.setVisibility(View.GONE);
-                    System.out.println(allProfiles);
                 })
                 .addOnFailureListener(e -> {
                     // handle error
