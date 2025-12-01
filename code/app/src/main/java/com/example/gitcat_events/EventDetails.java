@@ -1149,42 +1149,67 @@ public class EventDetails extends Fragment {
                         if (event.getGeoLocationRequired() != null && event.getGeoLocationRequired()
                                 && fusedLocationClient != null) {
                             try {
-                                // Use getCurrentLocation() to get a fresh location instead of stale cached one
-                                Task<android.location.Location> locationTask = fusedLocationClient.getCurrentLocation(
-                                        Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                                // Prioritize getCurrentLocation() to get fresh, accurate current location (Edmonton, Vancouver, etc.)
+                                Task<android.location.Location> currentLocationTask = fusedLocationClient.getCurrentLocation(
+                                        Priority.PRIORITY_HIGH_ACCURACY, // Use high accuracy for best results
                                         null
                                 );
                                 
-                                locationTask.addOnSuccessListener(location -> {
-                                    if (location != null) {
-                                        acceptedData.put("latitude", location.getLatitude());
-                                        acceptedData.put("longitude", location.getLongitude());
-                                        Log.d(TAG, "Got fresh location: " + location.getLatitude() + ", " + location.getLongitude());
+                                currentLocationTask.addOnSuccessListener(currentLocation -> {
+                                    if (currentLocation != null) {
+                                        acceptedData.put("latitude", currentLocation.getLatitude());
+                                        acceptedData.put("longitude", currentLocation.getLongitude());
+                                        Log.d(TAG, "Got current location: " + currentLocation.getLatitude() + ", " + currentLocation.getLongitude());
+                                        writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
                                     } else {
-                                        Log.w(TAG, "getCurrentLocation returned null, accepting without coordinates");
-                                    }
-                                    writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
-                                }).addOnFailureListener(e -> {
-                                    Log.e(TAG, "Failed to get current location for accepted entrant", e);
-                                    // Fallback: try getLastLocation() as backup
-                                    try {
+                                        // getCurrentLocation returned null, try getLastLocation() as fallback
+                                        Log.d(TAG, "getCurrentLocation returned null, trying getLastLocation() fallback");
                                         fusedLocationClient.getLastLocation()
                                                 .addOnSuccessListener(fallbackLocation -> {
-                                                    if (fallbackLocation != null) {
+                                                    if (fallbackLocation != null && isLocationFresh(fallbackLocation)) {
                                                         acceptedData.put("latitude", fallbackLocation.getLatitude());
                                                         acceptedData.put("longitude", fallbackLocation.getLongitude());
-                                                        Log.d(TAG, "Used fallback last location: " + fallbackLocation.getLatitude() + ", " + fallbackLocation.getLongitude());
+                                                        Log.d(TAG, "Got fresh fallback location from getLastLocation: " + fallbackLocation.getLatitude() + ", " + fallbackLocation.getLongitude());
+                                                    } else {
+                                                        if (fallbackLocation != null) {
+                                                            Log.w(TAG, "Fallback location is too old/stale (" + 
+                                                                    ((System.currentTimeMillis() - fallbackLocation.getTime()) / 1000 / 60) + 
+                                                                    " minutes old), rejecting. Accepting without coordinates.");
+                                                        } else {
+                                                            Log.w(TAG, "Both location methods returned null, accepting without coordinates");
+                                                        }
                                                     }
                                                     writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
                                                 })
                                                 .addOnFailureListener(fallbackError -> {
-                                                    Log.e(TAG, "Fallback getLastLocation also failed", fallbackError);
+                                                    Log.e(TAG, "Fallback getLastLocation also failed, accepting without coordinates", fallbackError);
                                                     writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
                                                 });
-                                    } catch (Exception fallbackEx) {
-                                        Log.e(TAG, "Exception in fallback location", fallbackEx);
-                                        writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
                                     }
+                                }).addOnFailureListener(e -> {
+                                    Log.w(TAG, "getCurrentLocation failed, trying getLastLocation() fallback: " + e.getMessage());
+                                    // Fallback to getLastLocation() if getCurrentLocation() fails
+                                    fusedLocationClient.getLastLocation()
+                                            .addOnSuccessListener(fallbackLocation -> {
+                                                if (fallbackLocation != null && isLocationFresh(fallbackLocation)) {
+                                                    acceptedData.put("latitude", fallbackLocation.getLatitude());
+                                                    acceptedData.put("longitude", fallbackLocation.getLongitude());
+                                                    Log.d(TAG, "Got fresh location from getLastLocation fallback: " + fallbackLocation.getLatitude() + ", " + fallbackLocation.getLongitude());
+                                                } else {
+                                                    if (fallbackLocation != null) {
+                                                        Log.w(TAG, "Fallback location is too old/stale (" + 
+                                                                ((System.currentTimeMillis() - fallbackLocation.getTime()) / 1000 / 60) + 
+                                                                " minutes old), rejecting. Accepting without coordinates.");
+                                                    } else {
+                                                        Log.w(TAG, "Both location methods failed, accepting without coordinates");
+                                                    }
+                                                }
+                                                writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                            })
+                                            .addOnFailureListener(fallbackError -> {
+                                                Log.e(TAG, "Both location methods failed, accepting without coordinates", fallbackError);
+                                                writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                            });
                                 });
                             } catch (SecurityException se) {
                                 Log.w(TAG, "Location permission not granted for accepted entrant", se);
@@ -1235,6 +1260,28 @@ public class EventDetails extends Fragment {
                 }
             }
         }
+    }
+
+    /**
+     * Checks if a location is fresh (recently obtained, within the last 5 minutes).
+     * This prevents saving stale/cached locations (like old San Francisco coordinates when user is actually in Edmonton).
+     */
+    private boolean isLocationFresh(android.location.Location location) {
+        if (location == null) return false;
+        
+        long locationTime = location.getTime();
+        long currentTime = System.currentTimeMillis();
+        long ageInMinutes = (currentTime - locationTime) / (1000 * 60);
+        
+        // Only accept locations that are less than 5 minutes old
+        // This ensures we're getting the user's actual current location, not a stale cached one
+        boolean isFresh = ageInMinutes < 5;
+        
+        if (!isFresh) {
+            Log.d(TAG, "Location is " + ageInMinutes + " minutes old (too stale), rejecting");
+        }
+        
+        return isFresh;
     }
 
     /**
