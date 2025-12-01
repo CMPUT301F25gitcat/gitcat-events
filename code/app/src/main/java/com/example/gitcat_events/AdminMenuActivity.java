@@ -16,9 +16,14 @@ import android.widget.Toast;
 import com.example.gitcat_events.core.model.Notif;
 import com.example.gitcat_events.core.model.Profile;
 import com.example.gitcat_events.core.model.Image;
+import com.example.gitcat_events.core.model.Event;
 import com.example.gitcat_events.features.admin.ImageArrayAdapter;
 import com.example.gitcat_events.features.entrant.ui.ProfileArrayAdapter;
 import com.example.gitcat_events.features.event.ui.NotifArrayAdapter;
+import com.example.gitcat_events.features.event.ui.EventArrayAdapter;
+import android.widget.EditText;
+import android.text.Editable;
+import android.text.TextWatcher;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -35,9 +40,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class AdminMenuActivity extends AppCompatActivity {
 
-    private ListView notifsList, profileList, imageList;
+    private ListView notifsList, profileList, imageList, eventsList;
 
     private TextView loadingText;
+    private EditText searchEventsEditText;
 
     private ArrayList<Profile> allProfiles;
     private ProfileArrayAdapter profileAdapter;
@@ -47,6 +53,10 @@ public class AdminMenuActivity extends AppCompatActivity {
 
     private ArrayList<Notif> allNotifs;
     private NotifArrayAdapter notifAdapter;
+
+    private ArrayList<Event> allEvents;
+    private ArrayList<Event> filteredEvents;
+    private EventArrayAdapter eventAdapter;
 
     private TabLayout tabLayout;
 
@@ -97,6 +107,37 @@ public class AdminMenuActivity extends AppCompatActivity {
             showNotifDeletePopup(selected);
         });
 
+        // set up events list
+        allEvents = new ArrayList<>();
+        filteredEvents = new ArrayList<>();
+        eventsList = findViewById(R.id.adminEventsList);
+        eventAdapter = new EventArrayAdapter(this, filteredEvents);
+        eventsList.setAdapter(eventAdapter);
+
+        eventsList.setOnItemClickListener((parent, view, position, id) -> {
+            Event selected = filteredEvents.get(position);
+            String eventName = selected.getName();
+            if (eventName == null) eventName = "Event " + selected.getDocumentId();
+            showEventDeletePopup(selected, eventName);
+        });
+
+        // set up search field
+        searchEventsEditText = findViewById(R.id.adminEventsSearch);
+        if (searchEventsEditText != null) {
+            searchEventsEditText.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    filterEventsByName(s.toString());
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {}
+            });
+        }
+
         Button backBtn = findViewById(R.id.backToProfileBtn);
         backBtn.setOnClickListener(v -> finish());
 
@@ -114,13 +155,32 @@ public class AdminMenuActivity extends AppCompatActivity {
 
                         if(position == 0){
                             notifsList.setVisibility(View.VISIBLE);
+                            profileList.setVisibility(View.GONE);
+                            imageList.setVisibility(View.GONE);
+                            eventsList.setVisibility(View.GONE);
+                            if (searchEventsEditText != null) searchEventsEditText.setVisibility(View.GONE);
                             loadNotifications();
                         } else if(position == 1){
                             profileList.setVisibility(View.VISIBLE);
+                            notifsList.setVisibility(View.GONE);
+                            imageList.setVisibility(View.GONE);
+                            eventsList.setVisibility(View.GONE);
+                            if (searchEventsEditText != null) searchEventsEditText.setVisibility(View.GONE);
                             loadProfiles();
                         } else if(position == 2){
                             imageList.setVisibility(View.VISIBLE);
+                            notifsList.setVisibility(View.GONE);
+                            profileList.setVisibility(View.GONE);
+                            eventsList.setVisibility(View.GONE);
+                            if (searchEventsEditText != null) searchEventsEditText.setVisibility(View.GONE);
                             loadImages();
+                        } else if(position == 3){
+                            eventsList.setVisibility(View.VISIBLE);
+                            notifsList.setVisibility(View.GONE);
+                            profileList.setVisibility(View.GONE);
+                            imageList.setVisibility(View.GONE);
+                            if (searchEventsEditText != null) searchEventsEditText.setVisibility(View.VISIBLE);
+                            loadEvents();
                         }
 
                         // handle change
@@ -132,8 +192,11 @@ public class AdminMenuActivity extends AppCompatActivity {
                             notifsList.setVisibility(View.GONE);
                         } else if(position == 1){
                             profileList.setVisibility(View.GONE);
-                        } else {
+                        } else if(position == 2){
                             imageList.setVisibility(View.GONE);
+                        } else if(position == 3){
+                            eventsList.setVisibility(View.GONE);
+                            if (searchEventsEditText != null) searchEventsEditText.setVisibility(View.GONE);
                         }
                     }
 
@@ -453,6 +516,190 @@ public class AdminMenuActivity extends AppCompatActivity {
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Delete failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
                 );
+    }
+
+    private void loadEvents() {
+        if (!allEvents.isEmpty()) {
+            filterEventsByName(searchEventsEditText != null ? searchEventsEditText.getText().toString() : "");
+            loadingText.setVisibility(View.GONE);
+            return;
+        }
+
+        db.collection("events")
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    allEvents.clear();
+                    for (QueryDocumentSnapshot doc : querySnapshot) {
+                        Event event = parseEvent(doc);
+                        if (event != null) {
+                            allEvents.add(event);
+                        }
+                    }
+                    // Sort by event name
+                    Collections.sort(allEvents, (e1, e2) -> {
+                        String name1 = e1.getName() != null ? e1.getName() : "";
+                        String name2 = e2.getName() != null ? e2.getName() : "";
+                        return name1.compareToIgnoreCase(name2);
+                    });
+                    // Apply current filter
+                    filterEventsByName(searchEventsEditText != null ? searchEventsEditText.getText().toString() : "");
+                    loadingText.setVisibility(View.GONE);
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to load events: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    loadingText.setVisibility(View.GONE);
+                });
+    }
+
+    private void filterEventsByName(String searchQuery) {
+        filteredEvents.clear();
+        if (searchQuery == null || searchQuery.trim().isEmpty()) {
+            filteredEvents.addAll(allEvents);
+        } else {
+            String queryLower = searchQuery.toLowerCase().trim();
+            for (Event event : allEvents) {
+                String eventName = event.getName();
+                if (eventName != null && eventName.toLowerCase().contains(queryLower)) {
+                    filteredEvents.add(event);
+                }
+            }
+        }
+        eventAdapter.notifyDataSetChanged();
+    }
+
+    private Event parseEvent(DocumentSnapshot document) {
+        if (document == null || !document.exists()) {
+            return null;
+        }
+
+        try {
+            Event event = new Event();
+            event.setDocumentId(document.getId());
+            event.setName(document.getString("name"));
+            event.setDescription(document.getString("description"));
+
+            Long capacity = document.getLong("capacity");
+            event.setCapacity(capacity != null ? capacity.intValue() : 0);
+
+            Long maxWaitlist = document.getLong("maxWaitListSize");
+            event.setMaxWaitListSize(maxWaitlist != null ? maxWaitlist.intValue() : null);
+
+            event.setPoster(document.getString("poster"));
+            event.setOrganizerDeviceId(document.getString("organizerDeviceId"));
+            event.setSelectionCriteria(document.getString("selectionCriteria"));
+            event.setQrCodeUrl(document.getString("qrCodeUrl"));
+
+            Boolean geoLocation = document.getBoolean("geoLocationRequired");
+            event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
+
+            // Convert Date to Calendar
+            java.util.Date registrationStartDate = document.getDate("registrationStartDate");
+            if (registrationStartDate != null) {
+                java.util.Calendar regStartCal = java.util.Calendar.getInstance();
+                regStartCal.setTime(registrationStartDate);
+                event.setRegistrationStartDate(regStartCal);
+            }
+
+            java.util.Date eventDate = document.getDate("eventDate");
+            if (eventDate != null) {
+                java.util.Calendar eventCal = java.util.Calendar.getInstance();
+                eventCal.setTime(eventDate);
+                event.setEventDate(eventCal);
+            }
+
+            java.util.Date raffleDate = document.getDate("raffleDate");
+            if (raffleDate != null) {
+                java.util.Calendar raffleCal = java.util.Calendar.getInstance();
+                raffleCal.setTime(raffleDate);
+                event.setRaffleDate(raffleCal);
+            }
+
+            // Read eventTypes
+            @SuppressWarnings("unchecked")
+            List<Object> eventTypesObj = (List<Object>) document.get("eventTypes");
+            if (eventTypesObj != null) {
+                List<String> eventTypes = new ArrayList<>();
+                for (Object obj : eventTypesObj) {
+                    if (obj instanceof String) {
+                        eventTypes.add((String) obj);
+                    }
+                }
+                event.setEventTypes(eventTypes.isEmpty() ? null : eventTypes);
+            }
+
+            return event;
+        } catch (Exception e) {
+            Log.e("AdminMenu", "Error parsing event: " + document.getId(), e);
+            return null;
+        }
+    }
+
+    private void showEventDeletePopup(Event event, String eventName) {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Delete Event?")
+                .setMessage("Are you sure you want to delete:\n" + eventName + "\n\nThis will also delete all associated waitlist entries, invitations, and accepted entries.")
+                .setPositiveButton("Delete", (dialog, which) -> deleteEvent(event))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void deleteEvent(Event event) {
+        if (event == null || event.getDocumentId() == null) {
+            Toast.makeText(this, "Cannot delete: invalid event", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String eventId = event.getDocumentId();
+        Toast.makeText(this, "Deleting event and all associated data...", Toast.LENGTH_SHORT).show();
+
+        // Delete all subcollections first, then the event document
+        deleteSubcollection(eventId, "waitlist", () ->
+            deleteSubcollection(eventId, "invitation_list", () ->
+                deleteSubcollection(eventId, "acceptedList", () ->
+                    deleteSubcollection(eventId, "cancelled_list", () ->
+                        // Finally delete the event document
+                        db.collection("events").document(eventId)
+                                .delete()
+                                .addOnSuccessListener(v -> {
+                                    allEvents.remove(event);
+                                    filterEventsByName(searchEventsEditText != null ? searchEventsEditText.getText().toString() : "");
+                                    Toast.makeText(this, "Event deleted successfully", Toast.LENGTH_SHORT).show();
+                                })
+                                .addOnFailureListener(e -> {
+                                    Toast.makeText(this, "Failed to delete event: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                })
+                    )
+                )
+            )
+        );
+    }
+
+    private void deleteSubcollection(String eventId, String collectionName, Runnable onComplete) {
+        db.collection("events").document(eventId)
+                .collection(collectionName)
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    if (snapshot.isEmpty()) {
+                        onComplete.run();
+                        return;
+                    }
+                    WriteBatch batch = db.batch();
+                    for (QueryDocumentSnapshot doc : snapshot) {
+                        batch.delete(doc.getReference());
+                    }
+                    batch.commit()
+                            .addOnSuccessListener(v -> onComplete.run())
+                            .addOnFailureListener(e -> {
+                                Log.e("AdminMenu", "Failed to delete " + collectionName + ": " + e.getMessage());
+                                // Continue anyway
+                                onComplete.run();
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("AdminMenu", "Failed to load " + collectionName + ": " + e.getMessage());
+                    // Continue anyway
+                    onComplete.run();
+                });
     }
 
     private void deleteImage(Image img) {

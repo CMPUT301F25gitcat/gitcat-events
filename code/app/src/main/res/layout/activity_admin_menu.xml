@@ -51,6 +51,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Images" />
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Events" />
     </com.google.android.material.tabs.TabLayout>
 
     <TextView
@@ -85,6 +90,24 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:padding="10dp"
+        android:visibility="gone" />
+
+    <EditText
+        android:id="@+id/adminEventsSearch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:hint="Search events by name..."
+        android:inputType="text"
+        android:visibility="gone"
+        android:background="@android:drawable/edit_text"
+        android:padding="12dp" />
+
+    <ListView
+        android:id="@+id/adminEventsList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:visibility="gone" />
 
 </LinearLayout>
