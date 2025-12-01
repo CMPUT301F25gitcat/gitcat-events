@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 
@@ -33,6 +34,9 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -51,6 +55,8 @@ public class EventDetails extends Fragment {
 
     private Event event;
     private FirebaseFirestore db;
+    // Used only when attaching location to accepted entrants (not for waitlist)
+    private FusedLocationProviderClient fusedLocationClient;
     private ListenerRegistration waitlistListener;
     private ListenerRegistration eventListener; // Real-time event update listener
     private boolean isOnWaitlist = false;
@@ -82,6 +88,19 @@ public class EventDetails extends Fragment {
             event = (Event) getArguments().getSerializable("event");
         }
         db = FirebaseFirestore.getInstance();
+        try {
+            fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext());
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to initialize FusedLocationProviderClient", e);
+            fusedLocationClient = null;
+        }
+        // Initialize location client (used to record where entrants joined from)
+        try {
+            fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext());
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to initialize FusedLocationProviderClient", e);
+            fusedLocationClient = null;
+        }
     }
 
     @Override
@@ -649,9 +668,9 @@ public class EventDetails extends Fragment {
 
     private void addToWaitlist(String deviceId) {
         if (event == null || event.getDocumentId() == null) return;
-        
+
         WaitListEntry entry = new WaitListEntry(event.getDocumentId(), deviceId);
-        
+
         Map<String, Object> data = new HashMap<>();
         data.put("eventId", entry.getEventId());
         data.put("userDeviceId", entry.getUserDeviceId());
@@ -1065,43 +1084,78 @@ public class EventDetails extends Fragment {
                 .addOnSuccessListener(doc -> {
                     if (doc.exists()) {
                         Map<String, Object> invitationData = doc.getData();
-                        
-                        // Create accepted list entry
+
+                        // Build base accepted data from invitation
                         Map<String, Object> acceptedData = new HashMap<>(invitationData);
                         acceptedData.put("status", "accepted");
                         acceptedData.put("acceptedAt", System.currentTimeMillis());
-                        
-                        // Batch operation: add to acceptedList and remove from invitation_list
-                        WriteBatch batch = db.batch();
-                        
-                        // Add to acceptedList
-                        DocumentReference acceptedRef = 
-                            db.collection("events").document(event.getDocumentId())
-                                .collection("acceptedList").document(deviceId);
-                        batch.set(acceptedRef, acceptedData);
-                        
-                        // Remove from invitation_list
-                        DocumentReference invitationRef = 
-                            db.collection("events").document(event.getDocumentId())
-                                .collection("invitation_list").document(deviceId);
-                        batch.delete(invitationRef);
-                        
-                        // Commit batch
-                        batch.commit()
-                                .addOnSuccessListener(v -> {
-                                    showSuccess("✓ Invitation accepted! You're registered for this event.");
-                                    hasInvitation = false;
-                                    hideInvitationButtons();
-                                })
-                                .addOnFailureListener(e -> {
-                                    showError("Failed to accept invitation. Please try again.");
-                                    Log.e(TAG, "Error accepting invitation", e);
-                                });
+
+                        // If geolocation is required, best-effort attach location for the accepted entrant
+                        if (event.getGeoLocationRequired() != null && event.getGeoLocationRequired()
+                                && fusedLocationClient != null) {
+                            try {
+                                fusedLocationClient.getLastLocation()
+                                        .addOnSuccessListener(location -> {
+                                            if (location != null) {
+                                                acceptedData.put("latitude", location.getLatitude());
+                                                acceptedData.put("longitude", location.getLongitude());
+                                            }
+                                            writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Log.e(TAG, "Failed to get last location for accepted entrant", e);
+                                            writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                        });
+                            } catch (SecurityException se) {
+                                Log.w(TAG, "Location permission not granted for accepted entrant", se);
+                                writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                            } catch (Exception e) {
+                                Log.e(TAG, "Unexpected error getting location for accepted entrant", e);
+                                writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                            }
+                        } else {
+                            // No geo requirement or no location client; just write without coordinates
+                            writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                        }
                     }
                 })
                 .addOnFailureListener(e -> {
                     showError("Error loading invitation. Please try again.");
                     Log.e(TAG, "Error loading invitation", e);
+                });
+    }
+
+    /**
+     * Helper to add an entry to acceptedList and remove from invitation_list in a single batch.
+     * Coordinates (latitude/longitude) may already be present in acceptedData.
+     */
+    private void writeAcceptedEntryAndRemoveInvitation(String deviceId, Map<String, Object> acceptedData) {
+        if (event == null || event.getDocumentId() == null) return;
+
+        WriteBatch batch = db.batch();
+
+        // Add to acceptedList
+        DocumentReference acceptedRef =
+                db.collection("events").document(event.getDocumentId())
+                        .collection("acceptedList").document(deviceId);
+        batch.set(acceptedRef, acceptedData);
+
+        // Remove from invitation_list
+        DocumentReference invitationRef =
+                db.collection("events").document(event.getDocumentId())
+                        .collection("invitation_list").document(deviceId);
+        batch.delete(invitationRef);
+
+        // Commit batch
+        batch.commit()
+                .addOnSuccessListener(v -> {
+                    showSuccess("✓ Invitation accepted! You're registered for this event.");
+                    hasInvitation = false;
+                    hideInvitationButtons();
+                })
+                .addOnFailureListener(e -> {
+                    showError("Failed to accept invitation. Please try again.");
+                    Log.e(TAG, "Error accepting invitation", e);
                 });
     }
     

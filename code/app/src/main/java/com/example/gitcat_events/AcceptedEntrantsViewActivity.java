@@ -211,10 +211,13 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
                         Long drawRound = document.getLong("drawRound");
                         Long timestamp = document.getLong("timestamp");
                         Long acceptedAt = document.getLong("acceptedAt");
-                        
+
+                        Double latitude = document.getDouble("latitude");
+                        Double longitude = document.getDouble("longitude");
+
                         if (userDeviceId != null) {
                             // Fetch user profile
-                            fetchUserProfile(userDeviceId, status, drawRound, timestamp, acceptedAt, totalEntries, processedEntries);
+                            fetchUserProfile(userDeviceId, status, drawRound, timestamp, acceptedAt, latitude, longitude, totalEntries, processedEntries);
                         } else {
                             processedEntries[0]++;
                             if (processedEntries[0] == totalEntries) {
@@ -232,7 +235,7 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
     }
 
     private void fetchUserProfile(String deviceId, String status, Long drawRound, Long timestamp, Long acceptedAt,
-                                   int totalEntries, int[] processedEntries) {
+                                   Double latitude, Double longitude, int totalEntries, int[] processedEntries) {
         db.collection("profiles")
                 .whereEqualTo("deviceId", deviceId)
                 .limit(1)
@@ -244,6 +247,8 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
                     entry.drawRound = drawRound != null ? drawRound.intValue() : 1;
                     entry.invitedTimestamp = timestamp;
                     entry.acceptedTimestamp = acceptedAt;
+                    entry.latitude = latitude;
+                    entry.longitude = longitude;
 
                     if (!querySnapshot.isEmpty()) {
                         DocumentSnapshot profileDoc = querySnapshot.getDocuments().get(0);
@@ -286,6 +291,8 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
                     entry.drawRound = drawRound != null ? drawRound.intValue() : 1;
                     entry.invitedTimestamp = timestamp;
                     entry.acceptedTimestamp = acceptedAt;
+                    entry.latitude = latitude;
+                    entry.longitude = longitude;
                     entry.name = "Unknown User";
                     acceptedEntries.add(entry);
                     
@@ -613,6 +620,8 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
         int drawRound;
         Long invitedTimestamp;
         Long acceptedTimestamp;
+        Double latitude;
+        Double longitude;
     }
 
     // RecyclerView Adapter
@@ -650,6 +659,7 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
             TextView tvInvitedDate;
             TextView tvAcceptedDate;
             TextView tvStatusBadge;
+            android.widget.ImageButton btnViewOnMap;
 
             ViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -661,6 +671,7 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
                 tvInvitedDate = itemView.findViewById(R.id.tvInvitedDate);
                 tvAcceptedDate = itemView.findViewById(R.id.tvAcceptedDate);
                 tvStatusBadge = itemView.findViewById(R.id.tvStatusBadge);
+                btnViewOnMap = itemView.findViewById(R.id.btnViewOnMap);
             }
 
             void bind(AcceptedEntryDisplay entry, int position) {
@@ -708,6 +719,39 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
                 // Status badge
                 tvStatusBadge.setText("✅ CONFIRMED");
                 tvStatusBadge.setVisibility(View.VISIBLE);
+
+                // Map button: only show if this accepted entrant has coordinates
+                if (entry.latitude != null && entry.longitude != null) {
+                    btnViewOnMap.setVisibility(View.VISIBLE);
+                    btnViewOnMap.setOnClickListener(v -> {
+                        try {
+                            double lat = entry.latitude;
+                            double lng = entry.longitude;
+                            String label = (entry.name != null ? entry.name : "Entrant");
+                            String uriString = "geo:" + lat + "," + lng + "?q=" + lat + "," + lng + "(" + android.net.Uri.encode(label) + ")";
+                            android.net.Uri gmmIntentUri = android.net.Uri.parse(uriString);
+                            android.content.Intent mapIntent = new android.content.Intent(android.content.Intent.ACTION_VIEW, gmmIntentUri);
+                            // Prefer Google Maps if installed, but fall back gracefully
+                            mapIntent.setPackage("com.google.android.apps.maps");
+                            if (mapIntent.resolveActivity(getPackageManager()) == null) {
+                                mapIntent.setPackage(null);
+                            }
+                            if (mapIntent.resolveActivity(getPackageManager()) != null) {
+                                startActivity(mapIntent);
+                            } else {
+                                Toast.makeText(AcceptedEntrantsViewActivity.this,
+                                        "No maps application found to show location", Toast.LENGTH_SHORT).show();
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error opening map for accepted entrant", e);
+                            Toast.makeText(AcceptedEntrantsViewActivity.this,
+                                    "Unable to open map for this entrant", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                } else {
+                    btnViewOnMap.setVisibility(View.GONE);
+                    btnViewOnMap.setOnClickListener(null);
+                }
             }
         }
     }

@@ -183,7 +183,7 @@ public class WaitlistViewActivity extends AppCompatActivity {
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         String userDeviceId = document.getString("userDeviceId");
                         Long timestamp = document.getLong("timestamp");
-                        
+
                         if (userDeviceId != null) {
                             // Fetch user profile
                             fetchUserProfile(userDeviceId, timestamp, totalEntries, processedEntries);
