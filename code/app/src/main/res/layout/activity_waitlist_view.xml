@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background_color"
@@ -62,12 +63,10 @@
     </LinearLayout>
 
     <!-- Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@android:color/darker_gray" />
 
     <!-- Waitlist RecyclerView -->
+<<<<<<< HEAD
+=======
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvWaitlist"
         android:layout_width="match_parent"
@@ -75,8 +74,10 @@
         android:layout_weight="1"
         android:clipToPadding="false"
         android:padding="8dp" />
+>>>>>>> 0b4f5133957c5d682882212c0328b6bdff28849f
 
     <!-- Empty State -->
+
     <TextView
         android:id="@+id/tvWaitlistEmpty"
         android:layout_width="match_parent"
@@ -87,6 +88,80 @@
         android:textColor="@color/text_color_dark"
         android:textSize="16sp"
         android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@android:color/darker_gray" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvWaitlist"
+            android:layout_width="match_parent"
+            android:layout_height="388dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:padding="8dp">
+
+        </androidx.recyclerview.widget.RecyclerView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="250dp"
+            android:orientation="vertical">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/textInputLayout"
+                android:layout_width="match_parent"
+                android:layout_height="70dp"
+                android:textColorHint="@color/text_color_medium"
+                app:helperTextTextColor="@color/text_color_medium"
+                app:hintTextColor="@color/text_color_medium"
+                app:placeholderTextColor="@color/text_color_medium"
+                app:prefixTextColor="@color/text_color_medium"
+                app:suffixTextColor="@color/text_color_medium">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/waitingListNotifTitleText"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:hint="Notification Title*" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/textInputLayout2"
+                android:layout_width="match_parent"
+                android:layout_height="110dp"
+                android:textColorHint="@color/text_color_medium"
+                app:helperTextTextColor="@color/text_color_medium"
+                app:hintTextColor="@color/text_color_medium"
+                app:placeholderTextColor="@color/text_color_medium"
+                app:prefixTextColor="@color/text_color_medium"
+                app:suffixTextColor="@color/text_color_medium">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/waitingListNotifDescription"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:hint="Notification Description" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <Button
+                android:id="@+id/waitingListSendNotif"
+                android:layout_width="match_parent"
+                android:layout_height="70dp"
+                android:layout_marginTop="0dp"
+                android:backgroundTint="@color/button_color"
+                android:text="Send Notifications To Entrants"
+                android:textColor="@color/text_color_light"
+                app:cornerRadius="0dp" />
+        </LinearLayout>
+
+    </LinearLayout>
 
 </LinearLayout>
 
