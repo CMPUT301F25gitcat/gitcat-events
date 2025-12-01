@@ -59,6 +59,11 @@
             android:exported="false"
             android:theme="@style/Theme.GitCat_events"/>
 
+        <!-- Map view for organizer to see accepted entrants' join locations (Leaflet/WebView) -->
+        <activity android:name=".AcceptedEntrantsMapActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GitCat_events"/>
+
         <!-- FileProvider for sharing CSV files -->
         <provider
             android:name="androidx.core.content.FileProvider"
