@@ -35,8 +35,11 @@ import android.provider.Settings;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -50,8 +53,8 @@ public class CreateEventActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private ImageView ivEventPoster;
     private EditText etEventName, etEventDescription, etCapacity, etMaxWaitlist, etSelectionCriteria;
-    private Button btnSelectPoster, btnSelectRegistrationStartDate, btnSelectEventDate, btnSelectRaffleDate, btnCreateEvent;
-    private TextView tvRegistrationStartDateDisplay, tvEventDateDisplay, tvRaffleDateDisplay;
+    private Button btnSelectPoster, btnSelectRegistrationStartDate, btnSelectEventDate, btnSelectRaffleDate, btnSelectEventType, btnCreateEvent;
+    private TextView tvRegistrationStartDateDisplay, tvEventDateDisplay, tvRaffleDateDisplay, tvEventTypeDisplay;
     private SwitchMaterial switchGeoLocation;
     private android.widget.ImageButton btnBack;
 
@@ -59,6 +62,7 @@ public class CreateEventActivity extends AppCompatActivity {
     private Calendar selectedRegistrationStartDate;
     private Calendar selectedEventDate;
     private Calendar selectedRaffleDate;
+    private List<String> selectedEventTypes;
 
     // Activity result launcher for image selection
     private final ActivityResultLauncher<Intent> posterPickerLauncher = registerForActivityResult(
@@ -92,10 +96,12 @@ public class CreateEventActivity extends AppCompatActivity {
         btnSelectRegistrationStartDate = findViewById(R.id.btnSelectRegistrationStartDate);
         btnSelectEventDate = findViewById(R.id.btnSelectEventDate);
         btnSelectRaffleDate = findViewById(R.id.btnSelectRaffleDate);
+        btnSelectEventType = findViewById(R.id.btnSelectEventType);
         btnCreateEvent = findViewById(R.id.btnCreateEvent);
         tvRegistrationStartDateDisplay = findViewById(R.id.tvRegistrationStartDateDisplay);
         tvEventDateDisplay = findViewById(R.id.tvEventDateDisplay);
         tvRaffleDateDisplay = findViewById(R.id.tvRaffleDateDisplay);
+        tvEventTypeDisplay = findViewById(R.id.tvEventTypeDisplay);
         switchGeoLocation = findViewById(R.id.switchGeoLocation);
 
         // Set up click listeners
@@ -104,6 +110,7 @@ public class CreateEventActivity extends AppCompatActivity {
         btnSelectRegistrationStartDate.setOnClickListener(v -> selectRegistrationStartDate());
         btnSelectEventDate.setOnClickListener(v -> selectEventDate());
         btnSelectRaffleDate.setOnClickListener(v -> selectRaffleDate());
+        btnSelectEventType.setOnClickListener(v -> selectEventType());
         btnCreateEvent.setOnClickListener(v -> createEvent());
     }
     
@@ -127,7 +134,7 @@ public class CreateEventActivity extends AppCompatActivity {
                     selectedRegistrationStartDate = Calendar.getInstance();
                     selectedRegistrationStartDate.set(year, month, dayOfMonth);
                     tvRegistrationStartDateDisplay.setText(
-                            String.format("%02d/%02d/%d", dayOfMonth, month + 1, year)
+                            String.format(Locale.getDefault(), "%02d/%02d/%d", dayOfMonth, month + 1, year)
                     );
                 },
                 calendar.get(Calendar.YEAR),
@@ -145,7 +152,7 @@ public class CreateEventActivity extends AppCompatActivity {
                     selectedEventDate = Calendar.getInstance();
                     selectedEventDate.set(year, month, dayOfMonth);
                     tvEventDateDisplay.setText(
-                            String.format("%02d/%02d/%d", dayOfMonth, month + 1, year)
+                            String.format(Locale.getDefault(), "%02d/%02d/%d", dayOfMonth, month + 1, year)
                     );
                 },
                 calendar.get(Calendar.YEAR),
@@ -163,7 +170,7 @@ public class CreateEventActivity extends AppCompatActivity {
                     selectedRaffleDate = Calendar.getInstance();
                     selectedRaffleDate.set(year, month, dayOfMonth);
                     tvRaffleDateDisplay.setText(
-                            String.format("%02d/%02d/%d", dayOfMonth, month + 1, year)
+                            String.format(Locale.getDefault(), "%02d/%02d/%d", dayOfMonth, month + 1, year)
                     );
                 },
                 calendar.get(Calendar.YEAR),
@@ -171,6 +178,29 @@ public class CreateEventActivity extends AppCompatActivity {
                 calendar.get(Calendar.DAY_OF_MONTH)
         );
         datePickerDialog.show();
+    }
+
+    private void selectEventType() {
+        EventTypeSelectionBottomSheet typeSheet = EventTypeSelectionBottomSheet.newInstance(selectedTypes -> {
+            this.selectedEventTypes = selectedTypes;
+            updateEventTypeDisplay();
+        });
+
+        // Set initial types if already selected
+        if (selectedEventTypes != null && !selectedEventTypes.isEmpty()) {
+            typeSheet.setInitialTypes(selectedEventTypes);
+        }
+
+        typeSheet.show(getSupportFragmentManager(), "EventTypeSelectionBottomSheet");
+    }
+
+    private void updateEventTypeDisplay() {
+        if (selectedEventTypes == null || selectedEventTypes.isEmpty()) {
+            tvEventTypeDisplay.setText("Not selected");
+        } else {
+            String typesText = String.join(", ", selectedEventTypes);
+            tvEventTypeDisplay.setText(typesText);
+        }
     }
 
     private void createEvent() {
@@ -208,14 +238,35 @@ public class CreateEventActivity extends AppCompatActivity {
             Toast.makeText(this, "Please select an event date", Toast.LENGTH_SHORT).show();
             ok = false;
         }
+        if (selectedEventTypes == null || selectedEventTypes.isEmpty()) {
+            Toast.makeText(this, "Please select at least one event type", Toast.LENGTH_SHORT).show();
+            ok = false;
+        }
         if (!ok) {
             // Re-enable button if validation fails
             btnCreateEvent.setEnabled(true);
             return;
         }
 
-        int capacity = Integer.parseInt(capacityStr);
-        Integer maxWaitlist = maxWaitlistStr.isEmpty() ? null : Integer.parseInt(maxWaitlistStr);
+        int capacity;
+        try {
+            capacity = Integer.parseInt(capacityStr);
+        } catch (NumberFormatException e) {
+            etCapacity.setError("Invalid number");
+            btnCreateEvent.setEnabled(true);
+            return;
+        }
+        
+        Integer maxWaitlist = null;
+        if (!maxWaitlistStr.isEmpty()) {
+            try {
+                maxWaitlist = Integer.parseInt(maxWaitlistStr);
+            } catch (NumberFormatException e) {
+                etMaxWaitlist.setError("Invalid number");
+                btnCreateEvent.setEnabled(true);
+                return;
+            }
+        }
 
         // Validate date order: registrationStart <= raffleDate <= eventDate
         // Normalize dates to start of day for comparison (ignore time)
@@ -263,13 +314,14 @@ public class CreateEventActivity extends AppCompatActivity {
             return;
         }
 
-        // Validate capacity vs waitlist
-        if (maxWaitlist != null && capacity > maxWaitlist) {
-            Toast.makeText(this, "Event capacity cannot exceed max waitlist size", Toast.LENGTH_LONG).show();
-            etCapacity.setError("Capacity too large");
+        // Validate maxWaitlist is positive if provided
+        if (maxWaitlist != null && maxWaitlist <= 0) {
+            Toast.makeText(this, "Max waitlist size must be a positive number", Toast.LENGTH_LONG).show();
+            etMaxWaitlist.setError("Must be positive");
             btnCreateEvent.setEnabled(true);
             return;
         }
+        
         if (!ok) {
             // Re-enable button if validation fails
             btnCreateEvent.setEnabled(true);
@@ -330,6 +382,7 @@ public class CreateEventActivity extends AppCompatActivity {
         // Set organizer device ID for organizer identification
         String deviceId = getOrCreateDeviceId();
         newEvent.setOrganizerDeviceId(deviceId);
+        newEvent.setEventTypes(selectedEventTypes);
 
         // Save to Firestore with auto-incrementing ID
         saveEventToFirestore(newEvent, progressDialog);
@@ -352,6 +405,10 @@ public class CreateEventActivity extends AppCompatActivity {
             String docId = String.valueOf(next);
             DocumentReference eventRef = db.collection("events").document(docId);
 
+            // Generate QR code URL (deep link to event details)
+            String qrCodeUrl = "gitcatevents://event/" + next;
+            event.setQrCodeUrl(qrCodeUrl);
+
             // Prepare event data
             Map<String, Object> data = new HashMap<>();
             data.put("name", event.getName());
@@ -366,7 +423,9 @@ public class CreateEventActivity extends AppCompatActivity {
             data.put("organizer", event.getOrganizer());
             data.put("organizerDeviceId", event.getOrganizerDeviceId());
             data.put("selectionCriteria", event.getSelectionCriteria());
+            data.put("eventTypes", event.getEventTypes() != null ? event.getEventTypes() : new ArrayList<>());
             data.put("eventId", next);
+            data.put("qrCodeUrl", qrCodeUrl);
 
             transaction.set(eventRef, data);
 
@@ -386,6 +445,13 @@ public class CreateEventActivity extends AppCompatActivity {
         }).addOnSuccessListener(eventId -> {
             progressDialog.dismiss();
             Toast.makeText(this, "Event created successfully!", Toast.LENGTH_LONG).show();
+
+            //launch the QR code display activity 
+            Intent qrCodeIntent = new Intent(this, QRCodeDisplayActivity.class);
+            qrCodeIntent.putExtra("eventId", eventId);
+            qrCodeIntent.putExtra("eventName", event.getName());
+            qrCodeIntent.putExtra("qrCodeUrl", event.getQrCodeUrl());
+            startActivity(qrCodeIntent);
             
             // Return to Create fragment (button stays disabled since we're leaving)
             finish();

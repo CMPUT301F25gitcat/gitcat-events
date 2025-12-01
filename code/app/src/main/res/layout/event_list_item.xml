@@ -14,8 +14,9 @@
         android:layout_marginTop="10dp"
         android:layout_marginRight="20dp"
         android:layout_marginBottom="10dp"
+        app:cardBackgroundColor="@color/background_color"
         app:cardCornerRadius="10dp"
-        app:cardElevation="8dp">
+        app:cardElevation="5dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
@@ -34,7 +35,7 @@
                 <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:cardBackgroundColor="#CAD6FF"
+                    app:cardBackgroundColor="@color/container_color"
                     app:cardCornerRadius="10dp"
                     app:contentPaddingBottom="5dp"
                     app:contentPaddingLeft="10dp"
@@ -51,7 +52,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="TextView"
-                            android:textColor="#2B66FF"
+                            android:textColor="@color/text_color_colored"
                             android:textSize="19sp"
                             android:textStyle="bold" />
 
@@ -59,7 +60,8 @@
                             android:id="@+id/eventCardSubtitleText"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="TextView" />
+                            android:text="TextView"
+                            android:textColor="@color/text_color_medium" />
 
                     </LinearLayout>
 
@@ -70,7 +72,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="5dp"
-                    android:text="TextView" />
+                    android:text="TextView"
+                    android:textColor="@color/text_color_medium" />
 
             </LinearLayout>
 
@@ -78,14 +81,14 @@
                 android:id="@+id/posterThumbnail"
                 android:layout_width="100dp"
                 android:layout_height="100dp"
+                android:adjustViewBounds="true"
+                android:scaleType="centerCrop"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintVertical_bias="0.0"
                 app:srcCompat="@drawable/qr_icon"
-                tools:srcCompat="@drawable/qr_icon"
-                android:adjustViewBounds="true"
-                android:scaleType="centerCrop"/>
+                tools:srcCompat="@drawable/qr_icon" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.cardview.widget.CardView>

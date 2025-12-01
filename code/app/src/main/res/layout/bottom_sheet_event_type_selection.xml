@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/background_color"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:text="Select Event Type"
+        android:textColor="@color/text_color_colored"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
+    <!-- Instructions -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="Select one or more event types:"
+        android:textColor="@color/text_color_medium"
+        android:textSize="14sp" />
+
+    <!-- Checkboxes for Event Types -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:orientation="vertical">
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxSports"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Sports"
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxArts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Arts"
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxMusic"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Music"
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxEducation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Education"
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxFamily"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Family"
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxOther"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Other"
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
+    </LinearLayout>
+
+    <!-- Selected Types Display -->
+    <TextView
+        android:id="@+id/tvSelectedTypes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="No types selected"
+        android:textColor="@color/text_color_medium"
+        android:textSize="12sp"
+        android:textStyle="italic" />
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnCancel"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:text="Cancel"
+            android:textColor="@color/button_color"
+            app:strokeColor="@color/button_color" />
+
+        <Button
+            android:id="@+id/btnDone"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="@color/button_color"
+            android:text="Done"
+            android:textColor="@color/text_color_light" />
+    </LinearLayout>
+
+</LinearLayout>
+

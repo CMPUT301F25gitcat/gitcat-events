@@ -4,7 +4,9 @@ import androidx.annotation.Nullable;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -41,6 +43,11 @@ public class Event implements Serializable {
     private String organizerDeviceId; // Device ID of the organizer (permanent identifier)
     @Nullable 
     private String selectionCriteria; // Guidelines/criteria for lottery selection
+    @Nullable 
+    private String qrCodeUrl; // QR code URL (deep link) for the event
+    
+    @Nullable
+    private List<String> eventTypes; // Categories/interests for the event (sports, arts, music, education, family, other)
     
     //private QRCode qrCode; -- QRCode class is not done yet
 
@@ -324,6 +331,25 @@ public class Event implements Serializable {
     }
 
     /**
+     * Gets the event types/categories for an event
+     * 
+     * @return the list of event types (can be null)
+     */
+    @Nullable
+    public List<String> getEventTypes() {
+        return eventTypes;
+    }
+
+    /**
+     * Sets the event types/categories for an event
+     * 
+     * @param eventTypes the list of event types (can be null)
+     */
+    public void setEventTypes(@Nullable List<String> eventTypes) {
+        this.eventTypes = eventTypes;
+    }
+
+    /**
      * Gets the raffle date as a formatted string
      * 
      * @return the raffle date formatted as "yyyy-MM-dd"
@@ -347,6 +373,25 @@ public class Event implements Serializable {
         }
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         return formatter.format(this.eventDate.getTime());
+    }
+
+    /**
+     * gets the QR code URL for the event
+     * 
+     * @return the QR code URL (deep link) for the event (can be null)
+     */
+    @Nullable
+    public String getQrCodeUrl() {
+        return qrCodeUrl;
+    }
+
+    /**
+     * sets the QR code URL for the event
+     * 
+     * @param qrCodeUrl the QR code URL (deep link) for the event
+     */
+    public void setQrCodeUrl(@Nullable String qrCodeUrl) {
+        this.qrCodeUrl = qrCodeUrl;
     }
 
     /*public void setQRCode(QRCode qrCode) {

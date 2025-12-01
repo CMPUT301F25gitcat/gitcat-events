@@ -1,14 +1,19 @@
 package com.example.gitcat_events;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import android.util.Base64;
@@ -24,11 +29,21 @@ import android.widget.Toast;
 
 import com.example.gitcat_events.core.model.Event;
 import com.example.gitcat_events.core.model.WaitListEntry;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
+import com.google.android.gms.tasks.Task;
+
+import java.io.Writer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -38,27 +53,45 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import android.graphics.Color;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 
 public class EventDetails extends Fragment {
 
     private static final String TAG = "EventDetailsFragment";
     private static final String PREFS = "app_prefs";
+    private static final int REQUEST_LOCATION_FOR_ACCEPT_INVITE = 1001;
 
     private Event event;
     private FirebaseFirestore db;
+    // Used only when attaching location to accepted entrants (not for waitlist)
+    private FusedLocationProviderClient fusedLocationClient;
     private ListenerRegistration waitlistListener;
     private ListenerRegistration eventListener; // Real-time event update listener
     private boolean isOnWaitlist = false;
     private boolean isOrganizer = false;
     private boolean hasInvitation = false;
-    
+    private boolean isEnrolled = false; // Track if user is enrolled (in acceptedList)
+    private boolean pendingAcceptAfterPermission = false;
+    private boolean isAcceptingInvitation = false; // Prevent multiple simultaneous accept operations
+
     private ImageView ivEventPoster;
     private TextView tvEventName, tvEventDate, tvEventSpots, tvEventDesc;
     private TextView tvWaitingListCount, tvStatusMessage, tvSelectionCriteria;
-    private Button btnJoinWaitingList, btnRunRaffle, btnViewWaitingList, btnViewInvitedEntrants, btnViewEnrolledEntrants, btnViewCancelledEntrants, btnEditEvent;
+    private Button btnJoinWaitingList, btnRunRaffle, btnViewWaitingList, btnViewInvitedEntrants, btnViewEnrolledEntrants, btnViewCancelledEntrants, btnEditEvent, deleteEventBtn;
     private ImageButton btnBack;
     private Button btnAcceptInvitation, btnDeclineInvitation;
     private ViewGroup invitationButtons;
+
+    private ImageView ivQRCode;
+    private TextView tvQRCodeLabel;
+    private Button btnDownloadQR;
+    private Bitmap qrCodeBitmap; // Store bitmap for download functionality
 
     public EventDetails() {}
 
@@ -77,6 +110,12 @@ public class EventDetails extends Fragment {
             event = (Event) getArguments().getSerializable("event");
         }
         db = FirebaseFirestore.getInstance();
+        try {
+            fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext());
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to initialize FusedLocationProviderClient", e);
+            fusedLocationClient = null;
+        }
     }
 
     @Override
@@ -104,6 +143,21 @@ public class EventDetails extends Fragment {
         btnAcceptInvitation = view.findViewById(R.id.btnAcceptInvitation);
         btnDeclineInvitation = view.findViewById(R.id.btnDeclineInvitation);
         invitationButtons = view.findViewById(R.id.invitationButtons);
+        deleteEventBtn = view.findViewById(R.id.adminDeleteEvent);
+
+        ivQRCode = view.findViewById(R.id.ivQRCode);
+        tvQRCodeLabel = view.findViewById(R.id.tvQRCodeLabel);
+        btnDownloadQR = view.findViewById(R.id.btnDownloadQR);
+
+        // Set up download QR button click listener
+        if (btnDownloadQR != null) {
+            btnDownloadQR.setOnClickListener(v -> launchQRCodeDisplayActivity());
+        }
+
+        // Set up QR code image click listener (optional - also launches full activity)
+        if (ivQRCode != null) {
+            ivQRCode.setOnClickListener(v -> launchQRCodeDisplayActivity());
+        }
 
         // Display event details
         displayEvent();
@@ -158,8 +212,48 @@ public class EventDetails extends Fragment {
             // Notify HomeFragment to refresh (it will reload in onResume)
         });
 
+        // set up delete button click listener (visibility is handled in checkUserStatus)
+        deleteEventBtn.setOnClickListener(v -> deleteEventByDocumentId());
+
+
         return view;
     }
+
+    private boolean getIsAdmin(Context context) {
+        final String KEY_IS_ADMIN = "is_admin";
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getBoolean(KEY_IS_ADMIN, false);
+    }
+
+    /**
+     * Delete this event by its Firestore document ID.
+     * Called by organizers/admins from the event details screen.
+     */
+    private void deleteEventByDocumentId() {
+        if (event == null || event.getDocumentId() == null) {
+            Toast.makeText(getContext(), "Cannot delete: event not loaded.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String documentId = event.getDocumentId();
+
+        db.collection("events")
+                .document(documentId)
+                .delete()
+                .addOnSuccessListener(v -> {
+                    // notify home page so they can reload event list
+                    Bundle result = new Bundle();
+                    result.putSerializable("deletedEvent", event);
+                    getParentFragmentManager().setFragmentResult("detail_closed", result);
+
+                    Toast.makeText(getContext(), "Event deleted.", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(getContext(), "Failed to delete event: " + e.getMessage(), Toast.LENGTH_LONG).show());
+    }
+
+
+
 
     private void displayEvent() {
         if (event == null || getView() == null) return;
@@ -237,7 +331,14 @@ public class EventDetails extends Fragment {
                     btnEditEvent.setVisibility(View.VISIBLE);
                     Log.d(TAG, "Edit Event button visible: " + (btnEditEvent.getVisibility() == View.VISIBLE));
                 }
-                
+                if (deleteEventBtn != null) {
+                    deleteEventBtn.setVisibility(View.VISIBLE);
+                    Log.d(TAG, "Delete Event button visible: " + (deleteEventBtn.getVisibility() == View.VISIBLE));
+                }
+
+                //we check the raffle status and show the qr code to the organizer only if the raffle has not been run yet.
+                checkRaffleStatusAndShowQRCode();
+
                 // Show organizer status
                 showOrganizerStatus();
                 return;
@@ -245,20 +346,22 @@ public class EventDetails extends Fragment {
             
             // Not organizer, hide organizer buttons
             isOrganizer = false;
+            hideQRCodeSection();
             if (btnRunRaffle != null) btnRunRaffle.setVisibility(View.GONE);
             if (btnViewWaitingList != null) btnViewWaitingList.setVisibility(View.GONE);
             if (btnViewInvitedEntrants != null) btnViewInvitedEntrants.setVisibility(View.GONE);
             if (btnViewEnrolledEntrants != null) btnViewEnrolledEntrants.setVisibility(View.GONE);
             if (btnViewCancelledEntrants != null) btnViewCancelledEntrants.setVisibility(View.GONE);
             if (btnEditEvent != null) btnEditEvent.setVisibility(View.GONE);
+            if (deleteEventBtn != null) deleteEventBtn.setVisibility(View.GONE);
+
+            // Check enrollment status FIRST (highest priority)
+            checkEnrollmentStatus(deviceId);
             
-            // Show join button by default (will be hidden if user has invitation)
-            if (btnJoinWaitingList != null) btnJoinWaitingList.setVisibility(View.VISIBLE);
-            
-            // Check if user has a pending invitation
+            // Then check if user has a pending invitation
             checkInvitationStatus(deviceId);
             
-            // Check waitlist status with real-time listener
+            // Finally check waitlist status with real-time listener
             db.collection("events").document(event.getDocumentId())
                     .collection("waitlist")
                     .document(deviceId)
@@ -274,14 +377,59 @@ public class EventDetails extends Fragment {
                         boolean wasOnWaitlist = isOnWaitlist;
                         isOnWaitlist = (documentSnapshot != null && documentSnapshot.exists());
                         
-                        // Update button if status changed or if no invitation
-                        if (wasOnWaitlist != isOnWaitlist || !hasInvitation) {
-                            updateButtonForWaitlistStatus();
+                        Log.d(TAG, "Waitlist status changed - wasOnWaitlist: " + wasOnWaitlist + ", isOnWaitlist: " + isOnWaitlist + ", hasInvitation: " + hasInvitation);
+                        
+                        // Update button if status changed (don't update if user has invitation or is enrolled)
+                        if (wasOnWaitlist != isOnWaitlist) {
+                            if (!hasInvitation && !isEnrolled) {
+                                updateButtonForWaitlistStatus();
+                            }
                         }
                     });
         } catch (Exception e) {
             Log.e(TAG, "Error in checkUserStatus", e);
         }
+    }
+    
+    private void checkEnrollmentStatus(String deviceId) {
+        if (event == null || event.getDocumentId() == null) return;
+        
+        // Check if user is already enrolled (in acceptedList)
+        db.collection("events").document(event.getDocumentId())
+                .collection("acceptedList")
+                .document(deviceId)
+                .addSnapshotListener((documentSnapshot, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Error checking enrollment status", error);
+                        return;
+                    }
+                    
+                    if (getView() == null) return; // Fragment view detached
+                    
+                    boolean wasEnrolled = isEnrolled;
+                    isEnrolled = (documentSnapshot != null && documentSnapshot.exists());
+                    
+                    if (isEnrolled) {
+                        // User is enrolled - show enrollment message and hide all action buttons
+                        if (btnJoinWaitingList != null) {
+                            btnJoinWaitingList.setVisibility(View.GONE);
+                        }
+                        if (invitationButtons != null) {
+                            invitationButtons.setVisibility(View.GONE);
+                        }
+                        if (tvStatusMessage != null) {
+                            tvStatusMessage.setVisibility(View.VISIBLE);
+                            tvStatusMessage.setText("✓ You're already enrolled for this event");
+                            tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+                        }
+                        Log.d(TAG, "User is enrolled in event");
+                    } else if (wasEnrolled != isEnrolled) {
+                        // User was enrolled but now not - update UI based on other status
+                        if (!hasInvitation && tvStatusMessage != null) {
+                            tvStatusMessage.setVisibility(View.GONE);
+                        }
+                    }
+                });
     }
     
     private void checkInvitationStatus(String deviceId) {
@@ -315,7 +463,7 @@ public class EventDetails extends Fragment {
     }
     
     private void showInvitationButtons() {
-        if (getView() == null) return;
+        if (getView() == null || isEnrolled) return; // Don't show if already enrolled
         
         try {
             if (btnJoinWaitingList != null) btnJoinWaitingList.setVisibility(View.GONE);
@@ -335,9 +483,46 @@ public class EventDetails extends Fragment {
         
         try {
             if (invitationButtons != null) invitationButtons.setVisibility(View.GONE);
-            if (!hasInvitation && btnJoinWaitingList != null) {
-                btnJoinWaitingList.setVisibility(View.VISIBLE);
-                updateButtonForWaitlistStatus();
+            // Re-check enrollment status before showing join button
+            // Enrollment status listener will handle showing the correct UI
+            if (!hasInvitation) {
+                // Double-check enrollment status before showing join button
+                String deviceId = getOrCreateDeviceId();
+                db.collection("events").document(event.getDocumentId())
+                        .collection("acceptedList")
+                        .document(deviceId)
+                        .get()
+                        .addOnSuccessListener(doc -> {
+                            if (getView() == null) return;
+                            boolean enrolled = (doc != null && doc.exists());
+                            if (enrolled) {
+                                // User is enrolled - show enrollment message
+                                isEnrolled = true;
+                                if (btnJoinWaitingList != null) {
+                                    btnJoinWaitingList.setVisibility(View.GONE);
+                                }
+                                if (tvStatusMessage != null) {
+                                    tvStatusMessage.setVisibility(View.VISIBLE);
+                                    tvStatusMessage.setText("✓ You're already enrolled for this event");
+                                    tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+                                }
+                            } else {
+                                // User is not enrolled - show join button
+                                isEnrolled = false;
+                                if (btnJoinWaitingList != null) {
+                                    btnJoinWaitingList.setVisibility(View.VISIBLE);
+                                    updateButtonForWaitlistStatus();
+                                }
+                            }
+                        })
+                        .addOnFailureListener(e -> {
+                            Log.e(TAG, "Error checking enrollment in hideInvitationButtons", e);
+                            // On error, default to showing join button if not enrolled
+                            if (!isEnrolled && btnJoinWaitingList != null) {
+                                btnJoinWaitingList.setVisibility(View.VISIBLE);
+                                updateButtonForWaitlistStatus();
+                            }
+                        });
             }
         } catch (Exception e) {
             Log.e(TAG, "Error hiding invitation buttons", e);
@@ -345,8 +530,14 @@ public class EventDetails extends Fragment {
     }
     
     private void updateButtonForWaitlistStatus() {
-        if (getView() == null || btnJoinWaitingList == null) return;
+        // Check if view is available
+        View view = getView();
+        if (view == null || btnJoinWaitingList == null) {
+            Log.w(TAG, "Cannot update button - view or button is null");
+            return;
+        }
         
+        // Firebase callbacks are already on main thread, but ensure we're on UI thread
         try {
             // Simple toggle: Join or Leave based on waitlist status
             if (isOnWaitlist) {
@@ -357,12 +548,14 @@ public class EventDetails extends Fragment {
                     tvStatusMessage.setText("You're on the waiting list");
                     tvStatusMessage.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
                 }
+                Log.d(TAG, "Button updated to 'Leave Waiting List' - isOnWaitlist: " + isOnWaitlist);
             } else {
                 btnJoinWaitingList.setText("Join Waiting List");
                 btnJoinWaitingList.setBackgroundTintList(getResources().getColorStateList(android.R.color.holo_blue_dark));
                 if (tvStatusMessage != null) {
                     tvStatusMessage.setVisibility(View.GONE);
                 }
+                Log.d(TAG, "Button updated to 'Join Waiting List' - isOnWaitlist: " + isOnWaitlist);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error updating button for waitlist status", e);
@@ -419,6 +612,10 @@ public class EventDetails extends Fragment {
                                 displayEvent();
                                 // Re-check user status in case organizer changed or other updates
                                 checkUserStatus();
+                                // Re-check raffle status and QR code if organizer
+                                if (isOrganizer) {
+                                    checkRaffleStatusAndShowQRCode();
+                                }
                                 Log.d(TAG, "Event updated from Firestore");
                             }
                         } catch (Exception e) {
@@ -455,6 +652,7 @@ public class EventDetails extends Fragment {
             event.setPoster(document.getString("poster"));
             event.setOrganizerDeviceId(document.getString("organizerDeviceId"));
             event.setSelectionCriteria(document.getString("selectionCriteria"));
+            event.setQrCodeUrl(document.getString("qrCodeUrl"));
 
             Boolean geoLocation = document.getBoolean("geoLocationRequired");
             event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
@@ -479,6 +677,21 @@ public class EventDetails extends Fragment {
                 Calendar raffleCal = Calendar.getInstance();
                 raffleCal.setTime(raffleDate);
                 event.setRaffleDate(raffleCal);
+            }
+
+            // Read eventTypes from Firestore (List<String>)
+            @SuppressWarnings("unchecked")
+            List<Object> eventTypesObj = (List<Object>) document.get("eventTypes");
+            if (eventTypesObj != null) {
+                List<String> eventTypes = new ArrayList<>();
+                for (Object obj : eventTypesObj) {
+                    if (obj instanceof String) {
+                        eventTypes.add((String) obj);
+                    }
+                }
+                event.setEventTypes(eventTypes.isEmpty() ? null : eventTypes);
+            } else {
+                event.setEventTypes(null);
             }
 
             return event;
@@ -577,9 +790,9 @@ public class EventDetails extends Fragment {
 
     private void addToWaitlist(String deviceId) {
         if (event == null || event.getDocumentId() == null) return;
-        
+
         WaitListEntry entry = new WaitListEntry(event.getDocumentId(), deviceId);
-        
+
         Map<String, Object> data = new HashMap<>();
         data.put("eventId", entry.getEventId());
         data.put("userDeviceId", entry.getUserDeviceId());
@@ -590,11 +803,14 @@ public class EventDetails extends Fragment {
                 .document(deviceId)
                 .set(data)
                 .addOnSuccessListener(v -> {
-                    showSuccess("Successfully joined the waiting list!");
+                    if (getView() == null) return;
                     isOnWaitlist = true;
+                    Log.d(TAG, "Successfully added to waitlist, updating UI - isOnWaitlist: " + isOnWaitlist);
+                    showSuccess("Successfully joined the waiting list!");
                     updateButtonForWaitlistStatus();
                 })
                 .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to join waitlist", e);
                     Toast.makeText(requireContext(), "Failed to join: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
@@ -757,7 +973,11 @@ public class EventDetails extends Fragment {
                     // Randomly shuffle and select
                     Collections.shuffle(waitlistUserIds);
                     List<String> selectedUsers = waitlistUserIds.subList(0, numToSelect);
-                    
+                    List<String> notSelectedUsers = waitlistUserIds.subList(numToSelect, waitlistSize);
+
+                    // Notify those who weren't selected
+                    notifyNotSelected(notSelectedUsers);
+
                     // Move selected users to invitation list
                     moveToInvitationList(selectedUsers, waitlistSize, numToSelect);
                 })
@@ -765,7 +985,54 @@ public class EventDetails extends Fragment {
                     Toast.makeText(requireContext(), "Error running raffle: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
-
+    private void notifyNotSelected(List<String> users){
+        if (users.isEmpty()){
+            return;
+        }
+        CollectionReference notifRef = db.collection("notifications");
+        DocumentReference countRef = db.collection("notifications").document("count");
+        final int usersCount = users.size();
+        final AtomicInteger foundUsers = new AtomicInteger(0);
+        ArrayList<DocumentReference> notifiedUsers = new ArrayList<>();
+        for (String user : users){
+            db.collection("profiles").whereEqualTo("deviceId", user).get().addOnSuccessListener(queryDocumentSnapshots1 -> {
+                if (!queryDocumentSnapshots1.isEmpty()) {
+                    DocumentSnapshot profile = queryDocumentSnapshots1.getDocuments().get(0);
+                    if (!profile.contains("hasNotificationsEnabled")){
+                        profile.getReference().update("hasNotificationsEnabled", "true");
+                        notifiedUsers.add(profile.getReference());
+                    } else if (profile.getString("hasNotificationsEnabled").equals("true")) {
+                        notifiedUsers.add(profile.getReference());
+                    }
+                }
+                int found = foundUsers.incrementAndGet();
+                if (found == usersCount) {
+                    db.runTransaction(transaction -> {
+                        DocumentSnapshot snapshot = transaction.get(countRef);
+                        Long count = snapshot.getLong("count");
+                        if (count == null) {
+                            count = 0L;
+                            Map<String, Integer> newCount = new HashMap<>();
+                            newCount.put("count", 0);
+                            transaction.set(countRef, newCount);
+                        }
+                        int notifCount = Math.toIntExact(count);
+                        for (DocumentReference notifiedUser : notifiedUsers) {
+                            Map<String, Object> notif = new HashMap<>();
+                            notif.put("deviceId", notifiedUser.getId());
+                            notif.put("title", "You were not invited to ".concat(event.getName()).concat("!"));
+                            notif.put("description", "You did not win the lottery for this event. Try joining more events.");
+                            notif.put("timestamp", FieldValue.serverTimestamp());
+                            transaction.set(notifRef.document(String.valueOf(notifCount)), notif);
+                            notifCount++;
+                        }
+                        transaction.update(countRef, "count", notifCount);
+                        return notifCount;
+                    });
+                }
+            });
+        }
+    }
     private void moveToInvitationList(List<String> selectedUsers, int totalWaitlist, int numSelected) {
         if (event == null || event.getDocumentId() == null) return;
         
@@ -929,8 +1196,81 @@ public class EventDetails extends Fragment {
         }
     }
 
+    /**
+     * Entry point from the UI when the user taps "Accept Invitation".
+     * For geo-enabled events, we show a consent dialog; for others, we just accept.
+     */
     private void acceptInvitation() {
+        if (event == null) return;
+        
+        // Prevent multiple simultaneous accept operations
+        if (isAcceptingInvitation) {
+            Log.d(TAG, "Accept invitation already in progress, ignoring duplicate request");
+            return;
+        }
+
+        boolean geoRequired = event.getGeoLocationRequired() != null && event.getGeoLocationRequired();
+
+        if (!geoRequired) {
+            // No geolocation requirement: accept immediately without any location flow.
+            acceptInvitationInternal();
+            return;
+        }
+
+        // Geo is required: ask the user if they want to share approximate location.
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Share approximate location?")
+                .setMessage("If you agree, we'll record an approximate location when you accept so the organizer " +
+                        "can see anonymized clusters of where entrants joined from. You can still join if you decline.")
+                .setPositiveButton("Share Location", (dialog, which) -> {
+                    startLocationAwareAcceptance();
+                })
+                .setNegativeButton("No thanks", (dialog, which) -> {
+                    // User explicitly declined sharing location: accept without coordinates.
+                    acceptInvitationInternal();
+                })
+                .setCancelable(true)
+                .show();
+    }
+
+    /**
+     * User has consented to share location for this acceptance.
+     * Check OS permission; if missing, request it, otherwise proceed directly.
+     */
+    private void startLocationAwareAcceptance() {
+        Context context = requireContext();
+
+        boolean fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+        boolean coarseGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+
+        if (!fineGranted && !coarseGranted) {
+            // Ask OS for permission; we'll resume in onRequestPermissionsResult.
+            pendingAcceptAfterPermission = true;
+            requestPermissions(
+                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION},
+                    REQUEST_LOCATION_FOR_ACCEPT_INVITE
+            );
+        } else {
+            // Permission already granted: proceed and best-effort attach location.
+            acceptInvitationInternal();
+        }
+    }
+
+    /**
+     * Core logic to move from invitation_list to acceptedList and best-effort attach location.
+     * This is called after permission has been granted (or if not needed).
+     */
+    private void acceptInvitationInternal() {
         if (event == null || event.getDocumentId() == null) return;
+        
+        // Prevent multiple simultaneous accept operations
+        if (isAcceptingInvitation) {
+            Log.d(TAG, "Accept invitation already in progress, ignoring duplicate request");
+            return;
+        }
+        isAcceptingInvitation = true;
         
         String deviceId = getOrCreateDeviceId();
         
@@ -942,43 +1282,190 @@ public class EventDetails extends Fragment {
                 .addOnSuccessListener(doc -> {
                     if (doc.exists()) {
                         Map<String, Object> invitationData = doc.getData();
-                        
-                        // Create accepted list entry
+
+                        // Build base accepted data from invitation
                         Map<String, Object> acceptedData = new HashMap<>(invitationData);
                         acceptedData.put("status", "accepted");
                         acceptedData.put("acceptedAt", System.currentTimeMillis());
-                        
-                        // Batch operation: add to acceptedList and remove from invitation_list
-                        WriteBatch batch = db.batch();
-                        
-                        // Add to acceptedList
-                        DocumentReference acceptedRef = 
-                            db.collection("events").document(event.getDocumentId())
-                                .collection("acceptedList").document(deviceId);
-                        batch.set(acceptedRef, acceptedData);
-                        
-                        // Remove from invitation_list
-                        DocumentReference invitationRef = 
-                            db.collection("events").document(event.getDocumentId())
-                                .collection("invitation_list").document(deviceId);
-                        batch.delete(invitationRef);
-                        
-                        // Commit batch
-                        batch.commit()
-                                .addOnSuccessListener(v -> {
-                                    showSuccess("✓ Invitation accepted! You're registered for this event.");
-                                    hasInvitation = false;
-                                    hideInvitationButtons();
-                                })
-                                .addOnFailureListener(e -> {
-                                    showError("Failed to accept invitation. Please try again.");
-                                    Log.e(TAG, "Error accepting invitation", e);
+
+                        // If geolocation is required, best-effort attach location for the accepted entrant
+                        if (event.getGeoLocationRequired() != null && event.getGeoLocationRequired()
+                                && fusedLocationClient != null) {
+                            try {
+                                // Prioritize getCurrentLocation() to get fresh, accurate current location (Edmonton, Vancouver, etc.)
+                                Task<android.location.Location> currentLocationTask = fusedLocationClient.getCurrentLocation(
+                                        Priority.PRIORITY_HIGH_ACCURACY, // Use high accuracy for best results
+                                        null
+                                );
+
+                                currentLocationTask.addOnSuccessListener(currentLocation -> {
+                                    if (currentLocation != null) {
+                                        acceptedData.put("latitude", currentLocation.getLatitude());
+                                        acceptedData.put("longitude", currentLocation.getLongitude());
+                                        Log.d(TAG, "Got current location: " + currentLocation.getLatitude() + ", " + currentLocation.getLongitude());
+                                        writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                    } else {
+                                        // getCurrentLocation returned null, try getLastLocation() as fallback
+                                        Log.d(TAG, "getCurrentLocation returned null, trying getLastLocation() fallback");
+                                        fusedLocationClient.getLastLocation()
+                                                .addOnSuccessListener(fallbackLocation -> {
+                                                    if (fallbackLocation != null && isLocationFresh(fallbackLocation)) {
+                                                        acceptedData.put("latitude", fallbackLocation.getLatitude());
+                                                        acceptedData.put("longitude", fallbackLocation.getLongitude());
+                                                        Log.d(TAG, "Got fresh fallback location from getLastLocation: " + fallbackLocation.getLatitude() + ", " + fallbackLocation.getLongitude());
+                                                    } else {
+                                                        if (fallbackLocation != null) {
+                                                            Log.w(TAG, "Fallback location is too old/stale (" +
+                                                                    ((System.currentTimeMillis() - fallbackLocation.getTime()) / 1000 / 60) +
+                                                                    " minutes old), rejecting. Accepting without coordinates.");
+                                                        } else {
+                                                            Log.w(TAG, "Both location methods returned null, accepting without coordinates");
+                                                        }
+                                                    }
+                                                    writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                                })
+                                                .addOnFailureListener(fallbackError -> {
+                                                    Log.e(TAG, "Fallback getLastLocation also failed, accepting without coordinates", fallbackError);
+                                                    writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                                });
+                                    }
+                                }).addOnFailureListener(e -> {
+                                    Log.w(TAG, "getCurrentLocation failed, trying getLastLocation() fallback: " + e.getMessage());
+                                    // Fallback to getLastLocation() if getCurrentLocation() fails
+                                    fusedLocationClient.getLastLocation()
+                                            .addOnSuccessListener(fallbackLocation -> {
+                                                if (fallbackLocation != null && isLocationFresh(fallbackLocation)) {
+                                                    acceptedData.put("latitude", fallbackLocation.getLatitude());
+                                                    acceptedData.put("longitude", fallbackLocation.getLongitude());
+                                                    Log.d(TAG, "Got fresh location from getLastLocation fallback: " + fallbackLocation.getLatitude() + ", " + fallbackLocation.getLongitude());
+                                                } else {
+                                                    if (fallbackLocation != null) {
+                                                        Log.w(TAG, "Fallback location is too old/stale (" +
+                                                                ((System.currentTimeMillis() - fallbackLocation.getTime()) / 1000 / 60) +
+                                                                " minutes old), rejecting. Accepting without coordinates.");
+                                                    } else {
+                                                        Log.w(TAG, "Both location methods failed, accepting without coordinates");
+                                                    }
+                                                }
+                                                writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                            })
+                                            .addOnFailureListener(fallbackError -> {
+                                                Log.e(TAG, "Both location methods failed, accepting without coordinates", fallbackError);
+                                                writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                            });
                                 });
+                            } catch (SecurityException se) {
+                                Log.w(TAG, "Location permission not granted for accepted entrant", se);
+                                writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                            } catch (Exception e) {
+                                Log.e(TAG, "Unexpected error getting location for accepted entrant", e);
+                                writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                            }
+                        } else {
+                            // No geo requirement or no location client; just write without coordinates
+                            writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                        }
+                    } else {
+                        // Document doesn't exist
+                        isAcceptingInvitation = false;
+                        showError("Invitation not found. It may have already been accepted or declined.");
+                        Log.w(TAG, "Invitation document does not exist");
                     }
                 })
                 .addOnFailureListener(e -> {
+                    isAcceptingInvitation = false;
                     showError("Error loading invitation. Please try again.");
                     Log.e(TAG, "Error loading invitation", e);
+                });
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == REQUEST_LOCATION_FOR_ACCEPT_INVITE) {
+            boolean granted = false;
+            if (grantResults.length > 0) {
+                for (int result : grantResults) {
+                    if (result == PackageManager.PERMISSION_GRANTED) {
+                        granted = true;
+                        break;
+                    }
+                }
+            }
+
+            if (pendingAcceptAfterPermission) {
+                pendingAcceptAfterPermission = false;
+                if (granted) {
+                    // Permission granted: proceed and best-effort attach location.
+                    acceptInvitationInternal();
+                } else {
+                    // Permission denied: accept anyway, just without coordinates.
+                    Toast.makeText(requireContext(),
+                            "Location permission denied. You'll be enrolled without saving your location.",
+                            Toast.LENGTH_LONG).show();
+                    acceptInvitationInternal();
+                }
+            }
+        }
+    }
+
+    /**
+     * Checks if a location is fresh (recently obtained, within the last 5 minutes).
+     * This prevents saving stale/cached locations (like old San Francisco coordinates when user is actually in Edmonton).
+     */
+    private boolean isLocationFresh(android.location.Location location) {
+        if (location == null) return false;
+
+        long locationTime = location.getTime();
+        long currentTime = System.currentTimeMillis();
+        long ageInMinutes = (currentTime - locationTime) / (1000 * 60);
+
+        // Only accept locations that are less than 5 minutes old
+        // This ensures we're getting the user's actual current location, not a stale cached one
+        boolean isFresh = ageInMinutes < 5;
+
+        if (!isFresh) {
+            Log.d(TAG, "Location is " + ageInMinutes + " minutes old (too stale), rejecting");
+        }
+
+        return isFresh;
+    }
+
+    /**
+     * Helper to add an entry to acceptedList and remove from invitation_list in a single batch.
+     * Coordinates (latitude/longitude) may already be present in acceptedData.
+     */
+    private void writeAcceptedEntryAndRemoveInvitation(String deviceId, Map<String, Object> acceptedData) {
+        if (event == null || event.getDocumentId() == null) return;
+
+        WriteBatch batch = db.batch();
+
+        // Add to acceptedList
+        DocumentReference acceptedRef =
+                db.collection("events").document(event.getDocumentId())
+                        .collection("acceptedList").document(deviceId);
+        batch.set(acceptedRef, acceptedData);
+
+        // Remove from invitation_list
+        DocumentReference invitationRef =
+                db.collection("events").document(event.getDocumentId())
+                        .collection("invitation_list").document(deviceId);
+        batch.delete(invitationRef);
+
+        // Commit batch
+        batch.commit()
+                .addOnSuccessListener(v -> {
+                    isAcceptingInvitation = false;
+                    showSuccess("✓ Invitation accepted! You're registered for this event.");
+                    hasInvitation = false;
+                    hideInvitationButtons();
+                })
+                .addOnFailureListener(e -> {
+                    isAcceptingInvitation = false;
+                    showError("Failed to accept invitation. Please try again.");
+                    Log.e(TAG, "Error accepting invitation", e);
                 });
     }
     
@@ -1068,7 +1555,139 @@ public class EventDetails extends Fragment {
         }
         return deviceId;
     }
-    
+
+
+
+    /**
+     * this function checks if raffle has been run and shows/hides QR code section accordingly.
+     * it only renders the QR code section to the organizer view. and they can share , download the QR code etc.
+     */
+
+    private void checkRaffleStatusAndShowQRCode() {
+        if (event == null ||event.getDocumentId() == null || getView() == null) {
+            return;
+        }
+
+        //now we check if the raffle has been run or not by checking the drawround field in firestor respectively.
+        db.collection("events").document(event.getDocumentId())
+                .get()
+                .addOnSuccessListener(documentSnapshot-> {
+                    if (documentSnapshot != null && documentSnapshot.exists()) {
+                        Long drawRound = documentSnapshot.getLong("drawRound");
+                        boolean raffleHasRun = (drawRound != null && drawRound > 0);
+
+
+                        if (!raffleHasRun && event.getQrCodeUrl() != null && !event.getQrCodeUrl().isEmpty()) {
+                            showQRCodeSection();
+                            generateQRCodePreview(event.getQrCodeUrl());
+                        } else {
+                            hideQRCodeSection();
+                        }
+                } else {
+                    // in the case event dosent exist or there is no sort of draw round field and we assume the raffle has not been run yet.
+                    if (event.getQrCodeUrl() != null && !event.getQrCodeUrl().isEmpty()) {
+                        showQRCodeSection();
+                        generateQRCodePreview(event.getQrCodeUrl());
+                    } else {
+                        hideQRCodeSection();
+                    }
+                }
+            })
+            . addOnFailureListener(e -> {
+                Log.e(TAG, "Error checking raffle status", e);
+                hideQRCodeSection();
+            });
+    }
+
+
+    /**
+     * shows the QR code section for organizer view.
+     */
+
+    private void showQRCodeSection() {
+        if (getView()==null) {
+            return;
+        }
+
+        if (tvQRCodeLabel != null) {
+            tvQRCodeLabel.setVisibility(View.VISIBLE);
+        }
+
+        if (ivQRCode != null) {
+            ivQRCode.setVisibility(View.VISIBLE);
+        }
+        if (btnDownloadQR != null) {
+            btnDownloadQR.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * this is the method to hide the QR code part.
+     */
+    private void hideQRCodeSection() {
+        if (getView() == null) {
+            return;
+        }
+
+        if (tvQRCodeLabel != null) {
+            tvQRCodeLabel.setVisibility(View.GONE);
+        }
+        if (ivQRCode != null) {
+            ivQRCode.setVisibility(View.GONE);
+        }
+        if (btnDownloadQR != null) {
+            btnDownloadQR.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * Generates a QR code bitmap from URL stored in firebase and renders it .
+     * this is used to display the QR code preview in the event details fragment and saved to firestore.
+     * @param qrCodeUrl
+     */
+    private void generateQRCodePreview(String qrCodeUrl) {
+        if (getView()==null || qrCodeUrl == null || qrCodeUrl.isEmpty() || ivQRCode == null) {
+            return;
+        }
+
+        try {
+            QRCodeWriter writer = new QRCodeWriter();
+            BitMatrix bitMatrix = writer.encode(qrCodeUrl, BarcodeFormat.QR_CODE, 512, 512);
+
+            int width = bitMatrix.getWidth();
+            int height = bitMatrix.getHeight();
+            qrCodeBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    qrCodeBitmap.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE);
+                }
+            }
+            ivQRCode.setImageBitmap(qrCodeBitmap);
+        } catch (WriterException e) {
+            Log.e(TAG, "Error generating QR code preview", e);
+            Toast.makeText(requireContext(), "Failed to generate QR code", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * launches the QRCode display activity for full QR code functionality (download, share, etc.)
+     * this reuses the existing activity which is present.
+     */
+
+    private void launchQRCodeDisplayActivity() {
+        if (event == null || event.getDocumentId() == null || event.getQrCodeUrl() == null) {
+            Toast.makeText(requireContext(), "QR code not available", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(requireContext(), QRCodeDisplayActivity.class);
+        intent.putExtra("eventId", event.getDocumentId());
+        intent.putExtra("eventName", event.getName());
+        intent.putExtra("qrCodeUrl", event.getQrCodeUrl());
+        startActivity(intent);
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();

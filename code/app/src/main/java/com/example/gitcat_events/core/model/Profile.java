@@ -13,6 +13,8 @@ public class Profile implements Serializable{
     private String deviceId; // REQUIRED - unique device identifier
     @Nullable private String profilePictureUrl; // optional
 
+    private boolean isAdmin; // REQUIRED
+
     public Profile() {}                   // required for toObject(...)
 
     // Constructor with deviceId only (minimal profile)
@@ -21,12 +23,13 @@ public class Profile implements Serializable{
     }
 
     // Constructor with all fields
-    public Profile(@Nullable String name, @Nullable String email, @Nullable String phone, String deviceId, @Nullable String profilePictureUrl) {
+    public Profile(@Nullable String name, @Nullable String email, @Nullable String phone, String deviceId, @Nullable String profilePictureUrl, Boolean isAdmin) {
         this.name = name;
         this.email = email;
         this.phone = phone;
         this.deviceId = deviceId;
         this.profilePictureUrl = profilePictureUrl;
+        this.isAdmin = isAdmin;
     }
 
     @Nullable
@@ -114,4 +117,17 @@ public class Profile implements Serializable{
     public void setProfilePictureUrl(@Nullable String profilePictureUrl){
         this.profilePictureUrl = profilePictureUrl;
     }
+
+    /**
+     * This returns whether the user is an admin
+     * @return
+     * returns true if user is an admin, false otherwise
+     */
+    public boolean isAdmin() { return isAdmin; }
+
+    /**
+     * Sets the isAdmin attribute, required for firebase to set isAdmin from doc
+     */
+    public void setAdmin(boolean isAdmin) { this.isAdmin = isAdmin; }
+
 }

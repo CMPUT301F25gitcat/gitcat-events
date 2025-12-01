@@ -150,6 +150,7 @@ public class CreateFragment extends Fragment {
                             // Set document ID and organizer device ID
                             event.setDocumentId(docId);
                             event.setOrganizerDeviceId(document.getString("organizerDeviceId"));
+                            event.setQrCodeUrl(document.getString("qrCodeUrl"));
                             
                             Boolean geoLocation = document.getBoolean("geoLocationRequired");
                             event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);

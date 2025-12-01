@@ -2,10 +2,15 @@ package com.example.gitcat_events.features.event.ui;
 
 import com.example.gitcat_events.R;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.util.Base64;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -39,6 +44,8 @@ public class EventArrayAdapter extends ArrayAdapter<Event> {
         TextView eventName = view.findViewById(R.id.eventCardTitleText);
         TextView eventDescription = view.findViewById(R.id.eventCardSubtitleText);
         TextView eventDate = view.findViewById((R.id.eventCardDateText));
+        ImageView eventPoster = view.findViewById(R.id.posterThumbnail);
+        loadBase64Image(event.getPoster(), eventPoster);
 
         eventName.setText(event.getName());
         eventDescription.setText(event.getDescription());
@@ -48,5 +55,23 @@ public class EventArrayAdapter extends ArrayAdapter<Event> {
         eventDate.setText(formatter.format(calendar.getTime()));
 
         return view;
+    }
+
+    /**
+     * Load Base64 image into ImageView
+     */
+    private void loadBase64Image(String base64String, ImageView imageView) {
+        try {
+            byte[] decodedBytes = Base64.decode(base64String, Base64.DEFAULT);
+            Bitmap bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length);
+
+            if (bitmap != null) {
+                imageView.setImageBitmap(bitmap);
+            } else {
+                imageView.setImageResource(R.drawable.ic_launcher_foreground);
+            }
+        } catch (Exception e) {
+            imageView.setImageResource(R.drawable.ic_launcher_foreground);
+        }
     }
 }

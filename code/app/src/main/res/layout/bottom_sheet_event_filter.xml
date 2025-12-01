@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/background_color"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:text="Filter Events"
+        android:textColor="@color/text_color_colored"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
+    <!-- Interests Section -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="Interests"
+        android:textColor="@color/text_color_dark"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:orientation="vertical">
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxFilterSports"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Sports"
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxFilterArts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Arts"
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxFilterMusic"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Music"
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxFilterEducation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Education"
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxFilterFamily"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Family"
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkboxFilterOther"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Other"
+            android:textColor="@color/text_color_dark"
+            android:textSize="16sp"
+            app:buttonIconTint="@color/text_color_light"
+            app:buttonTint="@color/button_color" />
+    </LinearLayout>
+
+    <!-- Start Date Section -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="Start Date"
+        android:textColor="@color/text_color_dark"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnSelectStartDate"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:text="Select Start Date"
+            android:textColor="@color/button_color"
+            app:strokeColor="@color/button_color" />
+
+        <TextView
+            android:id="@+id/tvStartDateDisplay"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@color/text_color_medium"
+            android:gravity="center"
+            android:padding="12dp"
+            android:text="Not selected"
+            android:textColor="@color/text_color_light"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- End Date Section -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="End Date"
+        android:textColor="@color/text_color_dark"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnSelectEndDate"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:text="Select End Date"
+            android:textColor="@color/button_color"
+            app:strokeColor="@color/button_color" />
+
+        <TextView
+            android:id="@+id/tvEndDateDisplay"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@color/text_color_medium"
+            android:gravity="center"
+            android:padding="12dp"
+            android:text="Not selected"
+            android:textColor="@color/text_color_light"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Error Message (initially hidden) -->
+    <TextView
+        android:id="@+id/tvFilterError"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:textColor="#FF0000"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnClearFilters"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:text="Clear Filters"
+            android:textColor="@color/button_color"
+            app:strokeColor="@color/button_color" />
+
+        <Button
+            android:id="@+id/btnApplyFilter"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="@color/button_color"
+            android:text="Apply Filter"
+            android:textColor="@color/text_color_light" />
+    </LinearLayout>
+
+</LinearLayout>

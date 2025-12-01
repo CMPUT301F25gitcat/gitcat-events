@@ -2,20 +2,26 @@ package com.example.gitcat_events;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.util.Base64;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.gitcat_events.core.model.Event;
@@ -28,8 +34,11 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import android.content.Intent;
 
 public class HomeFragment extends Fragment {
     private static final String TAG = "HomeFragment";
@@ -38,6 +47,7 @@ public class HomeFragment extends Fragment {
     private ArrayList<Event> upcomingEvents;
     private ArrayList<Event> enteredEvents;
     private ArrayList<Event> pendingInvitations;
+    private boolean isLoadingPendingInvitations = false; // Flag to prevent concurrent loads
 
     private EventArrayAdapter upcomingEventsAdapter;
     private EventArrayAdapter enteredEventsAdapter;
@@ -50,8 +60,15 @@ public class HomeFragment extends Fragment {
     private TextView enteredEventsEmpty;
     private TextView pendingInvitationsEmpty;
     private LinearLayout pendingInvitationsContainer;
+    private ImageButton btnFilterEvents;
+    private TextView textView2; // Upcoming Events header
 
     private FirebaseFirestore db;
+
+    // Filter state
+    private Calendar filterStartDate;
+    private Calendar filterEndDate;
+    private Set<String> filterInterests;
 
     public HomeFragment() {
         // Required empty public constructor
@@ -76,11 +93,16 @@ public class HomeFragment extends Fragment {
         enteredEventsEmpty = view.findViewById(R.id.EnteredEventsEmpty);
         pendingInvitationsEmpty = view.findViewById(R.id.pendingInvitationsEmpty);
         pendingInvitationsContainer = view.findViewById(R.id.PendingInvitationsContainer);
+        btnFilterEvents = view.findViewById(R.id.btnFilterEvents);
+        textView2 = view.findViewById(R.id.textView2);
 
         // Initialize lists
         enteredEvents = new ArrayList<>();
         upcomingEvents = new ArrayList<>();
         pendingInvitations = new ArrayList<>();
+        
+        // Initialize filter state
+        filterInterests = new HashSet<>();
 
         // Initialize adapters
         enteredEventsAdapter = new EventArrayAdapter(getContext(), enteredEvents);
@@ -97,6 +119,20 @@ public class HomeFragment extends Fragment {
             Event selectedEvent = upcomingEvents.get(position);
             EventDetails detailFragment = EventDetails.newInstance(selectedEvent);
 
+            getParentFragmentManager().setFragmentResultListener("detail_closed", this, (key, bundle) -> {
+                Event deletedEvent = (Event) bundle.getSerializable("deletedEvent");
+                if (deletedEvent != null) {
+                    for (Iterator<Event> iterator = upcomingEvents.iterator(); iterator.hasNext();) {
+                        Event e = iterator.next();
+                        if (e.getDocumentId().equals(deletedEvent.getDocumentId())) {
+                            iterator.remove();
+                            break;
+                        }
+                    }
+                    upcomingEventsAdapter.notifyDataSetChanged();
+                }
+            });
+
             getParentFragmentManager()
                     .beginTransaction()
                     .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.fade_out,
@@ -109,6 +145,20 @@ public class HomeFragment extends Fragment {
         enteredEventsList.setOnItemClickListener((parent, tmpView, position, id) -> {
             Event selectedEvent = enteredEvents.get(position);
             EventDetails detailFragment = EventDetails.newInstance(selectedEvent);
+
+            getParentFragmentManager().setFragmentResultListener("detail_closed", this, (key, bundle) -> {
+                Event deletedEvent = (Event) bundle.getSerializable("deletedEvent");
+                if (deletedEvent != null) {
+                    for (Iterator<Event> iterator = enteredEvents.iterator(); iterator.hasNext();) {
+                        Event e = iterator.next();
+                        if (e.getDocumentId().equals(deletedEvent.getDocumentId())) {
+                            iterator.remove();
+                            break;
+                        }
+                    }
+                    enteredEventsAdapter.notifyDataSetChanged();
+                }
+            });
 
             getParentFragmentManager()
                     .beginTransaction()
@@ -131,6 +181,23 @@ public class HomeFragment extends Fragment {
                     .addToBackStack(null)
                     .commit();
         });
+
+        // Set up filter button click listener
+        if (btnFilterEvents != null) {
+            btnFilterEvents.setOnClickListener(v -> showFilterBottomSheet());
+        }
+
+
+        ImageButton btnScanQR = view.findViewById(R.id.imageButton2);
+        if (btnScanQR != null) {
+            btnScanQR.setOnClickListener(v->{
+                Intent intent = new Intent(getActivity(), QRScannerActivity.class);
+                startActivity(intent);
+            });
+        }
+
+        // Update filter indicator on view creation
+        updateFilterIndicator();
 
         // Load events after view is fully created
         // Use post to ensure view is attached to window
@@ -176,6 +243,14 @@ public class HomeFragment extends Fragment {
             return;
         }
         
+        // Prevent concurrent loads
+        if (isLoadingPendingInvitations) {
+            Log.d(TAG, "Already loading pending invitations, skipping duplicate call");
+            return;
+        }
+        
+        isLoadingPendingInvitations = true;
+        
         if (pendingInvitations == null) {
             pendingInvitations = new ArrayList<>();
         }
@@ -192,6 +267,7 @@ public class HomeFragment extends Fragment {
                     }
                     
                     if (invitationSnapshot == null || invitationSnapshot.isEmpty()) {
+                        isLoadingPendingInvitations = false;
                         updatePendingInvitationsUI();
                         return;
                     }
@@ -209,11 +285,13 @@ public class HomeFragment extends Fragment {
                         }
                     } catch (Exception e) {
                         Log.e(TAG, "Error processing invitation snapshot", e);
+                        isLoadingPendingInvitations = false;
                         updatePendingInvitationsUI();
                         return;
                     }
                     
                     if (invitationEventIds.isEmpty()) {
+                        isLoadingPendingInvitations = false;
                         updatePendingInvitationsUI();
                         return;
                     }
@@ -221,6 +299,7 @@ public class HomeFragment extends Fragment {
                     // Load event details for each invitation
                     final int[] completed = {0};
                     final int total = invitationEventIds.size();
+                    final Set<String> loadedEventIds = new HashSet<>(); // Track loaded event IDs to prevent duplicates
                     
                     if (pendingInvitations == null) {
                         pendingInvitations = new ArrayList<>();
@@ -237,8 +316,15 @@ public class HomeFragment extends Fragment {
                                     if (eventDoc != null && eventDoc.exists()) {
                                         try {
                                             Event event = parseEvent(eventDoc);
-                                            if (event != null && pendingInvitations != null) {
-                                                pendingInvitations.add(event);
+                                            if (event != null && pendingInvitations != null && event.getDocumentId() != null) {
+                                                // Use synchronized block to prevent race conditions
+                                                synchronized (pendingInvitations) {
+                                                    // Check if this event ID has already been loaded
+                                                    if (!loadedEventIds.contains(event.getDocumentId())) {
+                                                        loadedEventIds.add(event.getDocumentId());
+                                                        pendingInvitations.add(event);
+                                                    }
+                                                }
                                             }
                                         } catch (Exception e) {
                                             Log.e(TAG, "Error parsing invitation event", e);
@@ -249,21 +335,38 @@ public class HomeFragment extends Fragment {
                                     if (completed[0] == total && getView() != null) {
                                         // Sort by event date
                                         try {
-                                            if (pendingInvitations != null) {
-                                                pendingInvitations.sort((e1, e2) -> {
-                                                    try {
-                                                        if (e1 == null || e2 == null) return 0;
-                                                        if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
-                                                        return e1.getEventDate().compareTo(e2.getEventDate());
-                                                    } catch (Exception e) {
-                                                        Log.e(TAG, "Error sorting pending invitations", e);
-                                                        return 0;
+                                            synchronized (pendingInvitations) {
+                                                if (pendingInvitations != null) {
+                                                    // Remove any duplicates that might have slipped through
+                                                    Set<String> seenIds = new HashSet<>();
+                                                    ArrayList<Event> uniqueEvents = new ArrayList<>();
+                                                    for (Event event : pendingInvitations) {
+                                                        if (event != null && event.getDocumentId() != null) {
+                                                            if (!seenIds.contains(event.getDocumentId())) {
+                                                                seenIds.add(event.getDocumentId());
+                                                                uniqueEvents.add(event);
+                                                            }
+                                                        }
                                                     }
-                                                });
+                                                    pendingInvitations.clear();
+                                                    pendingInvitations.addAll(uniqueEvents);
+                                                    
+                                                    pendingInvitations.sort((e1, e2) -> {
+                                                        try {
+                                                            if (e1 == null || e2 == null) return 0;
+                                                            if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
+                                                            return e1.getEventDate().compareTo(e2.getEventDate());
+                                                        } catch (Exception e) {
+                                                            Log.e(TAG, "Error sorting pending invitations", e);
+                                                            return 0;
+                                                        }
+                                                    });
+                                                }
                                             }
                                         } catch (Exception e) {
                                             Log.e(TAG, "Error sorting pending invitations list", e);
                                         }
+                                        isLoadingPendingInvitations = false;
                                         updatePendingInvitationsUI();
                                     }
                                 })
@@ -271,6 +374,7 @@ public class HomeFragment extends Fragment {
                                     Log.e(TAG, "Error loading invitation event: " + eventId, e);
                                     completed[0]++;
                                     if (completed[0] == total && getView() != null) {
+                                        isLoadingPendingInvitations = false;
                                         updatePendingInvitationsUI();
                                     }
                                 });
@@ -278,6 +382,7 @@ public class HomeFragment extends Fragment {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error loading pending invitations", e);
+                    isLoadingPendingInvitations = false;
                     if (getView() != null) {
                         updatePendingInvitationsUI();
                     }
@@ -474,6 +579,25 @@ public class HomeFragment extends Fragment {
                   ", Waitlist: " + waitlistEventIds.size() + 
                   ", Invited: " + invitedEventIds.size() + 
                   ", Accepted: " + acceptedEventIds.size());
+
+        // Prepare filter dates ONCE before the loop starts (performance optimization)
+        Calendar startNormalized = null;
+        if (filterStartDate != null) {
+            startNormalized = (Calendar) filterStartDate.clone();
+            startNormalized.set(Calendar.HOUR_OF_DAY, 0);
+            startNormalized.set(Calendar.MINUTE, 0);
+            startNormalized.set(Calendar.SECOND, 0);
+            startNormalized.set(Calendar.MILLISECOND, 0);
+        }
+
+        Calendar endNormalized = null;
+        if (filterEndDate != null) {
+            endNormalized = (Calendar) filterEndDate.clone();
+            endNormalized.set(Calendar.HOUR_OF_DAY, 0);
+            endNormalized.set(Calendar.MINUTE, 0);
+            endNormalized.set(Calendar.SECOND, 0);
+            endNormalized.set(Calendar.MILLISECOND, 0);
+        }
         
         for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
             try {
@@ -492,10 +616,11 @@ public class HomeFragment extends Fragment {
                 }
 
                 // Don't show events organized by this user
-                if (event.getOrganizerDeviceId() != null &&
-                        event.getOrganizerDeviceId().equals(currentDeviceId)) {
-                    continue;
-                }
+                // commented out for debugging
+//                if (event.getOrganizerDeviceId() != null &&
+//                        event.getOrganizerDeviceId().equals(currentDeviceId)) {
+//                    continue;
+//                }
 
                 // Filter logic:
                 // - Show events user is on waitlist for (they can see their status)
@@ -580,8 +705,76 @@ public class HomeFragment extends Fragment {
                           ", Accepted? " + acceptedEventIds.contains(eventId));
 
                 if (registrationStarted && registrationOpen) {
-                    upcomingEvents.add(event);
-                    Log.d(TAG, "✓ Added event to upcoming: " + event.getName() + " (ID: " + eventId + ")");
+                    // Apply date range filter if set
+                    boolean passesDateFilter = true;
+                    if (event.getEventDate() != null) {
+                        try {
+                            // Normalize event date to start of day for comparison
+                            Calendar eventDateNormalized = (Calendar) event.getEventDate().clone();
+                            eventDateNormalized.set(Calendar.HOUR_OF_DAY, 0);
+                            eventDateNormalized.set(Calendar.MINUTE, 0);
+                            eventDateNormalized.set(Calendar.SECOND, 0);
+                            eventDateNormalized.set(Calendar.MILLISECOND, 0);
+
+                            // Check start date filter (using pre-normalized filter date)
+                            if (startNormalized != null) {
+                                if (eventDateNormalized.before(startNormalized)) {
+                                    passesDateFilter = false;
+                                    Log.d(TAG, "Event filtered out by start date: " + event.getName());
+                                }
+                            }
+
+                            // Check end date filter (using pre-normalized filter date)
+                            if (endNormalized != null && passesDateFilter) {
+                                if (eventDateNormalized.after(endNormalized)) {
+                                    passesDateFilter = false;
+                                    Log.d(TAG, "Event filtered out by end date: " + event.getName());
+                                }
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error applying date filter for event: " + eventId, e);
+                            // Default to passing filter if error occurs
+                            passesDateFilter = true;
+                        }
+                    } else {
+                        // If event has no date and filters are set, exclude it
+                        // (In reality, events should always have dates, but we handle this defensively)
+                        if (startNormalized != null || endNormalized != null) {
+                            passesDateFilter = false;
+                            Log.d(TAG, "Event filtered out - no event date: " + event.getName());
+                        }
+                    }
+
+                    // Apply interest filter if set (AND logic - event must have ALL selected interests)
+                    boolean passesInterestFilter = true;
+                    if (filterInterests != null && !filterInterests.isEmpty()) {
+                        List<String> eventTypes = event.getEventTypes();
+                        if (eventTypes == null || eventTypes.isEmpty()) {
+                            // Event has no types, filter it out when interests are selected
+                            passesInterestFilter = false;
+                            Log.d(TAG, "Event filtered out - no event types: " + event.getName());
+                        } else {
+                            // Event must have ALL selected interests (AND logic)
+                            // Check if eventTypes contains all filterInterests
+                            passesInterestFilter = eventTypes.containsAll(filterInterests);
+                            if (!passesInterestFilter) {
+                                Log.d(TAG, "Event filtered out by interests: " + event.getName() + 
+                                          " - Event types: " + eventTypes + ", Filter: " + filterInterests);
+                            }
+                        }
+                    }
+
+                    if (passesDateFilter && passesInterestFilter) {
+                        upcomingEvents.add(event);
+                        Log.d(TAG, "✓ Added event to upcoming: " + event.getName() + " (ID: " + eventId + ")");
+                    } else {
+                        if (!passesDateFilter) {
+                            Log.d(TAG, "✗ Event filtered out by date range: " + event.getName());
+                        }
+                        if (!passesInterestFilter) {
+                            Log.d(TAG, "✗ Event filtered out by interests: " + event.getName());
+                        }
+                    }
                 } else {
                     Log.d(TAG, "✗ Event filtered out: " + event.getName() + " - registrationStarted: " + registrationStarted + ", registrationOpen: " + registrationOpen);
                 }
@@ -593,13 +786,22 @@ public class HomeFragment extends Fragment {
 
         Log.d(TAG, "After filtering: " + upcomingEvents.size() + " upcoming events");
 
-        // Sort by event date
+        // Sort by event date (events without dates go to the end)
         try {
             upcomingEvents.sort((e1, e2) -> {
                 try {
                     if (e1 == null || e2 == null) return 0;
-                    if (e1.getEventDate() == null || e2.getEventDate() == null) return 0;
-                    return e1.getEventDate().compareTo(e2.getEventDate());
+                    Calendar d1 = e1.getEventDate();
+                    Calendar d2 = e2.getEventDate();
+                    
+                    // Both have no date - treat as equal
+                    if (d1 == null && d2 == null) return 0;
+                    // e1 has no date - put it at the end
+                    if (d1 == null) return 1;
+                    // e2 has no date - put it at the end
+                    if (d2 == null) return -1;
+                    // Both have dates - normal sort
+                    return d1.compareTo(d2);
                 } catch (Exception e) {
                     Log.e(TAG, "Error sorting events", e);
                     return 0;
@@ -610,6 +812,58 @@ public class HomeFragment extends Fragment {
         }
 
         updateUpcomingEventsUI();
+    }
+
+    private void showFilterBottomSheet() {
+        EventFilterBottomSheet filterSheet = EventFilterBottomSheet.newInstance(new EventFilterBottomSheet.FilterCallback() {
+            @Override
+            public void onFilterApplied(Calendar startDate, Calendar endDate, Set<String> selectedInterests) {
+                filterStartDate = startDate != null ? (Calendar) startDate.clone() : null;
+                filterEndDate = endDate != null ? (Calendar) endDate.clone() : null;
+                filterInterests = selectedInterests != null ? new HashSet<>(selectedInterests) : new HashSet<>();
+                updateFilterIndicator();
+                // Reload events with new filter
+                loadUpcomingEvents();
+            }
+
+            @Override
+            public void onFiltersCleared() {
+                filterStartDate = null;
+                filterEndDate = null;
+                filterInterests = new HashSet<>();
+                updateFilterIndicator();
+                // Reload events without filter
+                loadUpcomingEvents();
+            }
+        });
+
+        // Set initial dates if filters are already active
+        if (filterStartDate != null || filterEndDate != null) {
+            filterSheet.setInitialDates(filterStartDate, filterEndDate);
+        }
+        
+        // Set initial interests if filters are already active
+        if (filterInterests != null && !filterInterests.isEmpty()) {
+            filterSheet.setInitialInterests(filterInterests);
+        }
+
+        filterSheet.show(getParentFragmentManager(), "EventFilterBottomSheet");
+    }
+
+    private void updateFilterIndicator() {
+        if (getView() == null || textView2 == null || getContext() == null) return;
+
+        boolean hasActiveFilters = filterStartDate != null || filterEndDate != null || 
+                                   (filterInterests != null && !filterInterests.isEmpty());
+        if (hasActiveFilters) {
+            // Show visual indicator that filters are active
+            textView2.setText("Upcoming Events (Filtered)");
+            textView2.setTextColor(ContextCompat.getColor(requireContext(), R.color.filter_active_orange));
+        } else {
+            // Reset to normal
+            textView2.setText("Upcoming Events");
+            textView2.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_default_blue));
+        }
     }
 
     private void loadEnteredEvents(String deviceId) {
@@ -691,7 +945,18 @@ public class HomeFragment extends Fragment {
                             try {
                                 Event event = parseEvent(eventDoc);
                                 if (event != null && enteredEvents != null) {
-                                    enteredEvents.add(event);
+                                    // Check for duplicates before adding
+                                    boolean isDuplicate = false;
+                                    for (Event existingEvent : enteredEvents) {
+                                        if (existingEvent != null && existingEvent.getDocumentId() != null &&
+                                                existingEvent.getDocumentId().equals(event.getDocumentId())) {
+                                            isDuplicate = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!isDuplicate) {
+                                        enteredEvents.add(event);
+                                    }
                                 }
                             } catch (Exception e) {
                                 Log.e(TAG, "Error parsing entered event", e);
@@ -751,6 +1016,7 @@ public class HomeFragment extends Fragment {
             event.setPoster(document.getString("poster"));
             event.setOrganizerDeviceId(document.getString("organizerDeviceId"));
             event.setSelectionCriteria(document.getString("selectionCriteria"));
+            event.setQrCodeUrl(document.getString("qrCodeUrl"));
 
             Boolean geoLocation = document.getBoolean("geoLocationRequired");
             event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
@@ -781,6 +1047,21 @@ public class HomeFragment extends Fragment {
                 event.setRaffleDate(raffleCal);
             } else {
                 event.setRaffleDate(null);
+            }
+
+            // Read eventTypes from Firestore (List<String>)
+            @SuppressWarnings("unchecked")
+            List<Object> eventTypesObj = (List<Object>) document.get("eventTypes");
+            if (eventTypesObj != null) {
+                List<String> eventTypes = new ArrayList<>();
+                for (Object obj : eventTypesObj) {
+                    if (obj instanceof String) {
+                        eventTypes.add((String) obj);
+                    }
+                }
+                event.setEventTypes(eventTypes.isEmpty() ? null : eventTypes);
+            } else {
+                event.setEventTypes(null);
             }
 
             return event;
@@ -902,6 +1183,4 @@ public class HomeFragment extends Fragment {
         listView.setLayoutParams(params);
         listView.requestLayout();
     }
-
-
 }

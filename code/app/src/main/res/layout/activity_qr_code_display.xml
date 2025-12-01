@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_color"
+    tools:context=".QRCodeDisplayActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- this is the header with back button part of the QR code display activity  -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Back"
+                android:src="@android:drawable/ic_menu_revert"
+                android:tint="@color/button_color" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:text="Event QR Code"
+                android:textColor="@color/text_color_colored"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- this is the event name part of the QR code display activity  -->
+        <TextView
+            android:id="@+id/tvEventName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:gravity="center"
+            android:textColor="@color/text_color_dark"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <!-- displays the QR code image part of the QR code display activity  -->
+        <ImageView
+            android:id="@+id/ivQRCode"
+            android:layout_width="300dp"
+            android:layout_height="300dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="24dp"
+            android:background="@android:color/white"
+            android:contentDescription="QR Code"
+            android:padding="16dp"
+            android:scaleType="fitCenter" />
+
+        <!-- displays the QR code URL text part of the QR code display activity  -->
+        <TextView
+            android:id="@+id/tvQRCodeUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:ellipsize="middle"
+            android:gravity="center"
+            android:maxLines="2"
+            android:textColor="@color/text_color_medium"
+            android:textSize="12sp" />
+
+        <!-- displays the instructions part of the QR code display activity  -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="32dp"
+            android:gravity="center"
+            android:paddingHorizontal="16dp"
+            android:text="Share this QR code to promote your event. Users can scan it to view event details."
+            android:textColor="@color/text_color_dark"
+            android:textSize="14sp" />
+
+        <!-- these are the active buttons for the QR code display activity  -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/btnShareQRCode"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:layout_marginBottom="12dp"
+                android:text="Share QR Code"
+                android:textColor="@color/button_color"
+                android:textSize="16sp"
+                app:strokeColor="@color/button_color" />
+
+            <Button
+                android:id="@+id/btnSaveQRCode"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:layout_marginBottom="12dp"
+                android:text="Save QR Code to Gallery"
+                android:textColor="@color/button_color"
+                android:textSize="16sp"
+                app:strokeColor="@color/button_color" />
+
+            <Button
+                android:id="@+id/btnViewEvent"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:backgroundTint="@color/button_color"
+                android:text="View Event Details"
+                android:textColor="@color/text_color_light"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

@@ -19,22 +19,34 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.gitcat_events.core.model.Notif;
 import com.example.gitcat_events.core.model.Profile;
 import com.example.gitcat_events.features.entrant.ui.ProfileActivity;
 import com.example.gitcat_events.features.entrant.ui.ProfileDialogFragment;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.WriteBatch;
 
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Fragment to display user profile information
@@ -44,12 +56,15 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
     private static final String TAG = "ProfileFragment";
     private static final String PREFS = "app_prefs";
     private static final String KEY_PROFILE_ID = "profile_doc_id";
+    private static final String KEY_IS_ADMIN = "is_admin";
 
     private FirebaseFirestore db;
     private TextView tvFragmentName, tvFragmentEmail, tvFragmentPhone;
     private ImageView ivFragmentProfilePicture;
-    private Button btnFragmentViewFullProfile, btnFragmentDeleteProfile;
+    private Button btnFragmentViewFullProfile, btnFragmentDeleteProfile, adminBtn, eventHistoryBtn;
     private Profile currentProfile;
+    private Button notificationsToggle;
+    private CompoundButton.OnCheckedChangeListener notificationsToggleListener;
 
     public ProfileFragment() {
         // Required empty public constructor
@@ -83,6 +98,52 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
         ivFragmentProfilePicture = view.findViewById(R.id.ivFragmentProfilePicture);
         btnFragmentViewFullProfile = view.findViewById(R.id.btnFragmentViewFullProfile);
         btnFragmentDeleteProfile = view.findViewById(R.id.btnFragmentDeleteProfile);
+        adminBtn = view.findViewById(R.id.adminMenuBtn);
+        notificationsToggle = view.findViewById(R.id.notificationToggleButton);
+        String deviceId = getOrCreateDeviceId();
+        db.collection("profiles").whereEqualTo("deviceId", deviceId).get().addOnSuccessListener(queryDocumentSnapshots1 -> {
+            if (!queryDocumentSnapshots1.isEmpty()) {
+                String uid = queryDocumentSnapshots1.getDocuments().get(0).getId();
+                DocumentReference profileRef = db.collection("profiles").document(uid);
+                db.runTransaction(transaction -> {
+                    DocumentSnapshot snapshot = transaction.get(profileRef);
+                    if (!snapshot.contains("hasNotificationsEnabled")) {
+                        profileRef.update("hasNotificationsEnabled", "true");
+                        notificationsToggle.setText("Toggle Notifications (On)");
+                    } else if (snapshot.getString("hasNotificationsEnabled").equals("true")){
+                        notificationsToggle.setText("Toggle Notifications (On)");
+                    } else{
+                        notificationsToggle.setText("Toggle Notifications (Off)");
+                    }
+                    return notificationsToggle;
+                });
+            }});
+        notificationsToggle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                db.collection("profiles").whereEqualTo("deviceId", deviceId).get().addOnSuccessListener(queryDocumentSnapshots1 -> {
+                    if (!queryDocumentSnapshots1.isEmpty()) {
+                        String uid = queryDocumentSnapshots1.getDocuments().get(0).getId();
+                        DocumentReference profileRef = db.collection("profiles").document(uid);
+
+                        String currentText = notificationsToggle.getText().toString();
+                        if (currentText.contains("(On)")) {
+                            profileRef.update("hasNotificationsEnabled", "false");
+                            notificationsToggle.setText("Toggle Notifications (Off)");
+                        } else {
+                            profileRef.update("hasNotificationsEnabled", "true");
+                            notificationsToggle.setText("Toggle Notifications (On)");
+                        }
+                    }
+                });
+            }
+        });
+
+
+
+
+
+        eventHistoryBtn = view.findViewById(R.id.eventHistoryBtn);
 
         // Setup button to open edit dialog directly
         btnFragmentViewFullProfile.setOnClickListener(v -> {
@@ -97,6 +158,9 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
         
         // Setup delete button
         btnFragmentDeleteProfile.setOnClickListener(v -> confirmAndDelete());
+
+        // Setup View Event History button
+        eventHistoryBtn.setOnClickListener(v -> viewEventHistory());
 
         // Load profile data
         loadProfile();
@@ -124,6 +188,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                     Profile profile = documentSnapshot.toObject(Profile.class);
                     if (profile != null && isAdded()) {
                         currentProfile = profile;
+                        saveIsAdmin(currentProfile.isAdmin());
                         renderProfile(profile);
                     } else if (isAdded()) {
                         currentProfile = null;
@@ -138,6 +203,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                     }
                 });
     }
+
 
     private void renderProfile(Profile profile) {
         // Handle optional name
@@ -157,6 +223,15 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
             loadBase64Image(profile.getProfilePictureUrl(), ivFragmentProfilePicture);
         } else {
             ivFragmentProfilePicture.setImageResource(R.drawable.ic_launcher_foreground);
+        }
+
+        // show admin menu button if user is an admin
+        if(profile.isAdmin()){
+            adminBtn.setVisibility(View.VISIBLE);
+            adminBtn.setOnClickListener(v -> {
+                Intent intent = new Intent(getContext(), AdminMenuActivity.class);
+                startActivity(intent);
+            });
         }
     }
 
@@ -332,7 +407,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
                             Toast.makeText(getContext(), "Save failed: " + e.getMessage(), Toast.LENGTH_LONG).show());
         }
     }
-    
+
     private void createProfileWithAutoId(Profile profile) {
         db.runTransaction(transaction -> {
             DocumentReference counterRef = db.collection("meta").document("profiles_counter");
@@ -380,7 +455,7 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
             }
         });
     }
-    
+
     private void saveDocId(String id) {
         if (getActivity() == null) return;
         getActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_PROFILE_ID, id).apply();
@@ -430,5 +505,18 @@ public class ProfileFragment extends Fragment implements ProfileDialogFragment.O
             imageView.setImageResource(R.drawable.ic_launcher_foreground);
         }
     }
-    
+
+    private void saveIsAdmin(Boolean isAdmin){
+        requireContext()
+                .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(KEY_IS_ADMIN, isAdmin)
+                .apply();
+    }
+
+    private void viewEventHistory(){
+        Intent intent = new Intent(requireContext(), EventHistoryActivity.class);
+        intent.putExtra("deviceId", currentProfile.getDeviceId());
+        startActivity(intent);
+    }
 }

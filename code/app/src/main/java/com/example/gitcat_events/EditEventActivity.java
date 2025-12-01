@@ -30,8 +30,10 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -45,8 +47,8 @@ public class EditEventActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private ImageView ivEventPoster;
     private EditText etEventName, etEventDescription, etCapacity, etMaxWaitlist, etSelectionCriteria;
-    private Button btnSelectPoster, btnSelectRegistrationStartDate, btnSelectEventDate, btnSelectRaffleDate, btnUpdateEvent;
-    private TextView tvRegistrationStartDateDisplay, tvEventDateDisplay, tvRaffleDateDisplay;
+    private Button btnSelectPoster, btnSelectRegistrationStartDate, btnSelectEventDate, btnSelectRaffleDate, btnSelectEventType, btnUpdateEvent;
+    private TextView tvRegistrationStartDateDisplay, tvEventDateDisplay, tvRaffleDateDisplay, tvEventTypeDisplay;
     private SwitchMaterial switchGeoLocation;
     private ImageButton btnBack;
 
@@ -55,6 +57,7 @@ public class EditEventActivity extends AppCompatActivity {
     private Calendar selectedRegistrationStartDate;
     private Calendar selectedEventDate;
     private Calendar selectedRaffleDate;
+    private List<String> selectedEventTypes;
     
     private String eventId;
     private Event currentEvent;
@@ -98,10 +101,12 @@ public class EditEventActivity extends AppCompatActivity {
         btnSelectRegistrationStartDate = findViewById(R.id.btnSelectRegistrationStartDate);
         btnSelectEventDate = findViewById(R.id.btnSelectEventDate);
         btnSelectRaffleDate = findViewById(R.id.btnSelectRaffleDate);
+        btnSelectEventType = findViewById(R.id.btnSelectEventType);
         btnUpdateEvent = findViewById(R.id.btnUpdateEvent);
         tvRegistrationStartDateDisplay = findViewById(R.id.tvRegistrationStartDateDisplay);
         tvEventDateDisplay = findViewById(R.id.tvEventDateDisplay);
         tvRaffleDateDisplay = findViewById(R.id.tvRaffleDateDisplay);
+        tvEventTypeDisplay = findViewById(R.id.tvEventTypeDisplay);
         switchGeoLocation = findViewById(R.id.switchGeoLocation);
 
         // Set up click listeners
@@ -110,6 +115,7 @@ public class EditEventActivity extends AppCompatActivity {
         btnSelectRegistrationStartDate.setOnClickListener(v -> selectRegistrationStartDate());
         btnSelectEventDate.setOnClickListener(v -> selectEventDate());
         btnSelectRaffleDate.setOnClickListener(v -> selectRaffleDate());
+        btnSelectEventType.setOnClickListener(v -> selectEventType());
         btnUpdateEvent.setOnClickListener(v -> confirmUpdateEvent());
 
         // Load existing event data
@@ -185,6 +191,7 @@ public class EditEventActivity extends AppCompatActivity {
             event.setPoster(document.getString("poster"));
             event.setOrganizerDeviceId(document.getString("organizerDeviceId"));
             event.setSelectionCriteria(document.getString("selectionCriteria"));
+            event.setQrCodeUrl(document.getString("qrCodeUrl"));
 
             Boolean geoLocation = document.getBoolean("geoLocationRequired");
             event.setGeoLocationRequired(geoLocation != null ? geoLocation : false);
@@ -235,6 +242,26 @@ public class EditEventActivity extends AppCompatActivity {
                 event.setRaffleDate(null);
             }
 
+            // Read eventTypes from Firestore (List<String>)
+            try {
+                @SuppressWarnings("unchecked")
+                List<Object> eventTypesObj = (List<Object>) document.get("eventTypes");
+                if (eventTypesObj != null) {
+                    List<String> eventTypes = new ArrayList<>();
+                    for (Object obj : eventTypesObj) {
+                        if (obj instanceof String) {
+                            eventTypes.add((String) obj);
+                        }
+                    }
+                    event.setEventTypes(eventTypes.isEmpty() ? null : eventTypes);
+                } else {
+                    event.setEventTypes(null);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error parsing eventTypes", e);
+                event.setEventTypes(null);
+            }
+
             return event;
         } catch (Exception e) {
             Log.e(TAG, "Error parsing event document: " + document.getId(), e);
@@ -278,6 +305,12 @@ public class EditEventActivity extends AppCompatActivity {
             tvRaffleDateDisplay.setText(sdf.format(selectedRaffleDate.getTime()));
         }
 
+        // Populate event types
+        if (currentEvent.getEventTypes() != null && !currentEvent.getEventTypes().isEmpty()) {
+            selectedEventTypes = new ArrayList<>(currentEvent.getEventTypes());
+            updateEventTypeDisplay();
+        }
+
         // Load existing poster
         if (currentEvent.getPoster() != null && !currentEvent.getPoster().isEmpty()) {
             existingPosterBase64 = currentEvent.getPoster();
@@ -312,7 +345,7 @@ public class EditEventActivity extends AppCompatActivity {
                     selectedRegistrationStartDate = Calendar.getInstance();
                     selectedRegistrationStartDate.set(year, month, dayOfMonth);
                     tvRegistrationStartDateDisplay.setText(
-                            String.format("%02d/%02d/%d", dayOfMonth, month + 1, year)
+                            String.format(Locale.getDefault(), "%02d/%02d/%d", dayOfMonth, month + 1, year)
                     );
                 },
                 calendar.get(Calendar.YEAR),
@@ -330,7 +363,7 @@ public class EditEventActivity extends AppCompatActivity {
                     selectedEventDate = Calendar.getInstance();
                     selectedEventDate.set(year, month, dayOfMonth);
                     tvEventDateDisplay.setText(
-                            String.format("%02d/%02d/%d", dayOfMonth, month + 1, year)
+                            String.format(Locale.getDefault(), "%02d/%02d/%d", dayOfMonth, month + 1, year)
                     );
                 },
                 calendar.get(Calendar.YEAR),
@@ -348,7 +381,7 @@ public class EditEventActivity extends AppCompatActivity {
                     selectedRaffleDate = Calendar.getInstance();
                     selectedRaffleDate.set(year, month, dayOfMonth);
                     tvRaffleDateDisplay.setText(
-                            String.format("%02d/%02d/%d", dayOfMonth, month + 1, year)
+                            String.format(Locale.getDefault(), "%02d/%02d/%d", dayOfMonth, month + 1, year)
                     );
                 },
                 calendar.get(Calendar.YEAR),
@@ -356,6 +389,29 @@ public class EditEventActivity extends AppCompatActivity {
                 calendar.get(Calendar.DAY_OF_MONTH)
         );
         datePickerDialog.show();
+    }
+
+    private void selectEventType() {
+        EventTypeSelectionBottomSheet typeSheet = EventTypeSelectionBottomSheet.newInstance(selectedTypes -> {
+            this.selectedEventTypes = selectedTypes;
+            updateEventTypeDisplay();
+        });
+
+        // Set initial types if already selected
+        if (selectedEventTypes != null && !selectedEventTypes.isEmpty()) {
+            typeSheet.setInitialTypes(selectedEventTypes);
+        }
+
+        typeSheet.show(getSupportFragmentManager(), "EventTypeSelectionBottomSheet");
+    }
+
+    private void updateEventTypeDisplay() {
+        if (selectedEventTypes == null || selectedEventTypes.isEmpty()) {
+            tvEventTypeDisplay.setText("Not selected");
+        } else {
+            String typesText = String.join(", ", selectedEventTypes);
+            tvEventTypeDisplay.setText(typesText);
+        }
     }
 
     private void confirmUpdateEvent() {
@@ -402,13 +458,34 @@ public class EditEventActivity extends AppCompatActivity {
             Toast.makeText(this, "Please select an event date", Toast.LENGTH_SHORT).show();
             ok = false;
         }
+        if (selectedEventTypes == null || selectedEventTypes.isEmpty()) {
+            Toast.makeText(this, "Please select at least one event type", Toast.LENGTH_SHORT).show();
+            ok = false;
+        }
         if (!ok) {
             btnUpdateEvent.setEnabled(true);
             return;
         }
 
-        int capacity = Integer.parseInt(capacityStr);
-        Integer maxWaitlist = maxWaitlistStr.isEmpty() ? null : Integer.parseInt(maxWaitlistStr);
+        int capacity;
+        try {
+            capacity = Integer.parseInt(capacityStr);
+        } catch (NumberFormatException e) {
+            etCapacity.setError("Invalid number");
+            btnUpdateEvent.setEnabled(true);
+            return;
+        }
+        
+        Integer maxWaitlist = null;
+        if (!maxWaitlistStr.isEmpty()) {
+            try {
+                maxWaitlist = Integer.parseInt(maxWaitlistStr);
+            } catch (NumberFormatException e) {
+                etMaxWaitlist.setError("Invalid number");
+                btnUpdateEvent.setEnabled(true);
+                return;
+            }
+        }
 
         // Validate date order: registrationStart <= raffleDate <= eventDate
         // Normalize dates to start of day for comparison (ignore time)
@@ -456,10 +533,10 @@ public class EditEventActivity extends AppCompatActivity {
             return;
         }
 
-        // Validate capacity vs waitlist
-        if (maxWaitlist != null && capacity > maxWaitlist) {
-            Toast.makeText(this, "Event capacity cannot exceed max waitlist size", Toast.LENGTH_LONG).show();
-            etCapacity.setError("Capacity too large");
+        // Validate maxWaitlist is positive if provided
+        if (maxWaitlist != null && maxWaitlist <= 0) {
+            Toast.makeText(this, "Max waitlist size must be a positive number", Toast.LENGTH_LONG).show();
+            etMaxWaitlist.setError("Must be positive");
             btnUpdateEvent.setEnabled(true);
             return;
         }
@@ -501,6 +578,7 @@ public class EditEventActivity extends AppCompatActivity {
         updates.put("geoLocationRequired", geoLocationRequired);
         updates.put("poster", posterBase64);
         updates.put("selectionCriteria", selectionCriteria);
+        updates.put("eventTypes", selectedEventTypes != null ? selectedEventTypes : new ArrayList<>());
 
         // Update in Firestore
         db.collection("events").document(eventId)

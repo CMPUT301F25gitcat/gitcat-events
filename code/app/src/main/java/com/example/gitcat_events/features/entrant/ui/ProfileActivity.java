@@ -47,6 +47,9 @@ public class ProfileActivity extends AppCompatActivity
     private static final String KEY_PROFILE_ID = "profile_doc_id"; // we'll store the numeric id as a String
     private static final String KEY_DEVICE_ID = "device_id"; // unique device identifier
 
+    private static final String KEY_IS_ADMIN = "is_admin";
+
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -129,7 +132,10 @@ public class ProfileActivity extends AppCompatActivity
         db.collection("profiles").document(id).get()
                 .addOnSuccessListener(snap -> {
                     currentProfile = snap.toObject(Profile.class);
+                    System.out.println("loaded profile");
                     if (currentProfile != null) {
+                        System.out.println("IS admin: " + currentProfile.isAdmin());
+                        saveIsAdmin(currentProfile.isAdmin());
                         render(currentProfile);
                     } else {
                         // doc missing? treat as create
@@ -281,6 +287,14 @@ public class ProfileActivity extends AppCompatActivity
     private void saveDocId(String id) {
         getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(KEY_PROFILE_ID, id).apply();
     }
+
+    private void saveIsAdmin(Boolean isAdmin){
+        getSharedPreferences(PREFS, MODE_PRIVATE)
+                .edit()
+                .putBoolean(KEY_IS_ADMIN, isAdmin != null && isAdmin) // default to false if null
+                .apply();
+    }
+
     
     /**
      * Get or create a unique device identifier.
