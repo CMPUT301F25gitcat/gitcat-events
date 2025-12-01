@@ -39,7 +39,10 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
+import com.google.android.gms.tasks.Task;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -1066,14 +1069,20 @@ public class EventDetails extends Fragment {
 
     /**
      * Entry point from the UI when the user taps "Accept Invitation".
-     * We ALWAYS show our own consent dialog first.
-     * If the user agrees, we optionally request OS location permission (if needed),
-     * then proceed to accept the invitation and best-effort attach location.
-     * If they decline, we accept without recording coordinates.
+     * For geo-enabled events, we show a consent dialog; for others, we just accept.
      */
     private void acceptInvitation() {
         if (event == null) return;
 
+        boolean geoRequired = event.getGeoLocationRequired() != null && event.getGeoLocationRequired();
+
+        if (!geoRequired) {
+            // No geolocation requirement: accept immediately without any location flow.
+            acceptInvitationInternal();
+            return;
+        }
+
+        // Geo is required: ask the user if they want to share approximate location.
         new AlertDialog.Builder(requireContext())
                 .setTitle("Share approximate location?")
                 .setMessage("If you agree, we'll record an approximate location when you accept so the organizer " +
@@ -1141,18 +1150,48 @@ public class EventDetails extends Fragment {
                         if (event.getGeoLocationRequired() != null && event.getGeoLocationRequired()
                                 && fusedLocationClient != null) {
                             try {
-                                fusedLocationClient.getLastLocation()
-                                        .addOnSuccessListener(location -> {
-                                            if (location != null) {
-                                                acceptedData.put("latitude", location.getLatitude());
-                                                acceptedData.put("longitude", location.getLongitude());
-                                            }
-                                            writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
-                                        })
-                                        .addOnFailureListener(e -> {
-                                            Log.e(TAG, "Failed to get last location for accepted entrant", e);
-                                            writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
-                                        });
+                                // Use getCurrentLocation() to get a fresh location instead of stale cached one
+                                LocationRequest locationRequest = LocationRequest.create()
+                                        .setPriority(Priority.PRIORITY_BALANCED_POWER_ACCURACY)
+                                        .setNumUpdates(1)
+                                        .setMaxUpdateDelayMillis(5000); // 5 second timeout
+                                
+                                Task<android.location.Location> locationTask = fusedLocationClient.getCurrentLocation(
+                                        locationRequest.getPriority(),
+                                        null
+                                );
+                                
+                                locationTask.addOnSuccessListener(location -> {
+                                    if (location != null) {
+                                        acceptedData.put("latitude", location.getLatitude());
+                                        acceptedData.put("longitude", location.getLongitude());
+                                        Log.d(TAG, "Got fresh location: " + location.getLatitude() + ", " + location.getLongitude());
+                                    } else {
+                                        Log.w(TAG, "getCurrentLocation returned null, accepting without coordinates");
+                                    }
+                                    writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                }).addOnFailureListener(e -> {
+                                    Log.e(TAG, "Failed to get current location for accepted entrant", e);
+                                    // Fallback: try getLastLocation() as backup
+                                    try {
+                                        fusedLocationClient.getLastLocation()
+                                                .addOnSuccessListener(fallbackLocation -> {
+                                                    if (fallbackLocation != null) {
+                                                        acceptedData.put("latitude", fallbackLocation.getLatitude());
+                                                        acceptedData.put("longitude", fallbackLocation.getLongitude());
+                                                        Log.d(TAG, "Used fallback last location: " + fallbackLocation.getLatitude() + ", " + fallbackLocation.getLongitude());
+                                                    }
+                                                    writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                                })
+                                                .addOnFailureListener(fallbackError -> {
+                                                    Log.e(TAG, "Fallback getLastLocation also failed", fallbackError);
+                                                    writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                                });
+                                    } catch (Exception fallbackEx) {
+                                        Log.e(TAG, "Exception in fallback location", fallbackEx);
+                                        writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
+                                    }
+                                });
                             } catch (SecurityException se) {
                                 Log.w(TAG, "Location permission not granted for accepted entrant", se);
                                 writeAcceptedEntryAndRemoveInvitation(deviceId, acceptedData);
