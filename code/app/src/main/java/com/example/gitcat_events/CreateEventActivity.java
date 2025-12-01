@@ -391,6 +391,13 @@ public class CreateEventActivity extends AppCompatActivity {
         }).addOnSuccessListener(eventId -> {
             progressDialog.dismiss();
             Toast.makeText(this, "Event created successfully!", Toast.LENGTH_LONG).show();
+
+            //launch the QR code display activity 
+            Intent qrCodeIntent = new Intent(this, QRCodeDisplayActivity.class);
+            qrCodeIntent.putExtra("eventId", eventId);
+            qrCodeIntent.putExtra("eventName", event.getName());
+            qrCodeIntent.putExtra("qrCodeUrl", event.getQrCodeUrl());
+            startActivity(qrCodeIntent);
             
             // Return to Create fragment (button stays disabled since we're leaving)
             finish();
