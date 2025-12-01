@@ -182,11 +182,8 @@ public class EventDetails extends Fragment {
             // Notify HomeFragment to refresh (it will reload in onResume)
         });
 
-        // set up delete button (visible to organizer or admin)
-        if (getIsAdmin(getContext()) || isOrganizer) {
-            deleteEventBtn.setVisibility(View.VISIBLE);
-            deleteEventBtn.setOnClickListener(v -> deleteEventByDocumentId());
-        }
+        // set up delete button click listener (visibility is handled in checkUserStatus)
+        deleteEventBtn.setOnClickListener(v -> deleteEventByDocumentId());
 
 
         return view;
@@ -304,6 +301,10 @@ public class EventDetails extends Fragment {
                     btnEditEvent.setVisibility(View.VISIBLE);
                     Log.d(TAG, "Edit Event button visible: " + (btnEditEvent.getVisibility() == View.VISIBLE));
                 }
+                if (deleteEventBtn != null) {
+                    deleteEventBtn.setVisibility(View.VISIBLE);
+                    Log.d(TAG, "Delete Event button visible: " + (deleteEventBtn.getVisibility() == View.VISIBLE));
+                }
                 
                 // Show organizer status
                 showOrganizerStatus();
@@ -318,6 +319,7 @@ public class EventDetails extends Fragment {
             if (btnViewEnrolledEntrants != null) btnViewEnrolledEntrants.setVisibility(View.GONE);
             if (btnViewCancelledEntrants != null) btnViewCancelledEntrants.setVisibility(View.GONE);
             if (btnEditEvent != null) btnEditEvent.setVisibility(View.GONE);
+            if (deleteEventBtn != null) deleteEventBtn.setVisibility(View.GONE);
             
             // Show join button by default (will be hidden if user has invitation)
             if (btnJoinWaitingList != null) btnJoinWaitingList.setVisibility(View.VISIBLE);
