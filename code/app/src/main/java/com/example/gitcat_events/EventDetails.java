@@ -182,12 +182,10 @@ public class EventDetails extends Fragment {
             // Notify HomeFragment to refresh (it will reload in onResume)
         });
 
-        // set up delete btn
-        if(getIsAdmin(getContext())){
+        // set up delete button (visible to organizer or admin)
+        if (getIsAdmin(getContext()) || isOrganizer) {
             deleteEventBtn.setVisibility(View.VISIBLE);
-            deleteEventBtn.setOnClickListener(v -> {
-                deleteEvent(Integer.parseInt(event.getDocumentId()));
-            });
+            deleteEventBtn.setOnClickListener(v -> deleteEventByDocumentId());
         }
 
 
@@ -200,37 +198,31 @@ public class EventDetails extends Fragment {
                 .getBoolean(KEY_IS_ADMIN, false);
     }
 
-    private void deleteEvent(int eventId) {
+    /**
+     * Delete this event by its Firestore document ID.
+     * Called by organizers/admins from the event details screen.
+     */
+    private void deleteEventByDocumentId() {
+        if (event == null || event.getDocumentId() == null) {
+            Toast.makeText(getContext(), "Cannot delete: event not loaded.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String documentId = event.getDocumentId();
+
         db.collection("events")
-                .whereEqualTo("eventId", eventId)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    if (querySnapshot.isEmpty()) {
-                        Toast.makeText(getContext(), "No event found with eventId: " + eventId, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
+                .document(documentId)
+                .delete()
+                .addOnSuccessListener(v -> {
+                    // notify home page so they can reload event list
+                    Bundle result = new Bundle();
+                    result.putSerializable("deletedEvent", event);
+                    getParentFragmentManager().setFragmentResult("detail_closed", result);
 
-                    WriteBatch batch = db.batch();
-
-                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
-                        batch.delete(doc.getReference());
-                    }
-
-                    batch.commit()
-                            .addOnSuccessListener(v -> {
-
-                                    // notify home page so they can reload event list
-                                Bundle result = new Bundle();
-                                result.putSerializable("deletedEvent", event);
-                                getParentFragmentManager().setFragmentResult("detail_closed", result);
-
-                                Toast.makeText(getContext(), "Event deleted: " + eventId, Toast.LENGTH_SHORT).show();
-                            })
-                            .addOnFailureListener(e ->
-                                    Toast.makeText(getContext(), "Failed to delete event: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                    Toast.makeText(getContext(), "Event deleted.", Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e ->
-                        Toast.makeText(getContext(), "Error querying event: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                        Toast.makeText(getContext(), "Failed to delete event: " + e.getMessage(), Toast.LENGTH_LONG).show());
     }
 
 
