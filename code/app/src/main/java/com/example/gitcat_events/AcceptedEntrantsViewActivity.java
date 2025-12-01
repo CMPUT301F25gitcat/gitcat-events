@@ -63,6 +63,7 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
     private TextView tvCapacityInfo;
     private ImageButton btnBack;
     private Button btnExportCsv;
+    private Button btnMapView;
     
     private String eventId;
     private String eventName;
@@ -98,6 +99,7 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
         tvAcceptedListCount = findViewById(R.id.tvAcceptedListCount);
         tvCapacityInfo = findViewById(R.id.tvCapacityInfo);
         btnExportCsv = findViewById(R.id.btnExportCsv);
+        btnMapView = findViewById(R.id.btnMapView);
         TextView tvEventName = findViewById(R.id.tvEventName);
         notifTitle=findViewById(R.id.acceptedListNotifTitleText);
         notifDescription=findViewById(R.id.acceptedListNotifDescription);
@@ -117,6 +119,14 @@ public class AcceptedEntrantsViewActivity extends AppCompatActivity {
 
         // Setup back button
         btnBack.setOnClickListener(v -> finish());
+        
+        // Map view button - open clustered map of accepted entrants
+        btnMapView.setOnClickListener(v -> {
+            Intent intent = new Intent(AcceptedEntrantsViewActivity.this, AcceptedEntrantsMapActivity.class);
+            intent.putExtra("eventId", eventId);
+            intent.putExtra("eventName", eventName);
+            startActivity(intent);
+        });
         
         // Setup export CSV button
         btnExportCsv.setOnClickListener(v -> exportToCsv());
