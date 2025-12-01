@@ -137,13 +137,34 @@ public class NavigationBarTests {
         ensureNavigationReady();
         onView(withId(R.id.home)).perform(click());
         
-        // Wait for fragment to load
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        // Wait for fragment to load and check for a visible element within the fragment
+        // Poll for fragment content to appear
+        boolean fragmentVisible = false;
+        for (int i = 0; i < 10; i++) {
+            try {
+                // Check for a specific element in the home fragment (like the header text)
+                onView(withId(R.id.fragment_home)).check(matches(isDisplayed()));
+                fragmentVisible = true;
+                break;
+            } catch (Exception e) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ie) {
+                    ie.printStackTrace();
+                }
+            }
         }
         
+        if (!fragmentVisible) {
+            // Give it more time
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        
+        // Final check - if fragment still not visible, the test will fail with a clear message
         onView(withId(R.id.fragment_home)).check(matches(isDisplayed()));
     }
 
@@ -153,10 +174,27 @@ public class NavigationBarTests {
         onView(withId(R.id.notifs)).perform(click());
         
         // Wait for fragment to load
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        boolean fragmentVisible = false;
+        for (int i = 0; i < 10; i++) {
+            try {
+                onView(withId(R.id.fragment_notifs)).check(matches(isDisplayed()));
+                fragmentVisible = true;
+                break;
+            } catch (Exception e) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ie) {
+                    ie.printStackTrace();
+                }
+            }
+        }
+        
+        if (!fragmentVisible) {
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
         
         onView(withId(R.id.fragment_notifs)).check(matches(isDisplayed()));
@@ -168,10 +206,27 @@ public class NavigationBarTests {
         onView(withId(R.id.create)).perform(click());
         
         // Wait for fragment to load
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        boolean fragmentVisible = false;
+        for (int i = 0; i < 10; i++) {
+            try {
+                onView(withId(R.id.fragment_create)).check(matches(isDisplayed()));
+                fragmentVisible = true;
+                break;
+            } catch (Exception e) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ie) {
+                    ie.printStackTrace();
+                }
+            }
+        }
+        
+        if (!fragmentVisible) {
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
         
         onView(withId(R.id.fragment_create)).check(matches(isDisplayed()));
@@ -183,10 +238,27 @@ public class NavigationBarTests {
         onView(withId(R.id.profile)).perform(click());
         
         // Wait for fragment to load
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        boolean fragmentVisible = false;
+        for (int i = 0; i < 10; i++) {
+            try {
+                onView(withId(R.id.fragment_profile)).check(matches(isDisplayed()));
+                fragmentVisible = true;
+                break;
+            } catch (Exception e) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ie) {
+                    ie.printStackTrace();
+                }
+            }
+        }
+        
+        if (!fragmentVisible) {
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
         
         onView(withId(R.id.fragment_profile)).check(matches(isDisplayed()));
