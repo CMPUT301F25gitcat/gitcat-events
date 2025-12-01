@@ -50,7 +50,6 @@ public class WaitlistViewActivity extends AppCompatActivity {
     private String eventName;
     private WaitlistAdapter adapter;
     private List<WaitlistEntryDisplay> waitlistEntries;
-    private TextInputEditText notifTitle;
     private TextInputEditText notifDescription;
     private Button sendNotifButton;
 
@@ -77,7 +76,6 @@ public class WaitlistViewActivity extends AppCompatActivity {
         tvWaitlistEmpty = findViewById(R.id.tvWaitlistEmpty);
         tvWaitlistCount = findViewById(R.id.tvWaitlistCount);
         TextView tvEventName = findViewById(R.id.tvEventName);
-        notifTitle=findViewById(R.id.waitingListNotifTitleText);
         notifDescription=findViewById(R.id.waitingListNotifDescription);
         sendNotifButton = findViewById(R.id.waitingListSendNotif);
 
@@ -98,18 +96,16 @@ public class WaitlistViewActivity extends AppCompatActivity {
         btnBack.setOnClickListener(v -> finish());
         // Setup notif button
         sendNotifButton.setOnClickListener(view -> {
-            addNotificationToFirestore(notifTitle.getText().toString(), notifDescription.getText().toString(), eventId);
+            addNotificationToFirestore(notifDescription.getText().toString(), eventId);
         });
         // Load waiting list
         loadWaitlist();
     }
-    private void addNotificationToFirestore(String title, String description, String eventId) {
-        Log.d("actually went here", eventId);
-        if (title.equals("")) {
-            Toast.makeText(this, "Must create title for the notification.", Toast.LENGTH_SHORT).show();
+    private void addNotificationToFirestore(String description, String eventId) {
+        if (description.equals("")) {
+            Toast.makeText(this, "Must create description for the notification.", Toast.LENGTH_SHORT).show();
             return;
         }
-
         CollectionReference notifRef = db.collection("notifications");
         DocumentReference countRef = db.collection("notifications").document("count");
         CollectionReference listRef = db.collection("events").document(eventId).collection("waitlist");
@@ -144,7 +140,7 @@ public class WaitlistViewActivity extends AppCompatActivity {
                             for (DocumentReference user : users) {
                                 Map<String, Object> notif = new HashMap<>();
                                 notif.put("deviceId", user.getId());
-                                notif.put("title", title);
+                                notif.put("title", eventName);
                                 notif.put("description", description);
                                 notif.put("timestamp", FieldValue.serverTimestamp());
                                 transaction.set(notifRef.document(String.valueOf(notifCount)), notif);

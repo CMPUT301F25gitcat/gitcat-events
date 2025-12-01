@@ -147,27 +147,9 @@
             android:orientation="vertical">
 
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/textInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="70dp"
-                android:textColorHint="@color/text_color_medium"
-                app:helperTextTextColor="@color/text_color_medium"
-                app:hintTextColor="@color/text_color_medium"
-                app:placeholderTextColor="@color/text_color_medium"
-                app:prefixTextColor="@color/text_color_medium"
-                app:suffixTextColor="@color/text_color_medium">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/acceptedListNotifTitleText"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:hint="Notification Title*" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/textInputLayout2"
                 android:layout_width="match_parent"
-                android:layout_height="110dp"
+                android:layout_height="180dp"
                 android:textColorHint="@color/text_color_medium"
                 app:helperTextTextColor="@color/text_color_medium"
                 app:hintTextColor="@color/text_color_medium"
