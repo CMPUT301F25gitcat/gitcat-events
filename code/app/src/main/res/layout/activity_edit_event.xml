@@ -125,7 +125,8 @@
                         android:id="@+id/etEventName"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="textCapWords" />
+                        android:inputType="textCapWords"
+                        android:textColor="@color/button_color" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -149,7 +150,8 @@
                         android:layout_height="wrap_content"
                         android:gravity="top"
                         android:inputType="textMultiLine"
-                        android:minLines="3" />
+                        android:minLines="3"
+                        android:textColor="@color/button_color" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -171,7 +173,8 @@
                         android:id="@+id/etCapacity"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="number" />
+                        android:inputType="number"
+                        android:textColor="@color/button_color" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -193,7 +196,8 @@
                         android:id="@+id/etMaxWaitlist"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="number" />
+                        android:inputType="number"
+                        android:textColor="@color/button_color" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <TextView
@@ -431,7 +435,8 @@
                         android:maxLines="8"
                         android:minLines="4"
                         android:padding="12dp"
-                        android:scrollbars="vertical" />
+                        android:scrollbars="vertical"
+                        android:textColor="@color/button_color" />
                 </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
 

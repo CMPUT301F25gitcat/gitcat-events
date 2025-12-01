@@ -114,6 +114,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Date"
+                        android:textColor="@color/text_color_medium"
                         android:textSize="14sp" />
                 </LinearLayout>
 
@@ -138,6 +139,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Date"
+                        android:textColor="@color/text_color_medium"
                         android:textSize="14sp" />
                 </LinearLayout>
 
@@ -161,6 +163,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="100"
+                        android:textColor="@color/text_color_medium"
                         android:textSize="14sp" />
                 </LinearLayout>
 
